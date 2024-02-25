@@ -20,15 +20,15 @@ public class ConsensusMessageBuilder {
         return this;
     }
 
-   public ConsensusMessageBuilder setRound(int round) {
+    public ConsensusMessageBuilder setRound(int round) {
         instance.setRound(round);
         return this;
-   }
+    }
 
-   public ConsensusMessageBuilder setReplyTo(String replyTo) {
+    public ConsensusMessageBuilder setReplyTo(String replyTo) {
         instance.setReplyTo(replyTo);
         return this;
-   }
+    }
 
     public ConsensusMessageBuilder setReplyToMessageId(int replyToMessageId) {
         instance.setReplyToMessageId(replyToMessageId);

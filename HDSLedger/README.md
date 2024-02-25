@@ -25,10 +25,10 @@ Can be found inside the `resources/` folder of the `Service` module.
 
 ```json
 {
-    "id": <NODE_ID>,
-    "isLeader": <IS_LEADER>,
-    "hostname": "localhost",
-    "port": <NODE_PORT>,
+  "id": <NODE_ID>,
+  "isLeader": <IS_LEADER>,
+  "hostname": "localhost",
+  "port": <NODE_PORT>
 }
 ```
 
@@ -42,7 +42,8 @@ To install the necessary dependencies run the following command:
 
 This should install the following dependencies:
 
-- [Google's Gson](https://github.com/google/gson) - A Java library that can be used to convert Java Objects into their JSON representation.
+- [Google's Gson](https://github.com/google/gson) - A Java library that can be used to convert Java Objects into their
+  JSON representation.
 
 ## Puppet Master
 
@@ -54,13 +55,15 @@ To run the script you need to have `python3` installed.
 The script has arguments which can be modified:
 
 - `terminal` - the terminal emulator used by the script
-- `server_config` - a string from the array `server_configs` which contains the possible configurations for the blockchain nodes
+- `server_config` - a string from the array `server_configs` which contains the possible configurations for the
+  blockchain nodes
 
 Run the script with the following command:
 
 ```bash
 python3 puppet-master.py
 ```
+
 Note: You may need to install **kitty** in your computer
 
 ## Maven
@@ -90,6 +93,9 @@ Run with arguments
 cd <module>/
 mvn compile exec:java -Dexec.args="..."
 ```
+
 ---
-This codebase was adapted from last year's project solution, which was kindly provided by the following group: [David Belchior](https://github.com/DavidAkaFunky), [Diogo Santos](https://github.com/DiogoSantoss), [Vasco Correia](https://github.com/Vaascoo). We thank all the group members for sharing their code.
+This codebase was adapted from last year's project solution, which was kindly provided by the following
+group: [David Belchior](https://github.com/DavidAkaFunky), [Diogo Santos](https://github.com/DiogoSantoss), [Vasco Correia](https://github.com/Vaascoo).
+We thank all the group members for sharing their code.
 

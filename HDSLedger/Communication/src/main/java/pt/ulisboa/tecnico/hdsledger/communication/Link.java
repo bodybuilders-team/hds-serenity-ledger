@@ -1,14 +1,16 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
-
 import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.utilities.*;
 
 import java.io.IOException;
 import java.net.*;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,7 +44,7 @@ public class Link {
     }
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass,
-            boolean activateLogs, int baseSleepTime) {
+                boolean activateLogs, int baseSleepTime) {
 
         this.config = self;
         this.messageClass = messageClass;
@@ -115,7 +117,7 @@ public class Link {
                     return;
                 }
 
-                for (;;) {
+                for (; ; ) {
                     LOGGER.log(Level.INFO, MessageFormat.format(
                             "{0} - Sending {1} message to {2}:{3} with message ID {4} - Attempt #{5}", config.getId(),
                             data.getType(), destAddress, destPort, messageId, count++));
@@ -173,10 +175,10 @@ public class Link {
         String serialized = "";
         Boolean local = false;
         DatagramPacket response = null;
-        
+
         if (this.localhostQueue.size() > 0) {
             message = this.localhostQueue.poll();
-            local = true; 
+            local = true;
             this.receivedAcks.add(message.getMessageId());
         } else {
             byte[] buf = new byte[65535];
@@ -233,7 +235,8 @@ public class Link {
                 if (consensusMessage.getReplyTo() != null && consensusMessage.getReplyTo().equals(config.getId()))
                     receivedAcks.add(consensusMessage.getReplyToMessageId());
             }
-            default -> {}
+            default -> {
+            }
         }
 
         if (!local) {
@@ -249,7 +252,7 @@ public class Link {
             // it will discard duplicates
             unreliableSend(address, port, responseMessage);
         }
-        
+
         return message;
     }
 }

@@ -1,14 +1,14 @@
 package pt.ulisboa.tecnico.hdsledger.service.models;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MessageBucket {
 
@@ -25,9 +25,9 @@ public class MessageBucket {
 
     /*
      * Add a message to the bucket
-     * 
+     *
      * @param consensusInstance
-     * 
+     *
      * @param message
      */
     public void addMessage(ConsensusMessage message) {

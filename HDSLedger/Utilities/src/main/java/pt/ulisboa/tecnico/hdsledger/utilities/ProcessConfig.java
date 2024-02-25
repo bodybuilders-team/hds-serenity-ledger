@@ -1,15 +1,13 @@
 package pt.ulisboa.tecnico.hdsledger.utilities;
 
 public class ProcessConfig {
-    public ProcessConfig() {}
-
     private boolean isLeader;
-
     private String hostname;
-
     private String id;
-
     private int port;
+
+    public ProcessConfig() {
+    }
 
     public boolean isLeader() {
         return isLeader;

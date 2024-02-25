@@ -11,10 +11,6 @@ public class Message implements Serializable {
     // Message type
     private Type type;
 
-    public enum Type {
-        APPEND, PRE_PREPARE, PREPARE, COMMIT, ACK, IGNORE;
-    }
-
     public Message(String senderId, Type type) {
         this.senderId = senderId;
         this.type = type;
@@ -42,5 +38,9 @@ public class Message implements Serializable {
 
     public void setType(Type type) {
         this.type = type;
+    }
+
+    public enum Type {
+        APPEND, PRE_PREPARE, PREPARE, COMMIT, ACK, IGNORE;
     }
 }

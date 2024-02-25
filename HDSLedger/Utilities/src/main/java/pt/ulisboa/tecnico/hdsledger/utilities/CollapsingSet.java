@@ -26,7 +26,7 @@ public class CollapsingSet implements Set<Integer> {
     @Override
     public boolean isEmpty() {
         synchronized (this.set) {
-           return (this.floor + this.set.size()) == 0;
+            return (this.floor + this.set.size()) == 0;
         }
     }
 

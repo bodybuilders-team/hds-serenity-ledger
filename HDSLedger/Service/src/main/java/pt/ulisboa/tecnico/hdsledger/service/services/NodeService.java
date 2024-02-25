@@ -1,5 +1,12 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
+import pt.ulisboa.tecnico.hdsledger.communication.*;
+import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.service.models.InstanceInfo;
+import pt.ulisboa.tecnico.hdsledger.service.models.MessageBucket;
+import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
+
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -9,18 +16,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
-
-import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.Link;
-import pt.ulisboa.tecnico.hdsledger.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
-import pt.ulisboa.tecnico.hdsledger.service.models.InstanceInfo;
-import pt.ulisboa.tecnico.hdsledger.service.models.MessageBucket;
-import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
 public class NodeService implements UDPService {
 
@@ -54,7 +49,7 @@ public class NodeService implements UDPService {
     private ArrayList<String> ledger = new ArrayList<String>();
 
     public NodeService(Link link, ProcessConfig config,
-            ProcessConfig leaderConfig, ProcessConfig[] nodesConfig) {
+                       ProcessConfig leaderConfig, ProcessConfig[] nodesConfig) {
 
         this.link = link;
         this.config = config;
@@ -80,7 +75,7 @@ public class NodeService implements UDPService {
     private boolean isLeader(String id) {
         return this.leaderConfig.getId().equals(id);
     }
- 
+
     public ConsensusMessage createConsensusMessage(String value, int instance, int round) {
         PrePrepareMessage prePrepareMessage = new PrePrepareMessage(value);
 
@@ -127,7 +122,7 @@ public class NodeService implements UDPService {
         if (this.config.isLeader()) {
             InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
             LOGGER.log(Level.INFO,
-                MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
+                    MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
             this.link.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
         } else {
             LOGGER.log(Level.INFO,
@@ -266,7 +261,6 @@ public class NodeService implements UDPService {
     }
 
 
-
     /*
      * Handle commit messages and decide if there is a valid quorum
      *
@@ -314,20 +308,20 @@ public class NodeService implements UDPService {
             String value = commitValue.get();
 
             // Append value to the ledger (must be synchronized to be thread-safe)
-            synchronized(ledger) {
+            synchronized (ledger) {
 
                 // Increment size of ledger to accommodate current instance
                 ledger.ensureCapacity(consensusInstance);
                 while (ledger.size() < consensusInstance - 1) {
                     ledger.add("");
                 }
-                
+
                 ledger.add(consensusInstance - 1, value);
-                
+
                 LOGGER.log(Level.INFO,
-                    MessageFormat.format(
-                            "{0} - Current Ledger: {1}",
-                            config.getId(), String.join("", ledger)));
+                        MessageFormat.format(
+                                "{0} - Current Ledger: {1}",
+                                config.getId(), String.join("", ledger)));
             }
 
             lastDecidedConsensusInstance.getAndIncrement();
@@ -353,31 +347,26 @@ public class NodeService implements UDPService {
 
                             switch (message.getType()) {
 
-                                case PRE_PREPARE ->
-                                    uponPrePrepare((ConsensusMessage) message);
+                                case PRE_PREPARE -> uponPrePrepare((ConsensusMessage) message);
 
 
-                                case PREPARE ->
-                                    uponPrepare((ConsensusMessage) message);
+                                case PREPARE -> uponPrepare((ConsensusMessage) message);
 
 
-                                case COMMIT ->
-                                    uponCommit((ConsensusMessage) message);
+                                case COMMIT -> uponCommit((ConsensusMessage) message);
 
 
                                 case ACK ->
-                                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",
-                                            config.getId(), message.getSenderId()));
+                                        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",
+                                                config.getId(), message.getSenderId()));
 
-                                case IGNORE ->
-                                    LOGGER.log(Level.INFO,
-                                            MessageFormat.format("{0} - Received IGNORE message from {1}",
-                                                    config.getId(), message.getSenderId()));
+                                case IGNORE -> LOGGER.log(Level.INFO,
+                                        MessageFormat.format("{0} - Received IGNORE message from {1}",
+                                                config.getId(), message.getSenderId()));
 
-                                default ->
-                                    LOGGER.log(Level.INFO,
-                                            MessageFormat.format("{0} - Received unknown message from {1}",
-                                                    config.getId(), message.getSenderId()));
+                                default -> LOGGER.log(Level.INFO,
+                                        MessageFormat.format("{0} - Received unknown message from {1}",
+                                                config.getId(), message.getSenderId()));
 
                             }
 
