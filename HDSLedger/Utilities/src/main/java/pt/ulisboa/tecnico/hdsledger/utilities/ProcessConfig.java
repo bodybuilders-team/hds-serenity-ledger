@@ -1,5 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.utilities;
 
+/**
+ * Configuration of a process.
+ */
 public class ProcessConfig {
     private boolean isLeader;
     private String hostname;
@@ -7,6 +10,7 @@ public class ProcessConfig {
     private int port;
 
     public ProcessConfig() {
+        // Empty constructor
     }
 
     public boolean isLeader() {
@@ -24,6 +28,4 @@ public class ProcessConfig {
     public String getHostname() {
         return hostname;
     }
-
-
 }

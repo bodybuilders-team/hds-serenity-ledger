@@ -1,5 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.utilities;
 
+/**
+ * Enum to store error messages of the system.
+ */
 public enum ErrorMessage {
     ConfigFileNotFound("The configuration file is not available at the path supplied"),
     ConfigFileFormat("The configuration file has wrong syntax"),

@@ -17,6 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+/**
+ * Implementation of the UDPService interface.
+ */
 public class NodeService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(NodeService.class.getName());
@@ -48,9 +51,7 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
-    public NodeService(Link link, ProcessConfig config,
-                       ProcessConfig leaderConfig, ProcessConfig[] nodesConfig) {
-
+    public NodeService(Link link, ProcessConfig config, ProcessConfig leaderConfig, ProcessConfig[] nodesConfig) {
         this.link = link;
         this.config = config;
         this.leaderConfig = leaderConfig;
@@ -76,30 +77,35 @@ public class NodeService implements UDPService {
         return this.leaderConfig.getId().equals(id);
     }
 
+    /**
+     * Create a consensus message.
+     *
+     * @param value    Value to be agreed upon
+     * @param instance Consensus instance
+     * @param round    Consensus round
+     * @return Consensus message
+     */
     public ConsensusMessage createConsensusMessage(String value, int instance, int round) {
         PrePrepareMessage prePrepareMessage = new PrePrepareMessage(value);
 
-        ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PRE_PREPARE)
+        return new ConsensusMessageBuilder(config.getId(), Message.Type.PRE_PREPARE)
                 .setConsensusInstance(instance)
                 .setRound(round)
                 .setMessage(prePrepareMessage.toJson())
                 .build();
-
-        return consensusMessage;
     }
 
-    /*
+    /**
      * Start an instance of consensus for a value
      * Only the current leader will start a consensus instance
      * the remaining nodes only update values.
      *
      * @param inputValue Value to value agreed upon
      */
-    public void startConsensus(String value) {
-
+    public void startConsensus(String inputValue) {
         // Set initial consensus values
         int localConsensusInstance = this.consensusInstance.incrementAndGet();
-        InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value));
+        InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(inputValue));
 
         // If startConsensus was already called for a given round
         if (existingConsensus != null) {
@@ -123,21 +129,20 @@ public class NodeService implements UDPService {
             InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
-            this.link.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
+            this.link.broadcast(this.createConsensusMessage(inputValue, localConsensusInstance, instance.getCurrentRound()));
         } else {
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
         }
     }
 
-    /*
+    /**
      * Handle pre prepare messages and if the message
      * came from leader and is justified them broadcast prepare
      *
      * @param message Message to be handled
      */
     public void uponPrePrepare(ConsensusMessage message) {
-
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
         String senderId = message.getSenderId();
@@ -183,13 +188,12 @@ public class NodeService implements UDPService {
         this.link.broadcast(consensusMessage);
     }
 
-    /*
+    /**
      * Handle prepare messages and if there is a valid quorum broadcast commit
      *
      * @param message Message to be handled
      */
     public synchronized void uponPrepare(ConsensusMessage message) {
-
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
         String senderId = message.getSenderId();
@@ -261,13 +265,12 @@ public class NodeService implements UDPService {
     }
 
 
-    /*
+    /**
      * Handle commit messages and decide if there is a valid quorum
      *
      * @param message Message to be handled
      */
     public synchronized void uponCommit(ConsensusMessage message) {
-
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
 
@@ -344,17 +347,12 @@ public class NodeService implements UDPService {
 
                         // Separate thread to handle each message
                         new Thread(() -> {
-
                             switch (message.getType()) {
-
                                 case PRE_PREPARE -> uponPrePrepare((ConsensusMessage) message);
-
 
                                 case PREPARE -> uponPrepare((ConsensusMessage) message);
 
-
                                 case COMMIT -> uponCommit((ConsensusMessage) message);
-
 
                                 case ACK ->
                                         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",
@@ -367,9 +365,7 @@ public class NodeService implements UDPService {
                                 default -> LOGGER.log(Level.INFO,
                                         MessageFormat.format("{0} - Received unknown message from {1}",
                                                 config.getId(), message.getSenderId()));
-
                             }
-
                         }).start();
                     }
                 } catch (IOException | ClassNotFoundException e) {
@@ -380,5 +376,4 @@ public class NodeService implements UDPService {
             e.printStackTrace();
         }
     }
-
 }

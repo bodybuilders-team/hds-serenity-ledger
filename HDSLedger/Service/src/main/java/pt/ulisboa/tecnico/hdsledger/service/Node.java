@@ -11,6 +11,9 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.logging.Level;
 
+/**
+ * A node in the system.
+ */
 public class Node {
 
     private static final CustomLogger LOGGER = new CustomLogger(Node.class.getName());
@@ -18,7 +21,6 @@ public class Node {
     private static String nodesConfigPath = "src/main/resources/";
 
     public static void main(String[] args) {
-
         try {
             // Command line arguments
             String id = args[0];
@@ -34,18 +36,14 @@ public class Node {
                     nodeConfig.isLeader()));
 
             // Abstraction to send and receive messages
-            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), nodeConfigs,
-                    ConsensusMessage.class);
+            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);
 
             // Services that implement listen from UDPService
-            NodeService nodeService = new NodeService(linkToNodes, nodeConfig, leaderConfig,
-                    nodeConfigs);
+            NodeService nodeService = new NodeService(linkToNodes, nodeConfig, leaderConfig, nodeConfigs);
 
             nodeService.listen();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 }

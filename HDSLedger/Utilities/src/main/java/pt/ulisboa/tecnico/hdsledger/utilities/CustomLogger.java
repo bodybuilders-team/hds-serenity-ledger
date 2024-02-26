@@ -2,6 +2,9 @@ package pt.ulisboa.tecnico.hdsledger.utilities;
 
 import java.util.logging.*;
 
+/**
+ * Custom logger for the HDSS system.
+ */
 public class CustomLogger {
 
     private static Logger LOGGER;

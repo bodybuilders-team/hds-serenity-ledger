@@ -9,10 +9,20 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Builder for ProcessConfig.
+ */
 public class ProcessConfigBuilder {
 
     private final ProcessConfig instance = new ProcessConfig();
 
+    /**
+     * Returns the instance of ProcessConfig, read from a file.
+     *
+     * @param path The path to the file.
+     * @return The instance of ProcessConfig.
+     * @throws HDSSException If the file is not found or the format is incorrect.
+     */
     public ProcessConfig[] fromFile(String path) {
         System.out.println(path);
         try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(path))) {
