@@ -23,13 +23,10 @@ import java.util.logging.Level;
 public class NodeService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(NodeService.class.getName());
-    // Nodes configurations
-    private final ProcessConfig[] nodesConfig;
 
-    // Current node is leader
-    private final ProcessConfig config;
-    // Leader configuration
-    private final ProcessConfig leaderConfig;
+    private final ProcessConfig[] nodesConfig; // All nodes configuration
+    private final ProcessConfig config; // Current node configuration
+    private final ProcessConfig leaderConfig; // Leader configuration
 
     // Link to communicate with nodes
     private final Link link;
@@ -96,9 +93,8 @@ public class NodeService implements UDPService {
     }
 
     /**
-     * Start an instance of consensus for a value
-     * Only the current leader will start a consensus instance
-     * the remaining nodes only update values.
+     * Start an instance of consensus for a value.
+     * Only the current leader will start a consensus instance the remaining nodes only update values.
      *
      * @param inputValue Value to value agreed upon
      */
@@ -137,8 +133,7 @@ public class NodeService implements UDPService {
     }
 
     /**
-     * Handle pre prepare messages and if the message
-     * came from leader and is justified them broadcast prepare
+     * Handle pre-prepare messages and if the message came from leader and is justified them broadcast prepare.
      *
      * @param message Message to be handled
      */
@@ -189,7 +184,7 @@ public class NodeService implements UDPService {
     }
 
     /**
-     * Handle prepare messages and if there is a valid quorum broadcast commit
+     * Handle prepare messages and if there is a valid quorum broadcast commit.
      *
      * @param message Message to be handled
      */
@@ -266,7 +261,7 @@ public class NodeService implements UDPService {
 
 
     /**
-     * Handle commit messages and decide if there is a valid quorum
+     * Handle commit messages and decide if there is a valid quorum.
      *
      * @param message Message to be handled
      */
@@ -368,7 +363,7 @@ public class NodeService implements UDPService {
                             }
                         }).start();
                     }
-                } catch (IOException | ClassNotFoundException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }).start();

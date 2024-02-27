@@ -3,6 +3,9 @@ package pt.ulisboa.tecnico.hdsledger.service.models;
 
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 
+/**
+ * Information about a specific consensus instance.
+ */
 public class InstanceInfo {
 
     private int currentRound = 1;

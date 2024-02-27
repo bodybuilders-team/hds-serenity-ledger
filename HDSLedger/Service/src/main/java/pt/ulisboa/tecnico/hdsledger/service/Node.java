@@ -20,8 +20,17 @@ public class Node {
     // Hardcoded path to files
     private static String nodesConfigPath = "src/main/resources/";
 
+    /**
+     * Entry point for the node.
+     * Receives the id of the node and the path to the configuration file.
+     *
+     * @param args Command line arguments.
+     */
     public static void main(String[] args) {
         try {
+            if (args.length != 2)
+                throw new IllegalArgumentException("Usage: Node <id> <config_file>");
+
             // Command line arguments
             String id = args[0];
             nodesConfigPath += args[1];

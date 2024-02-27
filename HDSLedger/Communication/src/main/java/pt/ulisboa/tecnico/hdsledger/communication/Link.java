@@ -142,16 +142,14 @@ public class Link {
         }).start();
     }
 
-    /*
+    /**
      * Sends a message to a specific node without guarantee of delivery
      * Mainly used to send ACKs, if they are lost, the original message will be
      * resent
      *
-     * @param address The address of the destination node
-     *
-     * @param port The port of the destination node
-     *
-     * @param data The message to be sent
+     * @param hostname The hostname of the destination node
+     * @param port     The port of the destination node
+     * @param data     The message to be sent
      */
     public void unreliableSend(InetAddress hostname, int port, Message data) {
         new Thread(() -> {
@@ -169,14 +167,14 @@ public class Link {
     /*
      * Receives a message from any node in the network (blocking)
      */
-    public Message receive() throws IOException, ClassNotFoundException {
+    public Message receive() throws IOException {
 
         Message message = null;
         String serialized = "";
         Boolean local = false;
         DatagramPacket response = null;
 
-        if (this.localhostQueue.size() > 0) {
+        if (!this.localhostQueue.isEmpty()) {
             message = this.localhostQueue.poll();
             local = true;
             this.receivedAcks.add(message.getMessageId());
@@ -238,6 +236,8 @@ public class Link {
             default -> {
             }
         }
+
+        // Send ACK to the sender if the message was not local and is not ignored
 
         if (!local) {
             InetAddress address = InetAddress.getByName(response.getAddress().getHostAddress());

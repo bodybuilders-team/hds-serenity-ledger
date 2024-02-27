@@ -10,11 +10,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Bucket to store consensus messages.
+ */
 public class MessageBucket {
 
     private static final CustomLogger LOGGER = new CustomLogger(MessageBucket.class.getName());
-    // Quorum size
+
     private final int quorumSize;
+
     // Instance -> Round -> Sender ID -> Consensus message
     private final Map<Integer, Map<Integer, Map<String, ConsensusMessage>>> bucket = new ConcurrentHashMap<>();
 
@@ -23,12 +27,10 @@ public class MessageBucket {
         quorumSize = Math.floorDiv(nodeCount + f, 2) + 1;
     }
 
-    /*
-     * Add a message to the bucket
+    /**
+     * Add a message to the bucket.
      *
-     * @param consensusInstance
-     *
-     * @param message
+     * @param message The message to add
      */
     public void addMessage(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
@@ -39,6 +41,14 @@ public class MessageBucket {
         bucket.get(consensusInstance).get(round).put(message.getSenderId(), message);
     }
 
+    /**
+     * Check if the bucket has a valid prepare quorum.
+     *
+     * @param nodeId   The node ID
+     * @param instance The consensus instance
+     * @param round    The round
+     * @return The value if a valid prepare quorum exists
+     */
     public Optional<String> hasValidPrepareQuorum(String nodeId, int instance, int round) {
         // Create mapping of value to frequency
         HashMap<String, Integer> frequency = new HashMap<>();
@@ -50,13 +60,20 @@ public class MessageBucket {
 
         // Only one value (if any, thus the optional) will have a frequency
         // greater than or equal to the quorum size
-        return frequency.entrySet().stream().filter((Map.Entry<String, Integer> entry) -> {
-            return entry.getValue() >= quorumSize;
-        }).map((Map.Entry<String, Integer> entry) -> {
-            return entry.getKey();
-        }).findFirst();
+        return frequency.entrySet().stream()
+                .filter((Map.Entry<String, Integer> entry) -> entry.getValue() >= quorumSize)
+                .map(Map.Entry::getKey)
+                .findFirst();
     }
 
+    /**
+     * Check if the bucket has a valid commit quorum.
+     *
+     * @param nodeId   The node ID
+     * @param instance The consensus instance
+     * @param round    The round
+     * @return The value if a valid commit quorum exists
+     */
     public Optional<String> hasValidCommitQuorum(String nodeId, int instance, int round) {
         // Create mapping of value to frequency
         HashMap<String, Integer> frequency = new HashMap<>();
@@ -68,13 +85,19 @@ public class MessageBucket {
 
         // Only one value (if any, thus the optional) will have a frequency
         // greater than or equal to the quorum size
-        return frequency.entrySet().stream().filter((Map.Entry<String, Integer> entry) -> {
-            return entry.getValue() >= quorumSize;
-        }).map((Map.Entry<String, Integer> entry) -> {
-            return entry.getKey();
-        }).findFirst();
+        return frequency.entrySet().stream()
+                .filter((Map.Entry<String, Integer> entry) -> entry.getValue() >= quorumSize)
+                .map(Map.Entry::getKey)
+                .findFirst();
     }
 
+    /**
+     * Get the messages for a given instance and round.
+     *
+     * @param instance The consensus instance
+     * @param round    The round
+     * @return The messages
+     */
     public Map<String, ConsensusMessage> getMessages(int instance, int round) {
         return bucket.get(instance).get(round);
     }
