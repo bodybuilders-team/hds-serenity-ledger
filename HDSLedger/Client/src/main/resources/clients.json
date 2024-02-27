@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1",
+    "hostname": "localhost",
+    "port": 4001,
+    "script": "script_sample.txt"
+  },
+  {
+    "id": "2",
+    "hostname": "localhost",
+    "port": 4002,
+    "script": "script_sample.txt"
+  },
+  {
+    "id": "3",
+    "hostname": "localhost",
+    "port": 4003,
+    "script": "script_sample.txt"
+  }
+]

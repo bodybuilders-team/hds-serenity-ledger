@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import os
 import json
-import sys
+import os
 import signal
-
+import sys
 
 # Terminal Emulator used to spawn the processes
 terminal = "kitty"
@@ -14,8 +13,14 @@ server_configs = [
     "regular_config.json",
 ]
 
+# Blockchain client configuration file name
+client_configs = [
+    "clients.json",
+]
 
 server_config = server_configs[0]
+client_config = client_configs[0]
+
 
 def quit_handler(*args):
     os.system(f"pkill -i {terminal}")
@@ -35,6 +40,14 @@ with open(f"Service/src/main/resources/{server_config}") as f:
             os.system(
                 f"{terminal} sh -c \"cd Service; mvn exec:java -Dexec.args='{key['id']} {server_config}' ; sleep 500\"")
             sys.exit()
+
+# Spawn blockchain clients
+with open("Client/src/main/resources/clients.json") as f:
+    data = json.load(f)
+    for key in data:
+        os.system(
+            f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config}' {server_config}\"")
+        sys.exit()
 
 signal.signal(signal.SIGINT, quit_handler)
 

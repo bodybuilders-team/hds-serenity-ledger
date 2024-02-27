@@ -1,11 +1,14 @@
 package pt.ulisboa.tecnico.hdsledger.service;
 
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
+import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -17,8 +20,10 @@ import java.util.logging.Level;
 public class Node {
 
     private static final CustomLogger LOGGER = new CustomLogger(Node.class.getName());
+
     // Hardcoded path to files
     private static String nodesConfigPath = "src/main/resources/";
+    private static String clientsConfigPath = "../Client/src/main/resources/";
 
     /**
      * Entry point for the node.
@@ -28,17 +33,19 @@ public class Node {
      */
     public static void main(String[] args) {
         try {
-            if (args.length != 2)
-                throw new IllegalArgumentException("Usage: Node <id> <config_file>");
+            if (args.length != 3)
+                throw new IllegalArgumentException("Usage: Node <id> <nodesConfigPath> <clientsConfigPath>");
 
             // Command line arguments
             String id = args[0];
             nodesConfigPath += args[1];
+            clientsConfigPath += args[2];
 
             // Create configuration instances
-            ProcessConfig[] nodeConfigs = new ProcessConfigBuilder().fromFile(nodesConfigPath);
-            ProcessConfig leaderConfig = Arrays.stream(nodeConfigs).filter(ProcessConfig::isLeader).findAny().get();
-            ProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
+            ServerProcessConfig[] nodeConfigs = new ProcessConfigBuilder().fromFileServer(nodesConfigPath);
+            ClientProcessConfig[] clientConfigs = new ProcessConfigBuilder().fromFileClient(clientsConfigPath);
+            ServerProcessConfig leaderConfig = Arrays.stream(nodeConfigs).filter(ServerProcessConfig::isLeader).findAny().get();
+            ServerProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
 
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2}; is leader: {3}",
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort(),
@@ -46,11 +53,16 @@ public class Node {
 
             // Abstraction to send and receive messages
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);
+            Link linkToClients = new Link(nodeConfig, nodeConfig.getPort(), clientConfigs, HDSLedgerMessage.class);
 
-            // Services that implement listen from UDPService
+            // Service to handle the node's logic - consensus
             NodeService nodeService = new NodeService(linkToNodes, nodeConfig, leaderConfig, nodeConfigs);
 
+            // Service to handle the node's logic - ledger
+            HDSLedgerService hdsLedgerService = new HDSLedgerService(clientConfigs, nodeConfig, linkToClients, nodeService);
+
             nodeService.listen();
+            hdsLedgerService.listen();
         } catch (Exception e) {
             e.printStackTrace();
         }

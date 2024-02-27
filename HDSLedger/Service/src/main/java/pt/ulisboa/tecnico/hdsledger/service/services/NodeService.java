@@ -5,7 +5,8 @@ import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilde
 import pt.ulisboa.tecnico.hdsledger.service.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.service.models.MessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -18,15 +19,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /**
- * Implementation of the UDPService interface.
+ * Service to handle consensus instances and ledger.
  */
 public class NodeService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(NodeService.class.getName());
 
-    private final ProcessConfig[] nodesConfig; // All nodes configuration
-    private final ProcessConfig config; // Current node configuration
-    private final ProcessConfig leaderConfig; // Leader configuration
+    private final ServerProcessConfig[] nodesConfig; // All nodes configuration
+    private final ServerProcessConfig config; // Current node configuration
+    private final ServerProcessConfig leaderConfig; // Leader configuration
 
     // Link to communicate with nodes
     private final Link link;
@@ -48,7 +49,7 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
-    public NodeService(Link link, ProcessConfig config, ProcessConfig leaderConfig, ProcessConfig[] nodesConfig) {
+    public NodeService(Link link, ServerProcessConfig config, ServerProcessConfig leaderConfig, ServerProcessConfig[] nodesConfig) {
         this.link = link;
         this.config = config;
         this.leaderConfig = leaderConfig;

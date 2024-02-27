@@ -71,3 +71,4 @@ public class ConsensusMessage extends Message {
         this.replyToMessageId = replyToMessageId;
     }
 }
+

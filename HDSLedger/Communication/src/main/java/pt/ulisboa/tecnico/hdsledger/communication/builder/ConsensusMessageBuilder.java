@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.communication.builder;
 
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 
 public class ConsensusMessageBuilder {
@@ -39,3 +40,4 @@ public class ConsensusMessageBuilder {
         return instance;
     }
 }
+

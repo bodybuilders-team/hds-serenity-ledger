@@ -3,6 +3,7 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 import com.google.gson.Gson;
 import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.utilities.*;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 
 import java.io.IOException;
 import java.net.*;
