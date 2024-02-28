@@ -30,7 +30,7 @@ public class NodeService implements UDPService {
     private final ServerProcessConfig leaderConfig; // Leader configuration
 
     // Link to communicate with nodes
-    private final Link link;
+    private final AuthenticatedPerfectLink authenticatedPerfectLink;
 
     // Consensus instance -> Round -> List of prepare messages
     private final MessageBucket prepareMessages;
@@ -49,8 +49,8 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
-    public NodeService(Link link, ServerProcessConfig config, ServerProcessConfig leaderConfig, ServerProcessConfig[] nodesConfig) {
-        this.link = link;
+    public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, ServerProcessConfig config, ServerProcessConfig leaderConfig, ServerProcessConfig[] nodesConfig) {
+        this.authenticatedPerfectLink = authenticatedPerfectLink;
         this.config = config;
         this.leaderConfig = leaderConfig;
         this.nodesConfig = nodesConfig;
@@ -126,7 +126,7 @@ public class NodeService implements UDPService {
             InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
-            this.link.broadcast(this.createConsensusMessage(inputValue, localConsensusInstance, instance.getCurrentRound()));
+            this.authenticatedPerfectLink.broadcast(this.createConsensusMessage(inputValue, localConsensusInstance, instance.getCurrentRound()));
         } else {
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
@@ -181,7 +181,7 @@ public class NodeService implements UDPService {
                 .setReplyToMessageId(senderMessageId)
                 .build();
 
-        this.link.broadcast(consensusMessage);
+        this.authenticatedPerfectLink.broadcast(consensusMessage);
     }
 
     /**
@@ -229,7 +229,7 @@ public class NodeService implements UDPService {
                     .setMessage(instance.getCommitMessage().toJson())
                     .build();
 
-            link.send(senderId, m);
+            authenticatedPerfectLink.send(senderId, m);
             return;
         }
 
@@ -255,7 +255,7 @@ public class NodeService implements UDPService {
                         .setMessage(c.toJson())
                         .build();
 
-                link.send(senderMessage.getSenderId(), m);
+                authenticatedPerfectLink.send(senderMessage.getSenderId(), m);
             });
         }
     }
@@ -339,7 +339,7 @@ public class NodeService implements UDPService {
             new Thread(() -> {
                 try {
                     while (true) {
-                        Message message = link.receive();
+                        Message message = authenticatedPerfectLink.receive();
 
                         // Separate thread to handle each message
                         new Thread(() -> {

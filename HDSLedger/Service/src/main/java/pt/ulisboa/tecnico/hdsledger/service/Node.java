@@ -2,7 +2,7 @@ package pt.ulisboa.tecnico.hdsledger.service;
 
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.Link;
+import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
@@ -52,14 +52,14 @@ public class Node {
                     nodeConfig.isLeader()));
 
             // Abstraction to send and receive messages
-            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);
-            Link linkToClients = new Link(nodeConfig, nodeConfig.getPort(), clientConfigs, HDSLedgerMessage.class);
+            AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);
+            AuthenticatedPerfectLink authenticatedPerfectLinkToClients = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), clientConfigs, HDSLedgerMessage.class);
 
             // Service to handle the node's logic - consensus
-            NodeService nodeService = new NodeService(linkToNodes, nodeConfig, leaderConfig, nodeConfigs);
+            NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, leaderConfig, nodeConfigs);
 
             // Service to handle the node's logic - ledger
-            HDSLedgerService hdsLedgerService = new HDSLedgerService(clientConfigs, nodeConfig, linkToClients, nodeService);
+            HDSLedgerService hdsLedgerService = new HDSLedgerService(clientConfigs, nodeConfig, authenticatedPerfectLinkToClients, nodeService);
 
             nodeService.listen();
             hdsLedgerService.listen();

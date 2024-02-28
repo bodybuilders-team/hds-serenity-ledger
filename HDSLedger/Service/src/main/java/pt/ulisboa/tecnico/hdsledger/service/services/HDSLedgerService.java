@@ -1,7 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.Link;
+import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
@@ -20,16 +20,16 @@ public class HDSLedgerService implements UDPService {
     private final ServerProcessConfig serverProcessConfig;
 
     // Link to communicate with the clients
-    private final Link link;
+    private final AuthenticatedPerfectLink authenticatedPerfectLink;
 
     private final NodeService nodeService;
 
-    public HDSLedgerService(ClientProcessConfig[] clientProcessConfigs, ServerProcessConfig serverProcessConfig, Link link, NodeService nodeService) {
+    public HDSLedgerService(ClientProcessConfig[] clientProcessConfigs, ServerProcessConfig serverProcessConfig, AuthenticatedPerfectLink authenticatedPerfectLink, NodeService nodeService) {
         this.clientProcessConfigs = clientProcessConfigs;
         this.serverProcessConfig = serverProcessConfig;
         this.nodeService = nodeService;
 
-        this.link = link;
+        this.authenticatedPerfectLink = authenticatedPerfectLink;
     }
 
     /**
@@ -56,7 +56,7 @@ public class HDSLedgerService implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    HDSLedgerMessage message = (HDSLedgerMessage) link.receive();
+                    HDSLedgerMessage message = (HDSLedgerMessage) authenticatedPerfectLink.receive();
 
                     new Thread(() -> {
                         switch (message.getType()) {

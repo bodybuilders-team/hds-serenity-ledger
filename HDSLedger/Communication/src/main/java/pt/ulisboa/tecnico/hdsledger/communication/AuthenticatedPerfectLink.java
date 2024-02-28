@@ -2,11 +2,17 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
-import pt.ulisboa.tecnico.hdsledger.utilities.*;
+import pt.ulisboa.tecnico.hdsledger.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.utilities.CollapsingSet;
+import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 
 import java.io.IOException;
 import java.net.*;
+import java.security.KeyPair;
+import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -18,9 +24,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 
-public class Link {
+public class AuthenticatedPerfectLink {
 
-    private static final CustomLogger LOGGER = new CustomLogger(Link.class.getName());
+    private static final CustomLogger LOGGER = new CustomLogger(AuthenticatedPerfectLink.class.getName());
     // Time to wait for an ACK before resending the message
     private final int BASE_SLEEP_TIME;
     // UDP Socket
@@ -39,14 +45,16 @@ public class Link {
     private final AtomicInteger messageCounter = new AtomicInteger(0);
     // Send messages to self by pushing to queue instead of through the network
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
+    private final KeyPair keyPair;
 
-    public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
+    public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
         this(self, port, nodes, messageClass, false, 200);
     }
 
-    public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass,
-                boolean activateLogs, int baseSleepTime) {
+    public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass,
+                                    boolean activateLogs, int baseSleepTime) {
 
+        this.keyPair = CryptoUtils.readKeyPair(self.getPrivateKeyPath(), self.getPublicKeyPath());
         this.config = self;
         this.messageClass = messageClass;
         this.BASE_SLEEP_TIME = baseSleepTime;
@@ -150,12 +158,15 @@ public class Link {
      *
      * @param hostname The hostname of the destination node
      * @param port     The port of the destination node
-     * @param data     The message to be sent
+     * @param message  The message to be sent
      */
-    public void unreliableSend(InetAddress hostname, int port, Message data) {
+    public void unreliableSend(InetAddress hostname, int port, Message message) {
         new Thread(() -> {
             try {
-                byte[] buf = new Gson().toJson(data).getBytes();
+                byte[] messageBuf = new Gson().toJson(message).getBytes();
+                byte[] signature = CryptoUtils.sign(messageBuf, keyPair.getPrivate());
+                SignedPacket signedPacket = new SignedPacket(messageBuf, signature);
+                byte[] buf = new Gson().toJson(signedPacket).getBytes();
                 DatagramPacket packet = new DatagramPacket(buf, buf.length, hostname, port);
                 socket.send(packet);
             } catch (IOException e) {
@@ -169,8 +180,8 @@ public class Link {
      * Receives a message from any node in the network (blocking)
      */
     public Message receive() throws IOException {
-
         Message message = null;
+        SignedPacket signedPacket = null;
         String serialized = "";
         Boolean local = false;
         DatagramPacket response = null;
@@ -187,7 +198,8 @@ public class Link {
 
             byte[] buffer = Arrays.copyOfRange(response.getData(), 0, response.getLength());
             serialized = new String(buffer);
-            message = new Gson().fromJson(serialized, Message.class);
+            signedPacket = new Gson().fromJson(serialized, SignedPacket.class);
+            message = new Gson().fromJson(new String(signedPacket.getMessage()), Message.class);
         }
 
         String senderId = message.getSenderId();
@@ -195,6 +207,16 @@ public class Link {
 
         if (!nodes.containsKey(senderId))
             throw new HDSSException(ErrorMessage.NoSuchNode);
+
+        // Validate signature
+        if (signedPacket != null) {
+            PublicKey publicKey = CryptoUtils.getPublicKey(nodes.get(senderId).getPublicKeyPath());
+
+            boolean validSignature = CryptoUtils.verify(signedPacket.getMessage(), signedPacket.getSignature(), publicKey);
+            if (!validSignature) {
+                throw new HDSSException(ErrorMessage.InvalidSignatureError);
+            }
+        }
 
         // Handle ACKS, since it's possible to receive multiple acks from the same
         // message

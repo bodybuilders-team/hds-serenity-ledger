@@ -2,7 +2,7 @@ package pt.ulisboa.tecnico.hdsledger.clientlibrary;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.AppendCommand;
 import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.Link;
+import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.HDSLedgerMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
@@ -20,13 +20,13 @@ public class ClientLibrary {
     private static final CustomLogger LOGGER = new CustomLogger(ClientLibrary.class.getName());
 
     private final ClientProcessConfig clientConfig;
-    private Link link;
+    private AuthenticatedPerfectLink authenticatedPerfectLink;
 
     public ClientLibrary(ClientProcessConfig clientConfig, ServerProcessConfig[] nodesConfig) {
         this.clientConfig = clientConfig;
 
         try {
-            this.link = new Link(clientConfig, clientConfig.getPort(), nodesConfig, HDSLedgerMessage.class);
+            this.authenticatedPerfectLink = new AuthenticatedPerfectLink(clientConfig, clientConfig.getPort(), nodesConfig, HDSLedgerMessage.class);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error creating link: {1}",
                     clientConfig.getId(), e.getMessage()));
@@ -47,7 +47,7 @@ public class ClientLibrary {
                     .setValue(command.getValue())
                     .build();
 
-            link.send(clientConfig.getId(), message);
+            authenticatedPerfectLink.send(clientConfig.getId(), message);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending append: {1}",
                     clientConfig.getId(), e.getMessage()));
