@@ -1,1 +1,6 @@
-/HDSLedger.iml
+./Client/Client.iml
+./ClientLibrary/ClientLibrary.iml
+./Communication/Communication.iml
+./HDSLedger.iml
+./Service/Service.iml
+./Utilities/Utilities.iml
