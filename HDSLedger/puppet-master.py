@@ -38,7 +38,7 @@ with open(f"Service/src/main/resources/{server_config}") as f:
         pid = os.fork()
         if pid == 0:
             os.system(
-                f"{terminal} sh -c \"cd Service; mvn exec:java -Dexec.args='{key['id']} {server_config}' ; sleep 500\"")
+                f"{terminal} sh -c \"cd Service; mvn exec:java -Dexec.args='{key['id']} {server_config} {client_config} ' ; sleep 500\"")
             sys.exit()
 
 # Spawn blockchain clients
@@ -48,7 +48,7 @@ with open("Client/src/main/resources/clients.json") as f:
         pid = os.fork()
         if pid == 0:
             os.system(
-                f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config}' {server_config}\"")
+                f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config} {server_config} {key['script']}' ; sleep 500\" ")
             sys.exit()
 
 signal.signal(signal.SIGINT, quit_handler)

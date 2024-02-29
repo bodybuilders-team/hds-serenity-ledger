@@ -24,6 +24,7 @@ public class Client {
     // Hardcoded path to files
     private static String clientsConfigPath = "src/main/resources/";
     private static String nodesConfigPath = "../Service/src/main/resources/";
+    private static String scriptPath = "src/main/resources/";
 
     public static void main(String[] args) {
         if (args.length > 4 || args.length < 3) {
@@ -51,12 +52,13 @@ public class Client {
 
             while (true) {
                 String command = System.console().readLine();
-
+                // TODO: Finish command line interface
             }
-
         }
+
         String scriptFilePath = args[3];
-        ScriptReader scriptReader = new ScriptReader(scriptFilePath);
+        scriptPath += scriptFilePath;
+        ScriptReader scriptReader = new ScriptReader(scriptPath);
 
         while (scriptReader.hasNext()) {
             Command command = scriptReader.next();

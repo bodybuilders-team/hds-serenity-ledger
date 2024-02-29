@@ -2,6 +2,7 @@ package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.AppendCommand;
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.Command;
+import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.ReadCommand;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -14,7 +15,6 @@ class ScriptReader {
     private BufferedReader reader;
 
     public ScriptReader(String filePath) {
-
         try {
             this.reader = new BufferedReader(new FileReader(filePath));
         } catch (IOException e) {
@@ -44,16 +44,21 @@ class ScriptReader {
     public Command next() {
         try {
             String line = reader.readLine();
-            String[] parts = line.split(", ");
+            if (line == null) {
+                return null;
+            }
+            line = line.substring(1, line.length() - 1); // Remove the "<" and ">" characters
+            String[] parts = line.split(", \""); // Split the line into operation and value
             String operation = parts[0];
-            String value = parts[1];
+            String value = parts.length > 1 ? parts[1] : null;
             if (operation.equals("append")) {
                 return new AppendCommand(value);
+            } else if (operation.equals("read")) {
+                return new ReadCommand();
             }
             // TODO: Add other operations here if needed
         } catch (IOException e) {
             e.printStackTrace();
-
         }
         return null;
     }
