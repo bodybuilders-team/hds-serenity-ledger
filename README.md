@@ -2,6 +2,8 @@
 
 > Highly Dependable Systems project of group 12 - MEIC @ IST 2023/2024.
 
+Click [here](./HDSSerenityLedger/README.md) to see the project's documentation.
+
 ## Authors
 
 - [110817 André Páscoa](https://github.com/devandrepascoa)
