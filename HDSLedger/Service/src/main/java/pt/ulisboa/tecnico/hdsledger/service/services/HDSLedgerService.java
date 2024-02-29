@@ -1,12 +1,15 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
-import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
+import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.communication.builder.HDSLedgerMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.logging.Level;
 
 /**
@@ -42,12 +45,42 @@ public class HDSLedgerService implements UDPService {
                 serverProcessConfig.getId(), message.getValue()));
 
         try {
-            // TODO: mandar para o nodeService a mensagem para append (possivelmente meter numa queue ou assim) para ele tratar
+            nodeService.startConsensus(message.getValue());
+
+            // Send the response
+            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.APPEND_RESPONSE)
+                    .setValue("Value appended successfully")
+                    .build();
+
+            authenticatedPerfectLink.send(message.getSenderId(), response);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending append: {1}",
                     serverProcessConfig.getId(), e.getMessage()));
         }
     }
+
+    /**
+     * Handles a read message.
+     *
+     * @param message the read message
+     */
+    public void uponRead(HDSLedgerMessage message) {
+        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Reading: {1}",
+                serverProcessConfig.getId(), message.getValue()));
+
+        try {
+            ArrayList<String> ledger = nodeService.getLedger();
+            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.READ_RESPONSE)
+                    .setValue(String.join(", ", ledger))
+                    .build();
+
+            authenticatedPerfectLink.send(message.getSenderId(), response);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending read: {1}",
+                    serverProcessConfig.getId(), e.getMessage()));
+        }
+    }
+
 
     @Override
     public void listen() {
@@ -61,6 +94,8 @@ public class HDSLedgerService implements UDPService {
                     new Thread(() -> {
                         switch (message.getType()) {
                             case APPEND -> uponAppend(message);
+
+                            case READ -> uponRead(message);
 
                             default ->
                                     LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Received unknown message type: {1}",

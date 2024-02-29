@@ -68,7 +68,9 @@ public class NodeService implements UDPService {
     }
 
     public ArrayList<String> getLedger() {
-        return this.ledger;
+        synchronized (ledger) {
+            return this.ledger;
+        }
     }
 
     private boolean isLeader(String id) {

@@ -1,10 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.clientlibrary;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.AppendCommand;
-import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
+import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.HDSLedgerMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.service.services.UDPService;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
@@ -15,7 +16,7 @@ import java.util.logging.Level;
 /**
  * API for the HDSLedger client.
  */
-public class ClientLibrary {
+public class ClientLibrary implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(ClientLibrary.class.getName());
 
@@ -47,10 +48,62 @@ public class ClientLibrary {
                     .setValue(command.getValue())
                     .build();
 
-            authenticatedPerfectLink.send(clientConfig.getId(), message);
+            authenticatedPerfectLink.broadcast(message);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending append: {1}",
                     clientConfig.getId(), e.getMessage()));
         }
     }
+
+    /**
+     * Reads the ledger.
+     */
+    public void read() {
+        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Reading", clientConfig.getId()));
+
+        try {
+            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.READ)
+                    .build();
+
+            authenticatedPerfectLink.send(clientConfig.getId(), message);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending read: {1}",
+                    clientConfig.getId(), e.getMessage()));
+        }
+    }
+
+    @Override
+    public void listen() {
+        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Listening for messages", clientConfig.getId()));
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    HDSLedgerMessage message = (HDSLedgerMessage) authenticatedPerfectLink.receive();
+
+                    new Thread(() -> {
+                        switch (message.getType()) {
+                            case APPEND_RESPONSE ->
+                                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received append response: {1}",
+                                            clientConfig.getId(), message.getValue()));
+
+                            case READ_RESPONSE ->
+                                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received read response: {1}",
+                                            clientConfig.getId(), message.getValue()));
+
+                            default ->
+                                    LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Received unknown message type: {1}",
+                                            clientConfig.getId(), message.getType()));
+                        }
+                    }).start();
+
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error receiving message: {1}",
+                            clientConfig.getId(), e.getMessage()));
+                }
+            }
+        }).start();
+    }
+
+    // TODO: Implement listening for messages from the server
 }

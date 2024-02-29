@@ -24,9 +24,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 
+/**
+ * An authenticated perfect link implementation.
+ * Provides reliable delivery, no duplication and authenticity.
+ */
 public class AuthenticatedPerfectLink {
 
     private static final CustomLogger LOGGER = new CustomLogger(AuthenticatedPerfectLink.class.getName());
+
     // Time to wait for an ACK before resending the message
     private final int BASE_SLEEP_TIME;
     // UDP Socket
@@ -47,7 +52,10 @@ public class AuthenticatedPerfectLink {
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
     private final KeyPair keyPair;
 
-    public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
+    public AuthenticatedPerfectLink(
+            ProcessConfig self, int port, ProcessConfig[] nodes,
+            Class<? extends Message> messageClass
+    ) {
         this(self, port, nodes, messageClass, false, 200);
     }
 
@@ -79,22 +87,21 @@ public class AuthenticatedPerfectLink {
         receivedAcks.addAll(messageIds);
     }
 
-    /*
+    /**
      * Broadcasts a message to all nodes in the network
      *
-     * @param data The message to be broadcasted
+     * @param data The message to be broadcast
      */
     public void broadcast(Message data) {
         Gson gson = new Gson();
         nodes.forEach((destId, dest) -> send(destId, gson.fromJson(gson.toJson(data), data.getClass())));
     }
 
-    /*
+    /**
      * Sends a message to a specific node with guarantee of delivery
      *
      * @param nodeId The node identifier
-     *
-     * @param data The message to be sent
+     * @param data   The message to be sent
      */
     public void send(String nodeId, Message data) {
 
@@ -152,9 +159,8 @@ public class AuthenticatedPerfectLink {
     }
 
     /**
-     * Sends a message to a specific node without guarantee of delivery
-     * Mainly used to send ACKs, if they are lost, the original message will be
-     * resent
+     * Sends a message to a specific node without guarantee of delivery.
+     * Mainly used to send ACKs, if they are lost, the original message will be resent.
      *
      * @param hostname The hostname of the destination node
      * @param port     The port of the destination node
@@ -176,8 +182,10 @@ public class AuthenticatedPerfectLink {
         }).start();
     }
 
-    /*
-     * Receives a message from any node in the network (blocking)
+    /**
+     * Receives a message from any node in the network (blocking).
+     *
+     * @return The received message
      */
     public Message receive() throws IOException {
         Message message = null;
@@ -218,8 +226,7 @@ public class AuthenticatedPerfectLink {
             }
         }
 
-        // Handle ACKS, since it's possible to receive multiple acks from the same
-        // message
+        // Handle ACKS, since it's possible to receive multiple acks from the same message
         if (message.getType().equals(Message.Type.ACK)) {
             receivedAcks.add(messageId);
             return message;

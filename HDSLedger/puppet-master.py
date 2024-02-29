@@ -45,9 +45,11 @@ with open(f"Service/src/main/resources/{server_config}") as f:
 with open("Client/src/main/resources/clients.json") as f:
     data = json.load(f)
     for key in data:
-        os.system(
-            f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config}' {server_config}\"")
-        sys.exit()
+        pid = os.fork()
+        if pid == 0:
+            os.system(
+                f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config}' {server_config}\"")
+            sys.exit()
 
 signal.signal(signal.SIGINT, quit_handler)
 

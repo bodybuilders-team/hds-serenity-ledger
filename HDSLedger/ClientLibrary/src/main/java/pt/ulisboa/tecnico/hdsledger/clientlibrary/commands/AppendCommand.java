@@ -1,7 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.clientlibrary.commands;
 
 /**
- * An append command.
+ * A command to append a value to the ledger.
  */
 public class AppendCommand implements Command {
     private final String value;
@@ -14,3 +14,4 @@ public class AppendCommand implements Command {
         return value;
     }
 }
+

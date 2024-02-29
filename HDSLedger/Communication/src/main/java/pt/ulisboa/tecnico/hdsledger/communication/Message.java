@@ -45,6 +45,7 @@ public class Message implements Serializable {
         PRE_PREPARE, PREPARE, COMMIT, ACK, IGNORE,
 
         // Messages for the library (client to node)
-        APPEND // TODO: in the future, add more types of messages if needed
+        APPEND, APPEND_RESPONSE, READ, READ_RESPONSE
+        // TODO: in the future, add more types of messages if needed
     }
 }

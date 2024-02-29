@@ -6,8 +6,8 @@ package pt.ulisboa.tecnico.hdsledger.utilities.config;
 public class ServerProcessConfig extends ProcessConfig {
     private boolean isLeader;
 
-    public ServerProcessConfig(String id, String hostname, int port, boolean isLeader) {
-        super(id, hostname, port);
+    public ServerProcessConfig(String id, String hostname, int port, boolean isLeader, String privateKeyPath, String publicKeyPath) {
+        super(id, hostname, port, privateKeyPath, publicKeyPath);
         this.isLeader = isLeader;
     }
 

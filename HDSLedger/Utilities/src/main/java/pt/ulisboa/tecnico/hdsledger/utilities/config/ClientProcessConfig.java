@@ -6,8 +6,8 @@ package pt.ulisboa.tecnico.hdsledger.utilities.config;
 public class ClientProcessConfig extends ProcessConfig {
     private String script;
 
-    public ClientProcessConfig(String id, String hostname, int port, String script) {
-        super(id, hostname, port);
+    public ClientProcessConfig(String id, String hostname, int port, String script, String privateKeyPath, String publicKeyPath) {
+        super(id, hostname, port, privateKeyPath, publicKeyPath);
         this.script = script;
     }
 

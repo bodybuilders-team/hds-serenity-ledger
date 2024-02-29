@@ -3,6 +3,7 @@ package pt.ulisboa.tecnico.hdsledger.client;
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.ClientLibrary;
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.AppendCommand;
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.Command;
+import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.ReadCommand;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
@@ -25,8 +26,8 @@ public class Client {
     private static String nodesConfigPath = "../Service/src/main/resources/";
 
     public static void main(String[] args) {
-        if (args.length != 3) {
-            System.out.println("Usage: java Client <clientID> <clientConfig> <nodesConfig>");
+        if (args.length > 4 || args.length < 3) {
+            System.out.println("Usage: java Client <clientID> <clientConfig> <nodesConfig> [<script>]");
             return;
         }
 
@@ -44,6 +45,16 @@ public class Client {
 
         ClientLibrary clientLibrary = new ClientLibrary(clientConfig, nodesConfig);
 
+        // If no script is provided, start the command line interface
+        if (args.length == 3) {
+            printWelcomeMessage();
+
+            while (true) {
+                String command = System.console().readLine();
+
+            }
+
+        }
         String scriptFilePath = args[3];
         ScriptReader scriptReader = new ScriptReader(scriptFilePath);
 
@@ -52,9 +63,25 @@ public class Client {
 
             if (Objects.requireNonNull(command) instanceof AppendCommand appendCommand) {
                 clientLibrary.append(appendCommand);
+            } else if (command instanceof ReadCommand) {
+                clientLibrary.read();
             } else {
                 LOGGER.log(Level.WARNING, "Unknown command: " + command);
             }
         }
+    }
+
+    /**
+     * Prints the welcome message.
+     */
+    private static void printWelcomeMessage() {
+        System.out.println("""
+                ########################################################
+                #                                                      #
+                #           Welcome to HDS Serenity Ledger!            #
+                #                                                      #
+                ########################################################"""
+        );
+        // TODO: Finish command line interface
     }
 }
