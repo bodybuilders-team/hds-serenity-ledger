@@ -50,7 +50,7 @@ class ScriptReader {
             line = line.substring(1, line.length() - 1); // Remove the "<" and ">" characters
             String[] parts = line.split(", \""); // Split the line into operation and value
             String operation = parts[0];
-            String value = parts.length > 1 ? parts[1] : null;
+            String value = parts.length > 1 ? parts[1].substring(0, parts[1].length() -1) : null;
             if (operation.equals("append")) {
                 return new AppendCommand(value);
             } else if (operation.equals("read")) {
