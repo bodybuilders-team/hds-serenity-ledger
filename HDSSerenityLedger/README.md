@@ -143,7 +143,7 @@ mvn compile exec:java -Dexec.args="..."
 
 ---
 
-## Aknowledgements
+## Acknowledgement
 
 The base code for this project was provided by the course's professors, which was kindly provided by the following
 group: [David Belchior](https://github.com/DavidAkaFunky), [Diogo Santos](https://github.com/DiogoSantoss), [Vasco Correia](https://github.com/Vaascoo).

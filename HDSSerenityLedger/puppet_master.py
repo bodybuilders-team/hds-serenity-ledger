@@ -42,7 +42,7 @@ with open(f"Service/src/main/resources/{server_config}") as f:
             sys.exit()
 
 # Spawn blockchain clients
-with open("Client/src/main/resources/clients.json") as f:
+with open(f"Client/src/main/resources/{client_config}") as f:
     data = json.load(f)
     for key in data:
         pid = os.fork()
