@@ -193,7 +193,7 @@ public class AuthenticatedPerfectLink {
     public Message receive() throws IOException {
         Message message = null;
         SignedPacket signedPacket = null;
-        String serialized = "";
+        String serializedMessage = "";
         Boolean local = false;
         DatagramPacket response = null;
 
@@ -208,9 +208,10 @@ public class AuthenticatedPerfectLink {
             socket.receive(response);
 
             byte[] buffer = Arrays.copyOfRange(response.getData(), 0, response.getLength());
-            serialized = new String(buffer);
-            signedPacket = new Gson().fromJson(serialized, SignedPacket.class);
-            message = new Gson().fromJson(new String(signedPacket.getMessage()), Message.class);
+            String serializedSignedPacket = new String(buffer);
+            signedPacket = new Gson().fromJson(serializedSignedPacket, SignedPacket.class);
+            serializedMessage = new String(signedPacket.getMessage());
+            message = new Gson().fromJson(serializedMessage, Message.class);
         }
 
         String senderId = message.getSenderId();
@@ -240,7 +241,7 @@ public class AuthenticatedPerfectLink {
 
         // It's not an ACK -> Deserialize for the correct type
         if (!local)
-            message = new Gson().fromJson(serialized, this.messageClass);
+            message = new Gson().fromJson(serializedMessage, this.messageClass);
 
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
         Type originalType = message.getType();
