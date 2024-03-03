@@ -220,8 +220,12 @@ public class AuthenticatedPerfectLink {
         if (!nodes.containsKey(senderId))
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
-        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from {2}:{3} with message ID {4}",
-                config.getId(), message.getType(), response.getAddress(), response.getPort(),  messageId));
+        if (response == null)
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from self with message ID {4}",
+                    config.getId(), message.getType(), messageId));
+        else
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from {2}:{3} with message ID {4}",
+                    config.getId(), response.getAddress(), response.getPort(), message.getType(), messageId));
 
         // Validate signature
         if (signedPacket != null) {
@@ -238,11 +242,9 @@ public class AuthenticatedPerfectLink {
             receivedAcks.add(messageId);
             return message;
         }
-
         // It's not an ACK -> Deserialize for the correct type
         if (!local)
             message = new Gson().fromJson(serializedMessage, this.messageClass);
-
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
         Type originalType = message.getType();
         // Message already received (add returns false if already exists) => Discard

@@ -27,7 +27,7 @@ public class ClientLibrary implements UDPService {
         this.clientConfig = clientConfig;
 
         try {
-            this.authenticatedPerfectLink = new AuthenticatedPerfectLink(clientConfig, clientConfig.getPort(), nodesConfig, HDSLedgerMessage.class, false, 200, true);
+            this.authenticatedPerfectLink = new AuthenticatedPerfectLink(clientConfig, clientConfig.getPort(), nodesConfig, HDSLedgerMessage.class, true, 200, true);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error creating link: {1}",
                     clientConfig.getId(), e.getMessage()));
@@ -65,7 +65,7 @@ public class ClientLibrary implements UDPService {
             HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.READ)
                     .build();
 
-            authenticatedPerfectLink.send(clientConfig.getId(), message);
+            authenticatedPerfectLink.broadcast(message);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending read: {1}",
                     clientConfig.getId(), e.getMessage()));
@@ -79,23 +79,25 @@ public class ClientLibrary implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    HDSLedgerMessage message = (HDSLedgerMessage) authenticatedPerfectLink.receive();
+                    Message message = authenticatedPerfectLink.receive();
 
-                    new Thread(() -> {
-                        switch (message.getType()) {
-                            case APPEND_RESPONSE ->
-                                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received append response: {1}",
-                                            clientConfig.getId(), message.getValue()));
+                    if (!(message instanceof HDSLedgerMessage))
+                        continue;
 
-                            case READ_RESPONSE ->
-                                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received read response: {1}",
-                                            clientConfig.getId(), message.getValue()));
+                    HDSLedgerMessage ledgerMessage = (HDSLedgerMessage) message;
+                    switch (ledgerMessage.getType()) {
+                        case APPEND_RESPONSE ->
+                                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received append response: {1}",
+                                        clientConfig.getId(), ledgerMessage.getValue()));
 
-                            default ->
-                                    LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Received unknown message type: {1}",
-                                            clientConfig.getId(), message.getType()));
-                        }
-                    }).start();
+                        case READ_RESPONSE ->
+                                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received read response: {1}",
+                                        clientConfig.getId(), ledgerMessage.getValue()));
+
+                        default ->
+                                LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Received unknown message type: {1}",
+                                        clientConfig.getId(), ledgerMessage.getType()));
+                    }
 
                 } catch (Exception e) {
                     LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error receiving message: {1}",

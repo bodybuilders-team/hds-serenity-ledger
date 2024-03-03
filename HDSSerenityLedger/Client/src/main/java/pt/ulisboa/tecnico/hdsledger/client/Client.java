@@ -46,6 +46,11 @@ public class Client {
                 clientConfig.getHostname(), clientConfig.getPort()));
 
         ClientLibrary clientLibrary = new ClientLibrary(clientConfig, nodesConfig);
+        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2};", clientConfig.getId(),
+                clientConfig.getHostname(), clientConfig.getPort()));
+
+
+        clientLibrary.listen();
 
         // If no script is provided, start the command line interface
         if (args.length == 3) {
@@ -55,8 +60,19 @@ public class Client {
                 Scanner in = new Scanner(System.in);
 
                 String command = in.nextLine();
-                System.out.println("Command: " + command);
-                // TODO: Finish command line interface
+
+                if (command.equals("exit")) {
+                    break;
+                }
+
+                if (command.equals("read")) {
+                    clientLibrary.read();
+                } else if (command.startsWith("append")) {
+                    String value = command.substring(7);
+                    clientLibrary.append(new AppendCommand(value));
+                } else {
+                    LOGGER.log(Level.WARNING, "Unknown command: " + command);
+                }
             }
         }
 
@@ -66,7 +82,7 @@ public class Client {
 
         while (scriptReader.hasNext()) {
             Command command = scriptReader.next();
-
+            LOGGER.log(Level.INFO, "Command: " + command);
             if (Objects.requireNonNull(command) instanceof AppendCommand appendCommand) {
                 clientLibrary.append(appendCommand);
             } else if (command instanceof ReadCommand) {

@@ -6,21 +6,5 @@
     "scriptPath": "script_sample.txt",
     "privateKeyPath": "../keypairs/client_1/private_key.der",
     "publicKeyPath": "../keypairs/client_1/public_key.der"
-  },
-  {
-    "id": "102",
-    "hostname": "localhost",
-    "port": 4002,
-    "scriptPath": "script_sample.txt",
-    "privateKeyPath": "../keypairs/client_2/private_key.der",
-    "publicKeyPath": "../keypairs/client_2/public_key.der"
-  },
-  {
-    "id": "103",
-    "hostname": "localhost",
-    "port": 4003,
-    "scriptPath": "script_sample.txt",
-    "privateKeyPath": "../keypairs/client_3/private_key.der",
-    "publicKeyPath": "../keypairs/client_3/public_key.der"
   }
 ]

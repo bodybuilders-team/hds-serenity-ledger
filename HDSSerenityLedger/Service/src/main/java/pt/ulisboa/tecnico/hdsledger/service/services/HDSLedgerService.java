@@ -89,17 +89,21 @@ public class HDSLedgerService implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    HDSLedgerMessage message = (HDSLedgerMessage) authenticatedPerfectLink.receive();
+                    Message message = authenticatedPerfectLink.receive();
 
+                    if (!(message instanceof HDSLedgerMessage))
+                        continue;
+
+                    HDSLedgerMessage ledgerMessage = (HDSLedgerMessage) message;
                     new Thread(() -> {
-                        switch (message.getType()) {
-                            case APPEND -> uponAppend(message);
+                        switch (ledgerMessage.getType()) {
+                            case APPEND -> uponAppend(ledgerMessage);
 
-                            case READ -> uponRead(message);
+                            case READ -> uponRead(ledgerMessage);
 
                             default ->
                                     LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Received unknown message type: {1}",
-                                            serverProcessConfig.getId(), message.getType()));
+                                            serverProcessConfig.getId(), ledgerMessage.getType()));
                         }
                     }).start();
 
