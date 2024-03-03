@@ -39,6 +39,9 @@ public class CryptoUtils {
     public static KeyPair readKeyPair(String privateKeyPath, String publicKeyPath) {
         final PublicKey publicKey = getPublicKey(publicKeyPath);
         final PrivateKey privateKey = getPrivateKey(privateKeyPath);
+        if (publicKey == null || privateKey == null)
+            throw new HDSSException(ErrorMessage.KeyPairLoadError);
+
         return new KeyPair(publicKey, privateKey);
     }
 
@@ -121,10 +124,11 @@ public class CryptoUtils {
     public static boolean verify(byte[] data, byte[] signature, PublicKey publicKey) {
         try {
             final Signature sig = Signature.getInstance(SIGNATURE_ALGORITHM);
+            sig.initVerify(publicKey);
             sig.update(data);
 
             return sig.verify(signature);
-        } catch (NoSuchAlgorithmException | SignatureException e) {
+        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
             throw new HDSSException(ErrorMessage.InvalidSignatureError);
         }
     }

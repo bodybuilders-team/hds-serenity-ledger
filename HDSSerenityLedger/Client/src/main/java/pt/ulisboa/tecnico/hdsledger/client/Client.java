@@ -12,6 +12,7 @@ import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Scanner;
 import java.util.logging.Level;
 
 /**
@@ -51,7 +52,10 @@ public class Client {
             printWelcomeMessage();
 
             while (true) {
-                String command = System.console().readLine();
+                Scanner in = new Scanner(System.in);
+
+                String command = in.nextLine();
+                System.out.println("Command: " + command);
                 // TODO: Finish command line interface
             }
         }

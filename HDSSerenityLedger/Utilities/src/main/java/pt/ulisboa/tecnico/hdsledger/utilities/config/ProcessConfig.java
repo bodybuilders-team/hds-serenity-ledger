@@ -7,13 +7,15 @@ public class ProcessConfig {
     private String hostname;
     private String id;
     private int port;
+    private int clientPort;
     private String privateKeyPath;
     private String publicKeyPath;
 
-    public ProcessConfig(String id, String hostname, int port, String privateKeyPath, String publicKeyPath) {
+    public ProcessConfig(String id, String hostname, int port, int clientPort, String privateKeyPath, String publicKeyPath) {
         this.id = id;
         this.hostname = hostname;
         this.port = port;
+        this.clientPort = clientPort;
         this.privateKeyPath = privateKeyPath;
         this.publicKeyPath = publicKeyPath;
     }
@@ -36,6 +38,10 @@ public class ProcessConfig {
 
     public String getPublicKeyPath() {
         return publicKeyPath;
+    }
+
+    public int getClientPort() {
+        return clientPort;
     }
 }
 

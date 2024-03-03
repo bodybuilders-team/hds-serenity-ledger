@@ -53,7 +53,7 @@ public class Node {
 
             // Abstraction to send and receive messages
             AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);
-            AuthenticatedPerfectLink authenticatedPerfectLinkToClients = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), clientConfigs, HDSLedgerMessage.class);
+            AuthenticatedPerfectLink authenticatedPerfectLinkToClients = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getClientPort(), clientConfigs, HDSLedgerMessage.class);
 
             // Service to handle the node's logic - consensus
             NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, leaderConfig, nodeConfigs);

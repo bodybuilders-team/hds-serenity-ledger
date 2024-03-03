@@ -34,6 +34,7 @@ public class AuthenticatedPerfectLink {
 
     // Time to wait for an ACK before resending the message
     private final int BASE_SLEEP_TIME;
+    private final boolean sendToClientSocket;
     // UDP Socket
     private final DatagramSocket socket;
     // Map of all nodes in the network
@@ -56,16 +57,17 @@ public class AuthenticatedPerfectLink {
             ProcessConfig self, int port, ProcessConfig[] nodes,
             Class<? extends Message> messageClass
     ) {
-        this(self, port, nodes, messageClass, false, 200);
+        this(self, port, nodes, messageClass, false, 200, false);
     }
 
     public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass,
-                                    boolean activateLogs, int baseSleepTime) {
+                                    boolean activateLogs, int baseSleepTime, boolean sendToClientSocket) {
 
         this.keyPair = CryptoUtils.readKeyPair(self.getPrivateKeyPath(), self.getPublicKeyPath());
         this.config = self;
         this.messageClass = messageClass;
         this.BASE_SLEEP_TIME = baseSleepTime;
+        this.sendToClientSocket = sendToClientSocket;
 
         Arrays.stream(nodes).forEach(node -> {
             String id = node.getId();
@@ -117,7 +119,8 @@ public class AuthenticatedPerfectLink {
 
                 // If the message is not ACK, it will be resent
                 InetAddress destAddress = InetAddress.getByName(node.getHostname());
-                int destPort = node.getPort();
+
+                int destPort = sendToClientSocket ? node.getClientPort() : node.getPort();
                 int count = 1;
                 int messageId = data.getMessageId();
                 int sleepTime = BASE_SLEEP_TIME;
@@ -215,6 +218,9 @@ public class AuthenticatedPerfectLink {
 
         if (!nodes.containsKey(senderId))
             throw new HDSSException(ErrorMessage.NoSuchNode);
+
+        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from {2}:{3} with message ID {4}",
+                config.getId(), message.getType(), response.getAddress(), response.getPort(),  messageId));
 
         // Validate signature
         if (signedPacket != null) {

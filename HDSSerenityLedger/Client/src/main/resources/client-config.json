@@ -1,26 +1,26 @@
 [
   {
-    "id": "1",
+    "id": "101",
     "hostname": "localhost",
     "port": 4001,
     "scriptPath": "script_sample.txt",
-    "privateKeyPath": "../keypairs/client_1/private_key.pem",
-    "publicKeyPath": "../keypairs/client_1/public_key.pem"
+    "privateKeyPath": "../keypairs/client_1/private_key.der",
+    "publicKeyPath": "../keypairs/client_1/public_key.der"
   },
   {
-    "id": "2",
+    "id": "102",
     "hostname": "localhost",
     "port": 4002,
     "scriptPath": "script_sample.txt",
-    "privateKeyPath": "../keypairs/client_2/private_key.pem",
-    "publicKeyPath": "../keypairs/client_2/public_key.pem"
+    "privateKeyPath": "../keypairs/client_2/private_key.der",
+    "publicKeyPath": "../keypairs/client_2/public_key.der"
   },
   {
-    "id": "3",
+    "id": "103",
     "hostname": "localhost",
     "port": 4003,
     "scriptPath": "script_sample.txt",
-    "privateKeyPath": "../keypairs/client_3/private_key.pem",
-    "publicKeyPath": "../keypairs/client_3/public_key.pem"
+    "privateKeyPath": "../keypairs/client_3/private_key.der",
+    "publicKeyPath": "../keypairs/client_3/public_key.der"
   }
 ]

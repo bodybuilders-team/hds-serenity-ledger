@@ -27,7 +27,7 @@ public class ClientLibrary implements UDPService {
         this.clientConfig = clientConfig;
 
         try {
-            this.authenticatedPerfectLink = new AuthenticatedPerfectLink(clientConfig, clientConfig.getPort(), nodesConfig, HDSLedgerMessage.class);
+            this.authenticatedPerfectLink = new AuthenticatedPerfectLink(clientConfig, clientConfig.getPort(), nodesConfig, HDSLedgerMessage.class, false, 200, true);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error creating link: {1}",
                     clientConfig.getId(), e.getMessage()));

@@ -1,5 +1,3 @@
-<read>
 <append, "Alice, 100">
 <append, "Bob, 200">
 <append, "Alice, 50">
-<read>
