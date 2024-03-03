@@ -48,7 +48,7 @@ public class Node {
             ServerProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
 
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2}; is leader: {3}",
-                    nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort(),
+                    nodeConfig.getId(), nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort()),
                     nodeConfig.isLeader()));
 
             // Abstraction to send and receive messages

@@ -43,11 +43,11 @@ public class Client {
         ClientProcessConfig clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(clientID)).findAny().get();
 
         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2};", clientConfig.getId(),
-                clientConfig.getHostname(), clientConfig.getPort()));
+                clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
 
         ClientLibrary clientLibrary = new ClientLibrary(clientConfig, nodesConfig);
         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2};", clientConfig.getId(),
-                clientConfig.getHostname(), clientConfig.getPort()));
+                clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
 
 
         clientLibrary.listen();

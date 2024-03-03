@@ -130,8 +130,8 @@ public class AuthenticatedPerfectLink {
                     this.localhostQueue.add(data);
 
                     LOGGER.log(Level.INFO,
-                            MessageFormat.format("{0} - Message {1} (locally) sent to {2}:{3} successfully",
-                                    config.getId(), data.getType(), destAddress, destPort));
+                            MessageFormat.format("{0} - Message {1} (locally) with message ID {2} sent to {3}:{4} successfully",
+                                    config.getId(), data.getType(), messageId, destAddress, String.valueOf(destPort)));
 
                     return;
                 }
@@ -139,7 +139,7 @@ public class AuthenticatedPerfectLink {
                 for (; ; ) {
                     LOGGER.log(Level.INFO, MessageFormat.format(
                             "{0} - Sending {1} message to {2}:{3} with message ID {4} - Attempt #{5}", config.getId(),
-                            data.getType(), destAddress, destPort, messageId, count++));
+                            data.getType(), destAddress, String.valueOf(destPort), messageId, count++));
 
                     unreliableSend(destAddress, destPort, data);
 
@@ -154,7 +154,7 @@ public class AuthenticatedPerfectLink {
                 }
 
                 LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} sent to {2}:{3} successfully",
-                        config.getId(), data.getType(), destAddress, destPort));
+                        config.getId(), data.getType(), destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
             }
@@ -221,11 +221,11 @@ public class AuthenticatedPerfectLink {
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
         if (response == null)
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from self with message ID {4}",
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from self with message ID {2}",
                     config.getId(), message.getType(), messageId));
         else
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from {2}:{3} with message ID {4}",
-                    config.getId(), response.getAddress(), response.getPort(), message.getType(), messageId));
+                    config.getId(), message.getType(), response.getAddress(), String.valueOf(response.getPort()), messageId));
 
         // Validate signature
         if (signedPacket != null) {
@@ -289,6 +289,11 @@ public class AuthenticatedPerfectLink {
             // we're assuming an eventually synchronous network
             // Even if a node receives the message multiple times,
             // it will discard duplicates
+
+            LOGGER.log(Level.INFO, MessageFormat.format(
+                    "{0} - Sending {1} message to {2}:{3} with message ID {4}", config.getId(),
+                    Type.ACK, address, String.valueOf(port), messageId));
+
             unreliableSend(address, port, responseMessage);
         }
 

@@ -152,7 +152,7 @@ public class NodeService implements UDPService {
 
         LOGGER.log(Level.INFO,
                 MessageFormat.format(
-                        "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}",
+                        "{0} - Received PRE-PREPARE message from node {1}: Consensus Instance {2}, Round {3}",
                         config.getId(), senderId, consensusInstance, round));
 
         // Verify if pre-prepare was sent by leader
@@ -202,7 +202,7 @@ public class NodeService implements UDPService {
 
         LOGGER.log(Level.INFO,
                 MessageFormat.format(
-                        "{0} - Received PREPARE message from {1}: Consensus Instance {2}, Round {3}",
+                        "{0} - Received PREPARE message from node {1}: Consensus Instance {2}, Round {3}",
                         config.getId(), senderId, consensusInstance, round));
 
         // Doesn't add duplicate messages
@@ -273,7 +273,7 @@ public class NodeService implements UDPService {
         int round = message.getRound();
 
         LOGGER.log(Level.INFO,
-                MessageFormat.format("{0} - Received COMMIT message from {1}: Consensus Instance {2}, Round {3}",
+                MessageFormat.format("{0} - Received COMMIT message from node {1}: Consensus Instance {2}, Round {3}",
                         config.getId(), message.getSenderId(), consensusInstance, round));
 
         commitMessages.addMessage(message);
