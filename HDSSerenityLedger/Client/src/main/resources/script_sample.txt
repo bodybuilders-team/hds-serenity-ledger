@@ -1,5 +1,7 @@
 <read>
 <append, "Alice, 100">
+<sleep, 5000>
 <append, "Bob, 200">
 <append, "Charlie, 300">
 <read>
+<exit>

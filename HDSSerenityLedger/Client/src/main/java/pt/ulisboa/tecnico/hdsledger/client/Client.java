@@ -11,8 +11,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Scanner;
-import java.util.logging.Level;
 
 /**
  * Client of the HDSLedger system.
@@ -89,7 +89,7 @@ public class Client {
      *
      * @param line line to be parsed
      */
-    private static void executeCommand(String line) {
+    private static void executeCommand(String line) throws InterruptedException {
         String[] parts = line.split(", \"");
         String command = parts[0];
         String params = parts.length > 1 ? parts[1].substring(0, parts[1].length() - 1) : null;
@@ -97,7 +97,8 @@ public class Client {
         switch (command) {
             case "exit" -> running = false;
             case "read" -> clientLibrary.read();
-            case "append" -> clientLibrary.append(params);
+            case "append" -> clientLibrary.append(Objects.requireNonNull(params));
+            case "sleep" -> Thread.sleep(Integer.parseInt(Objects.requireNonNull(params)));
             default -> LOGGER.warn("Unknown command: " + command);
         }
     }
