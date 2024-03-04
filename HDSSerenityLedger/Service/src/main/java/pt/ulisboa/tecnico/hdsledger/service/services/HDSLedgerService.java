@@ -5,7 +5,6 @@ import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.HDSLedgerMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.text.MessageFormat;
@@ -19,16 +18,17 @@ public class HDSLedgerService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(HDSLedgerService.class.getName());
 
-    private final ClientProcessConfig[] clientProcessConfigs;
     private final ServerProcessConfig serverProcessConfig;
+    private final NodeService nodeService;
 
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
 
-    private final NodeService nodeService;
-
-    public HDSLedgerService(ClientProcessConfig[] clientProcessConfigs, ServerProcessConfig serverProcessConfig, AuthenticatedPerfectLink authenticatedPerfectLink, NodeService nodeService) {
-        this.clientProcessConfigs = clientProcessConfigs;
+    public HDSLedgerService(
+            ServerProcessConfig serverProcessConfig,
+            AuthenticatedPerfectLink authenticatedPerfectLink,
+            NodeService nodeService
+    ) {
         this.serverProcessConfig = serverProcessConfig;
         this.nodeService = nodeService;
 
@@ -41,7 +41,7 @@ public class HDSLedgerService implements UDPService {
      * @param message the append message
      */
     public void uponAppend(HDSLedgerMessage message) {
-        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Appending: {1}",
+        LOGGER.info(MessageFormat.format("{0} - Appending: {1}",
                 serverProcessConfig.getId(), message.getValue()));
 
         try {
@@ -54,7 +54,7 @@ public class HDSLedgerService implements UDPService {
 
             authenticatedPerfectLink.send(message.getSenderId(), response);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending append: {1}",
+            LOGGER.error( MessageFormat.format("{0} - Error sending append: {1}",
                     serverProcessConfig.getId(), e.getMessage()));
         }
     }
@@ -65,7 +65,7 @@ public class HDSLedgerService implements UDPService {
      * @param message the read message
      */
     public void uponRead(HDSLedgerMessage message) {
-        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Reading: {1}",
+        LOGGER.info(MessageFormat.format("{0} - Reading: {1}",
                 serverProcessConfig.getId(), message.getValue()));
 
         try {
@@ -76,7 +76,7 @@ public class HDSLedgerService implements UDPService {
 
             authenticatedPerfectLink.send(message.getSenderId(), response);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending read: {1}",
+            LOGGER.error( MessageFormat.format("{0} - Error sending read: {1}",
                     serverProcessConfig.getId(), e.getMessage()));
         }
     }
@@ -84,17 +84,16 @@ public class HDSLedgerService implements UDPService {
 
     @Override
     public void listen() {
-        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Listening for messages", serverProcessConfig.getId()));
+        LOGGER.info(MessageFormat.format("{0} - Listening for messages", serverProcessConfig.getId()));
 
         new Thread(() -> {
             while (true) {
                 try {
                     Message message = authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof HDSLedgerMessage))
+                    if (!(message instanceof HDSLedgerMessage ledgerMessage))
                         continue;
 
-                    HDSLedgerMessage ledgerMessage = (HDSLedgerMessage) message;
                     new Thread(() -> {
                         switch (ledgerMessage.getType()) {
                             case APPEND -> uponAppend(ledgerMessage);
@@ -102,13 +101,13 @@ public class HDSLedgerService implements UDPService {
                             case READ -> uponRead(ledgerMessage);
 
                             default ->
-                                    LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Received unknown message type: {1}",
+                                    LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
                                             serverProcessConfig.getId(), ledgerMessage.getType()));
                         }
                     }).start();
 
                 } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error receiving message: {1}",
+                    LOGGER.error( MessageFormat.format("{0} - Error receiving message: {1}",
                             serverProcessConfig.getId(), e.getMessage()));
                 }
             }

@@ -21,7 +21,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import java.util.logging.LogManager;
 
 /**
@@ -96,7 +95,14 @@ public class AuthenticatedPerfectLink {
      */
     public void broadcast(Message data) {
         Gson gson = new Gson();
-        nodes.forEach((destId, dest) -> send(destId, gson.fromJson(gson.toJson(data), data.getClass())));
+
+        if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.DIFFERENTIAL_BROADCASTING) {
+            Map<String, Message> differentialMessages = createDifferentialMessages(data);
+
+            // Send different messages to different nodes
+            differentialMessages.forEach((destId, message) -> send(destId, message));
+        } else
+            nodes.forEach((destId, dest) -> send(destId, gson.fromJson(gson.toJson(data), data.getClass())));
     }
 
     /**
@@ -129,7 +135,7 @@ public class AuthenticatedPerfectLink {
                 if (nodeId.equals(this.config.getId())) {
                     this.localhostQueue.add(data);
 
-                    LOGGER.log(Level.INFO,
+                    LOGGER.info(
                             MessageFormat.format("{0} - Message {1} (locally) with message ID {2} sent to {3}:{4} successfully",
                                     config.getId(), data.getType(), messageId, destAddress, String.valueOf(destPort)));
 
@@ -137,7 +143,7 @@ public class AuthenticatedPerfectLink {
                 }
 
                 for (; ; ) {
-                    LOGGER.log(Level.INFO, MessageFormat.format(
+                    LOGGER.info(MessageFormat.format(
                             "{0} - Sending {1} message to {2}:{3} with message ID {4} - Attempt #{5}", config.getId(),
                             data.getType(), destAddress, String.valueOf(destPort), messageId, count++));
 
@@ -153,7 +159,7 @@ public class AuthenticatedPerfectLink {
                     sleepTime <<= 1;
                 }
 
-                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} sent to {2}:{3} successfully",
+                LOGGER.info(MessageFormat.format("{0} - Message {1} sent to {2}:{3} successfully",
                         config.getId(), data.getType(), destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
@@ -221,10 +227,10 @@ public class AuthenticatedPerfectLink {
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
         if (response == null)
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from self with message ID {2}",
+            LOGGER.info(MessageFormat.format("{0} - Received {1} message from self with message ID {2}",
                     config.getId(), message.getType(), messageId));
         else
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received {1} message from {2}:{3} with message ID {4}",
+            LOGGER.info(MessageFormat.format("{0} - Received {1} message from {2}:{3} with message ID {4}",
                     config.getId(), message.getType(), response.getAddress(), String.valueOf(response.getPort()), messageId));
 
         // Validate signature
@@ -290,7 +296,7 @@ public class AuthenticatedPerfectLink {
             // Even if a node receives the message multiple times,
             // it will discard duplicates
 
-            LOGGER.log(Level.INFO, MessageFormat.format(
+            LOGGER.info(MessageFormat.format(
                     "{0} - Sending {1} message to {2}:{3} with message ID {4}", config.getId(),
                     Type.ACK, address, String.valueOf(port), messageId));
 

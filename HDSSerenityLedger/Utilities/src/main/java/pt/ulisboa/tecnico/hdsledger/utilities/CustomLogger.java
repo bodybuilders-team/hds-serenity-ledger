@@ -38,6 +38,21 @@ public class CustomLogger {
         LOGGER.log(level, message);
     }
 
+    public void info(String message) {
+        LOGGER.log(Level.INFO, message);
+    }
+
+    public void warn(String message) {
+        LOGGER.log(Level.WARNING, message);
+    }
+
+    public void error(String message) {
+        LOGGER.log(Level.SEVERE, message);
+    }
+
+    public void debug(String message) {
+        LOGGER.log(Level.FINE, message);
+    }
 }
 
 /**

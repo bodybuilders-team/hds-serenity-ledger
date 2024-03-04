@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 /**
  * Service to handle consensus instances and ledger.
@@ -108,7 +107,7 @@ public class NodeService implements UDPService {
 
         // If startConsensus was already called for a given round
         if (existingConsensus != null) {
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node already started consensus for instance {1}",
+            LOGGER.info(MessageFormat.format("{0} - Node already started consensus for instance {1}",
                     config.getId(), localConsensusInstance));
             return;
         }
@@ -124,14 +123,12 @@ public class NodeService implements UDPService {
         }
 
         // Leader broadcasts PRE-PREPARE message
-        if (this.config.isLeader()) {
+        if (this.config.isLeader() || this.config.getBehavior() == ProcessConfig.ProcessBehavior.NON_LEADER_CONSENSUS_INITIATION) {
             InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
-            LOGGER.log(Level.INFO,
-                    MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
+            LOGGER.info(MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
             this.authenticatedPerfectLink.broadcast(this.createConsensusMessage(inputValue, localConsensusInstance, instance.getCurrentRound()));
         } else {
-            LOGGER.log(Level.INFO,
-                    MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
+            LOGGER.info(MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
         }
     }
 
@@ -150,7 +147,7 @@ public class NodeService implements UDPService {
 
         String value = prePrepareMessage.getValue();
 
-        LOGGER.log(Level.INFO,
+        LOGGER.info(
                 MessageFormat.format(
                         "{0} - Received PRE-PREPARE message from node {1}: Consensus Instance {2}, Round {3}",
                         config.getId(), senderId, consensusInstance, round));
@@ -166,7 +163,7 @@ public class NodeService implements UDPService {
         // for any round r
         receivedPrePrepare.putIfAbsent(consensusInstance, new ConcurrentHashMap<>());
         if (receivedPrePrepare.get(consensusInstance).put(round, true) != null) {
-            LOGGER.log(Level.INFO,
+            LOGGER.info(
                     MessageFormat.format(
                             "{0} - Already received PRE-PREPARE message for Consensus Instance {1}, Round {2}, "
                                     + "replying again to make sure it reaches the initial sender",
@@ -200,7 +197,7 @@ public class NodeService implements UDPService {
 
         String value = prepareMessage.getValue();
 
-        LOGGER.log(Level.INFO,
+        LOGGER.info(
                 MessageFormat.format(
                         "{0} - Received PREPARE message from node {1}: Consensus Instance {2}, Round {3}",
                         config.getId(), senderId, consensusInstance, round));
@@ -217,7 +214,7 @@ public class NodeService implements UDPService {
         // Late prepare (consensus already ended for other nodes) only reply to him (as
         // an ACK)
         if (instance.getPreparedRound() >= round) {
-            LOGGER.log(Level.INFO,
+            LOGGER.info(
                     MessageFormat.format(
                             "{0} - Already received PREPARE message for Consensus Instance {1}, Round {2}, "
                                     + "replying again to make sure it reaches the initial sender",
@@ -272,7 +269,7 @@ public class NodeService implements UDPService {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
 
-        LOGGER.log(Level.INFO,
+        LOGGER.info(
                 MessageFormat.format("{0} - Received COMMIT message from node {1}: Consensus Instance {2}, Round {3}",
                         config.getId(), message.getSenderId(), consensusInstance, round));
 
@@ -291,7 +288,7 @@ public class NodeService implements UDPService {
         // Within an instance of the algorithm, each upon rule is triggered at most once
         // for any round r
         if (instance.getCommittedRound() >= round) {
-            LOGGER.log(Level.INFO,
+            LOGGER.info(
                     MessageFormat.format(
                             "{0} - Already received COMMIT message for Consensus Instance {1}, Round {2}, ignoring",
                             config.getId(), consensusInstance, round));
@@ -319,7 +316,7 @@ public class NodeService implements UDPService {
 
                 ledger.add(consensusInstance - 1, value);
 
-                LOGGER.log(Level.INFO,
+                LOGGER.info(
                         MessageFormat.format(
                                 "{0} - Current Ledger: {1}",
                                 config.getId(), String.join("", ledger)));
@@ -327,7 +324,7 @@ public class NodeService implements UDPService {
 
             lastDecidedConsensusInstance.getAndIncrement();
 
-            LOGGER.log(Level.INFO,
+            LOGGER.info(
                     MessageFormat.format(
                             "{0} - Decided on Consensus Instance {1}, Round {2}, Successful? {3}",
                             config.getId(), consensusInstance, round, true));
@@ -352,15 +349,14 @@ public class NodeService implements UDPService {
 
                                 case COMMIT -> uponCommit((ConsensusMessage) message);
 
-                                case ACK ->
-                                        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",
-                                                config.getId(), message.getSenderId()));
+                                case ACK -> LOGGER.info(MessageFormat.format("{0} - Received ACK message from {1}",
+                                        config.getId(), message.getSenderId()));
 
-                                case IGNORE -> LOGGER.log(Level.INFO,
+                                case IGNORE -> LOGGER.info(
                                         MessageFormat.format("{0} - Received IGNORE message from {1}",
                                                 config.getId(), message.getSenderId()));
 
-                                default -> LOGGER.log(Level.INFO,
+                                default -> LOGGER.info(
                                         MessageFormat.format("{0} - Received unknown message from {1}",
                                                 config.getId(), message.getSenderId()));
                             }

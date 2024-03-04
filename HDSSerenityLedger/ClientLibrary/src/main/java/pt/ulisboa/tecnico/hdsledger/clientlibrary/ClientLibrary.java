@@ -28,7 +28,7 @@ public class ClientLibrary implements UDPService {
         try {
             this.authenticatedPerfectLink = new AuthenticatedPerfectLink(clientConfig, clientConfig.getPort(), nodesConfig, HDSLedgerMessage.class, true, 200, true);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error creating link: {1}",
+            LOGGER.error( MessageFormat.format("{0} - Error creating link: {1}",
                     clientConfig.getId(), e.getMessage()));
         }
     }
@@ -39,7 +39,7 @@ public class ClientLibrary implements UDPService {
      * @param value value to append
      */
     public void append(String value) {
-        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Appending: {1}",
+        LOGGER.info(MessageFormat.format("{0} - Appending: {1}",
                 clientConfig.getId(), value));
 
         try {
@@ -49,7 +49,7 @@ public class ClientLibrary implements UDPService {
 
             authenticatedPerfectLink.broadcast(message);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending append: {1}",
+            LOGGER.error( MessageFormat.format("{0} - Error sending append: {1}",
                     clientConfig.getId(), e.getMessage()));
         }
     }
@@ -58,7 +58,7 @@ public class ClientLibrary implements UDPService {
      * Reads the ledger.
      */
     public void read() {
-        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Reading", clientConfig.getId()));
+        LOGGER.info(MessageFormat.format("{0} - Reading", clientConfig.getId()));
 
         try {
             HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.READ)
@@ -66,14 +66,14 @@ public class ClientLibrary implements UDPService {
 
             authenticatedPerfectLink.broadcast(message);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error sending read: {1}",
+            LOGGER.error( MessageFormat.format("{0} - Error sending read: {1}",
                     clientConfig.getId(), e.getMessage()));
         }
     }
 
     @Override
     public void listen() {
-        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Listening for messages", clientConfig.getId()));
+        LOGGER.info(MessageFormat.format("{0} - Listening for messages", clientConfig.getId()));
 
         new Thread(() -> {
             while (true) {
@@ -86,20 +86,20 @@ public class ClientLibrary implements UDPService {
                     HDSLedgerMessage ledgerMessage = (HDSLedgerMessage) message;
                     switch (ledgerMessage.getType()) {
                         case APPEND_RESPONSE ->
-                                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received append response: {1}",
+                                LOGGER.info(MessageFormat.format("{0} - Received append response: {1}",
                                         clientConfig.getId(), ledgerMessage.getValue()));
 
                         case READ_RESPONSE ->
-                                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received read response: {1}",
+                                LOGGER.info(MessageFormat.format("{0} - Received read response: {1}",
                                         clientConfig.getId(), ledgerMessage.getValue()));
 
                         default ->
-                                LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Received unknown message type: {1}",
+                                LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
                                         clientConfig.getId(), ledgerMessage.getType()));
                     }
 
                 } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error receiving message: {1}",
+                    LOGGER.error( MessageFormat.format("{0} - Error receiving message: {1}",
                             clientConfig.getId(), e.getMessage()));
                 }
             }

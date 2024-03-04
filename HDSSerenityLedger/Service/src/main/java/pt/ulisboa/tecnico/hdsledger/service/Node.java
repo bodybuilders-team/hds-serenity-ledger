@@ -47,7 +47,7 @@ public class Node {
             ServerProcessConfig leaderConfig = Arrays.stream(nodeConfigs).filter(ServerProcessConfig::isLeader).findAny().get();
             ServerProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
 
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2}; is leader: {3}",
+            LOGGER.info(MessageFormat.format("{0} - Running at {1}:{2}; is leader: {3}",
                     nodeConfig.getId(), nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort()),
                     nodeConfig.isLeader()));
 
@@ -59,7 +59,7 @@ public class Node {
             NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, leaderConfig, nodeConfigs);
 
             // Service to handle the node's logic - ledger
-            HDSLedgerService hdsLedgerService = new HDSLedgerService(clientConfigs, nodeConfig, authenticatedPerfectLinkToClients, nodeService);
+            HDSLedgerService hdsLedgerService = new HDSLedgerService(nodeConfig, authenticatedPerfectLinkToClients, nodeService);
 
             nodeService.listen();
             hdsLedgerService.listen();
