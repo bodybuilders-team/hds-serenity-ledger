@@ -1,6 +1,5 @@
 package pt.ulisboa.tecnico.hdsledger.clientlibrary;
 
-import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.AppendCommand;
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
@@ -37,15 +36,15 @@ public class ClientLibrary implements UDPService {
     /**
      * Appends a value to the ledger.
      *
-     * @param command the append command
+     * @param value value to append
      */
-    public void append(AppendCommand command) {
+    public void append(String value) {
         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Appending: {1}",
-                clientConfig.getId(), command.getValue()));
+                clientConfig.getId(), value));
 
         try {
             HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.APPEND)
-                    .setValue(command.getValue())
+                    .setValue(value)
                     .build();
 
             authenticatedPerfectLink.broadcast(message);

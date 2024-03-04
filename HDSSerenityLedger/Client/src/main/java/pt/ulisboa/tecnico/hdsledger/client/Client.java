@@ -1,17 +1,16 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.ClientLibrary;
-import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.AppendCommand;
-import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.Command;
-import pt.ulisboa.tecnico.hdsledger.clientlibrary.commands.ReadCommand;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Scanner;
 import java.util.logging.Level;
 
@@ -26,6 +25,9 @@ public class Client {
     private static String clientsConfigPath = "src/main/resources/";
     private static String nodesConfigPath = "../Service/src/main/resources/";
     private static String scriptPath = "src/main/resources/";
+
+    private static boolean running = true;
+    private static ClientLibrary clientLibrary;
 
     public static void main(String[] args) {
         if (args.length > 4 || args.length < 3) {
@@ -45,51 +47,58 @@ public class Client {
         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2};", clientConfig.getId(),
                 clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
 
-        ClientLibrary clientLibrary = new ClientLibrary(clientConfig, nodesConfig);
+        clientLibrary = new ClientLibrary(clientConfig, nodesConfig);
         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2};", clientConfig.getId(),
                 clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
-
 
         clientLibrary.listen();
 
         // If no script is provided, start the command line interface
         if (args.length == 3) {
             printWelcomeMessage();
+            Scanner in = new Scanner(System.in);
 
-            while (true) {
-                Scanner in = new Scanner(System.in);
+            while (running) {
+                printMenu();
 
-                String command = in.nextLine();
-
-                if (command.equals("exit")) {
-                    break;
-                }
-
-                if (command.equals("read")) {
-                    clientLibrary.read();
-                } else if (command.startsWith("append")) {
-                    String value = command.substring(7);
-                    clientLibrary.append(new AppendCommand(value));
-                } else {
-                    LOGGER.log(Level.WARNING, "Unknown command: " + command);
-                }
+                String command = in.nextLine().trim();
+                executeCommand(command);
             }
+            return;
         }
 
         String scriptFilePath = args[3];
         scriptPath += scriptFilePath;
-        ScriptReader scriptReader = new ScriptReader(scriptPath);
 
-        while (scriptReader.hasNext()) {
-            Command command = scriptReader.next();
-            LOGGER.log(Level.INFO, "Command: " + command);
-            if (Objects.requireNonNull(command) instanceof AppendCommand appendCommand) {
-                clientLibrary.append(appendCommand);
-            } else if (command instanceof ReadCommand) {
-                clientLibrary.read();
-            } else {
-                LOGGER.log(Level.WARNING, "Unknown command: " + command);
+        try (BufferedReader reader = new BufferedReader(new FileReader(scriptPath))) {
+            while (running) {
+                String line = reader.readLine();
+                if (line == null)
+                    break;
+
+                String command = line.trim().substring(1, line.length() - 1);
+                executeCommand(command);
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Parses a line and executes the parsed command.
+     *
+     * @param line line to be parsed
+     */
+    private static void executeCommand(String line) {
+        String[] parts = line.split(", \"");
+        String command = parts[0];
+        String params = parts.length > 1 ? parts[1].substring(0, parts[1].length() - 1) : null;
+
+        switch (command) {
+            case "exit" -> running = false;
+            case "read" -> clientLibrary.read();
+            case "append" -> clientLibrary.append(params);
+            default -> LOGGER.log(Level.WARNING, "Unknown command: " + command);
         }
     }
 
@@ -104,6 +113,19 @@ public class Client {
                 #                                                      #
                 ########################################################"""
         );
-        // TODO: Finish command line interface
+    }
+
+    /**
+     * Prints the menu.
+     */
+    private static void printMenu() {
+        System.out.println("""
+                ########## Menu ##########
+                # 1. read                 #
+                # 2. append <message>     #
+                # 3. exit                 #
+                ###########################"""
+        );
+        System.out.print("Enter your choice: ");
     }
 }
