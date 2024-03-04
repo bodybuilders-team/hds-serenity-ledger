@@ -8,6 +8,10 @@ public class ConsensusMessage extends Message {
     private int consensusInstance;
     // Round
     private int round;
+    // Prepared round
+    private int preparedRound;
+    // Prepared value
+    private String preparedValue;
     // Who sent the previous message
     private String replyTo;
     // Id of the previous message
@@ -53,6 +57,22 @@ public class ConsensusMessage extends Message {
 
     public void setRound(int round) {
         this.round = round;
+    }
+
+    public int getPreparedRound() {
+        return preparedRound;
+    }
+
+    public void setPreparedRound(int preparedRound) {
+        this.preparedRound = preparedRound;
+    }
+
+    public String getPreparedValue() {
+        return preparedValue;
+    }
+
+    public void setPreparedValue(String preparedValue) {
+        this.preparedValue = preparedValue;
     }
 
     public String getReplyTo() {

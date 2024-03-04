@@ -91,6 +91,39 @@ public class MessageBucket {
                 .findFirst();
     }
 
+    class Prepared {
+        public int round;
+        public String value;
+
+        public Prepared(int round, String value) {
+            this.round = round;
+            this.value = value;
+        }
+    }
+
+    /**
+     * Check if the bucket has a valid round change quorum.
+     *
+     * @param nodeId   The node ID
+     * @param instance The consensus instance
+     * @param round    The round
+     * @return The highest prepared pair (value, round) if a valid round change quorum exists
+     */
+    public Optional<Prepared> hasValidRoundChangeQuorum(String nodeId, int instance, int round) {
+        // Create mapping of value (round) to frequency
+        HashMap<Prepared, Integer> frequency = new HashMap<>();
+        bucket.get(instance).get(round).values().forEach((message) -> {
+            frequency.put(new Prepared(message.getPreparedRound(), message.getPreparedValue()), frequency.getOrDefault(round, 0) + 1);
+        });
+
+        // Only one value (if any, thus the optional) will have a frequency
+        // greater than or equal to the quorum size
+        return frequency.entrySet().stream()
+                .filter((Map.Entry<Prepared, Integer> entry) -> entry.getValue() >= quorumSize)
+                .map(Map.Entry::getKey)
+                .findFirst();
+    }
+
     /**
      * Get the messages for a given instance and round.
      *
