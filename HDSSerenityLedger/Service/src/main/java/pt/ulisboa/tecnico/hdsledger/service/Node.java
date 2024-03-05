@@ -46,12 +46,11 @@ public class Node {
             // Create configuration instances
             ServerProcessConfig[] nodeConfigs = new ProcessConfigBuilder().fromFileServer(nodesConfigPath);
             ClientProcessConfig[] clientConfigs = new ProcessConfigBuilder().fromFileClient(clientsConfigPath);
-            ServerProcessConfig leaderConfig = Arrays.stream(nodeConfigs).filter(ServerProcessConfig::isLeader).findAny().get();
             ServerProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
 
-            LOGGER.info(MessageFormat.format("{0} - Running at {1}:{2}; is leader: {3}",
-                    nodeConfig.getId(), nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort()),
-                    nodeConfig.isLeader()));
+            // TODO add to log if the node is leader
+            LOGGER.info(MessageFormat.format("{0} - Running at {1}:{2}",
+                    nodeConfig.getId(), nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort())));
 
             // Abstraction to send and receive messages
             AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);
@@ -67,7 +66,7 @@ public class Node {
             }
 
             // Service to handle the node's logic - consensus
-            NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, leaderConfig, nodeConfigs);
+            NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs);
 
             // Service to handle the node's logic - ledger
             HDSLedgerService hdsLedgerService = new HDSLedgerService(nodeConfig, authenticatedPerfectLinkToClients, nodeService);

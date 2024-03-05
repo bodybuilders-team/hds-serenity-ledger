@@ -1,9 +1,8 @@
 [
   {
     "id": "1",
-    "isLeader": true,
     "hostname": "localhost",
-    "port": 3001,
+    "port": 3011,
     "clientPort": 3011,
     "privateKeyPath": "../keypairs/node_1/private_key.der",
     "publicKeyPath": "../keypairs/node_1/public_key.der",
@@ -11,9 +10,8 @@
   },
   {
     "id": "2",
-    "isLeader": false,
     "hostname": "localhost",
-    "port": 3002,
+    "port": 3012,
     "clientPort": 3012,
     "privateKeyPath": "../keypairs/node_2/private_key.der",
     "publicKeyPath": "../keypairs/node_2/public_key.der",
@@ -21,9 +19,8 @@
   },
   {
     "id": "3",
-    "isLeader": false,
     "hostname": "localhost",
-    "port": 3003,
+    "port": 3013,
     "clientPort": 3013,
     "privateKeyPath": "../keypairs/node_3/private_key.der",
     "publicKeyPath": "../keypairs/node_3/public_key.der",
@@ -31,9 +28,8 @@
   },
   {
     "id": "4",
-    "isLeader": false,
     "hostname": "localhost",
-    "port": 3004,
+    "port": 3014,
     "clientPort": 3014,
     "privateKeyPath": "../keypairs/node_4/private_key.der",
     "publicKeyPath": "../keypairs/node_4/public_key.der",

@@ -34,7 +34,7 @@ public abstract class MessageBucket {
 
         bucket.putIfAbsent(consensusInstance, new ConcurrentHashMap<>());
         bucket.get(consensusInstance).putIfAbsent(round, new ConcurrentHashMap<>());
-        bucket.get(consensusInstance).get(round).put(message.getSenderId(), message);
+        bucket.get(consensusInstance).get(round).put(message.getSenderId(), message); // TODO putIfAbsent?
     }
 
     /**

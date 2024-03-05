@@ -14,7 +14,7 @@ client_configs = [
     "regular-client-config.json",
 ]
 
-server_config = server_configs[4]
+server_config = server_configs[0]
 client_config = client_configs[0]
 
 if os.name == "nt":

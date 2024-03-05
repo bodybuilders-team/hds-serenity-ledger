@@ -1,0 +1,9 @@
+
+In several instances of the base implementation, the commit message is observed only as being a response to a prepare
+message.
+As such, receiving a commit message ahead of other messages is not expected and leads to it being ignored.
+
+Furthermore, an acknowledge is not sent back to the sender of the prepare message, as the commit message is the one
+expected to be the "acknowledge" of the prepare message. This goes against the algorithm's specification, which states
+that a commit message should be broadcasted to all other processes. In this implementation, the commit message is only
+sent to the processes that sent the prepare message.
