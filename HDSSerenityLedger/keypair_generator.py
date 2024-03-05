@@ -15,7 +15,8 @@ for i in range(1, num_nodes + 1):
 
     private_key = f'{node_dir}/private_key.der'
     public_key = f'{node_dir}/public_key.der'
-    subprocess.run(f'openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -outform DER -out {private_key} -nocrypt', shell=True)
+    subprocess.run(f'openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -outform DER -out {private_key} -nocrypt',
+                   shell=True)
     subprocess.run(['openssl', 'rsa', '-in', private_key, '-pubout', '-outform',
                     'DER', '-out', public_key])
 
@@ -28,6 +29,7 @@ for j in range(1, num_clients + 1):
     private_key = f'{client_dir}/private_key.der'
     public_key = f'{client_dir}/public_key.der'
 
-    subprocess.run(f'openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -outform DER -out {private_key} -nocrypt', shell=True)
+    subprocess.run(f'openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -outform DER -out {private_key} -nocrypt',
+                   shell=True)
     subprocess.run(['openssl', 'rsa', '-in', private_key, '-pubout', '-outform',
                     'DER', '-out', public_key])

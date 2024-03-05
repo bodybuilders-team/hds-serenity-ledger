@@ -9,7 +9,6 @@ import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.logging.Level;
 
 /**
  * Service used to interact with the HDSLedger.
@@ -54,7 +53,7 @@ public class HDSLedgerService implements UDPService {
 
             authenticatedPerfectLink.send(message.getSenderId(), response);
         } catch (Exception e) {
-            LOGGER.error( MessageFormat.format("{0} - Error sending append: {1}",
+            LOGGER.error(MessageFormat.format("{0} - Error sending append: {1}",
                     serverProcessConfig.getId(), e.getMessage()));
         }
     }
@@ -76,7 +75,7 @@ public class HDSLedgerService implements UDPService {
 
             authenticatedPerfectLink.send(message.getSenderId(), response);
         } catch (Exception e) {
-            LOGGER.error( MessageFormat.format("{0} - Error sending read: {1}",
+            LOGGER.error(MessageFormat.format("{0} - Error sending read: {1}",
                     serverProcessConfig.getId(), e.getMessage()));
         }
     }
@@ -100,20 +99,13 @@ public class HDSLedgerService implements UDPService {
 
                             case READ -> uponRead(ledgerMessage);
 
-                            case KILL -> {
-                                LOGGER.info(MessageFormat.format("{0} - Received kill message", serverProcessConfig.getId()));
-                                System.exit(0);
-                                // Didn't work
-                                System.out.println("Received kill message but didn't work");
-                            }
-                            default ->
-                                    LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
-                                            serverProcessConfig.getId(), ledgerMessage.getType()));
+                            default -> LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
+                                    serverProcessConfig.getId(), ledgerMessage.getType()));
                         }
                     }).start();
 
                 } catch (Exception e) {
-                    LOGGER.error( MessageFormat.format("{0} - Error receiving message: {1}",
+                    LOGGER.error(MessageFormat.format("{0} - Error receiving message: {1}",
                             serverProcessConfig.getId(), e.getMessage()));
                 }
             }

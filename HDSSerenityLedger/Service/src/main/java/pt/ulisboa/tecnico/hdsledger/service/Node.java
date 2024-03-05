@@ -15,7 +15,6 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.logging.Level;
 
 /**
  * A node in the system.

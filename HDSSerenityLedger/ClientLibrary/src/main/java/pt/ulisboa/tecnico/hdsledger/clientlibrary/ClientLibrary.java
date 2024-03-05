@@ -60,8 +60,7 @@ public class ClientLibrary implements UDPService {
         LOGGER.info(MessageFormat.format("{0} - Reading", clientConfig.getId()));
 
         try {
-            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.READ)
-                    .build();
+            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.READ).build();
 
             authenticatedPerfectLink.broadcast(message);
         } catch (Exception e) {
@@ -79,10 +78,9 @@ public class ClientLibrary implements UDPService {
                 try {
                     Message message = authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof HDSLedgerMessage))
+                    if (!(message instanceof HDSLedgerMessage ledgerMessage))
                         continue;
 
-                    HDSLedgerMessage ledgerMessage = (HDSLedgerMessage) message;
                     switch (ledgerMessage.getType()) {
                         case APPEND_RESPONSE -> {
                             LOGGER.info(MessageFormat.format("{0} - Received append response: {1}",
@@ -108,20 +106,4 @@ public class ClientLibrary implements UDPService {
             }
         }).start();
     }
-
-    public void kill() {
-        LOGGER.info(MessageFormat.format("{0} - Killing", clientConfig.getId()));
-
-        try {
-            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.KILL)
-                    .build();
-
-            authenticatedPerfectLink.broadcast(message);
-        } catch (Exception e) {
-            LOGGER.error(MessageFormat.format("{0} - Error sending kill: {1}",
-                    clientConfig.getId(), e.getMessage()));
-        }
-    }
-
-    // TODO: Implement listening for messages from the server
 }

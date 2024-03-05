@@ -12,7 +12,7 @@ public class ServerProcessConfig extends ProcessConfig {
             String hostname,
             int port,
             int clientPort,
-            boolean isLeader,
+            boolean isLeader, // TODO: Remove this
             String privateKeyPath,
             String publicKeyPath,
             String behavior, int crashTimeout

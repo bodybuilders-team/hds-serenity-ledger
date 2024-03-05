@@ -1,7 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
 public class HDSLedgerMessage extends Message {
-    private String value; // TODO: Maybe rename to payload
+    private String value;
 
     public HDSLedgerMessage(String senderId, Type type) {
         super(senderId, type);

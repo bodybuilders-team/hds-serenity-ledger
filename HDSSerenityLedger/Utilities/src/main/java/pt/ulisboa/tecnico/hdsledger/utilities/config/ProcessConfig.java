@@ -12,20 +12,6 @@ public class ProcessConfig {
     private final String publicKeyPath;
     private final ProcessBehavior behavior;
 
-    public enum ProcessBehavior {
-        REGULAR,
-        DIFFERENTIAL_BROADCASTING,          // During broadcast, send different messages to different nodes
-
-        // Nodes
-        NON_LEADER_CONSENSUS_INITIATION,    // Initiate consensus without being the leader
-        LEADER_IMPERSONATION,               // Send messages with leader ID
-        CRASH_AFTER_FIXED_TIME,             // Crash after a fixed time
-        
-
-        // Clients
-        // TODO: Add bad behaviors for clients, ... No Need?? supposedly clients are not byzantine
-    }
-
     public ProcessConfig(
             String id,
             String hostname,
@@ -83,6 +69,20 @@ public class ProcessConfig {
 
     public ProcessBehavior getBehavior() {
         return behavior;
+    }
+
+    public enum ProcessBehavior {
+        REGULAR,
+        DIFFERENTIAL_BROADCASTING,          // During broadcast, send different messages to different nodes
+
+        // Nodes
+        NON_LEADER_CONSENSUS_INITIATION,    // Initiate consensus without being the leader
+        LEADER_IMPERSONATION,               // Send messages with leader ID
+        CRASH_AFTER_FIXED_TIME,             // Crash after a fixed time
+
+
+        // Clients
+        // TODO: Add bad behaviors for clients, ... No Need?? supposedly clients are not byzantine
     }
 }
 

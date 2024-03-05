@@ -23,9 +23,8 @@ Summer Semester of 2023/2024
 
 - [Introduction](#introduction)
 - [Authors](#authors)
-- [Project Structure](#project-structure)
 - [Usage Guide](#usage-guide)
-- [Aknowledgements](#aknowledgements)
+- [Acknowledgements](#acknowledgements)
 
 ---
 
@@ -41,21 +40,22 @@ The following software is required to run the project:
 
 ### Configuration
 
-To run the project, you need to configure the following files:
+To run the project, you need to configure files for:
 
-* `Service/src/main/resources/node-config.json` - Node configuration;
-* `Client/src/main/resources/client-config.json` - Client configuration;
+* Node configuration - located in `Service/src/main/resources/`;
+* Client configuration - located in `Client/src/main/resources/client-config.json`.
 
 Each node has a configuration object that contains the following fields:
 
 ```json
 {
   "id": "<NODE_ID>",
-  "isLeader": "<IS_LEADER>",
-  "hostname": "localhost",
+  "hostname": "<NODE_HOSTNAME>",
   "port": "<NODE_PORT>",
+  "clientPort": "<CLIENT_PORT>",
   "privateKeyPath": "<PRIVATE_KEY_PATH>",
-  "publicKeyPath": "<PUBLIC_KEY_PATH>"
+  "publicKeyPath": "<PUBLIC_KEY_PATH>",
+  "behavior": "<NODE_BEHAVIOR>"
 }
 ```
 
@@ -63,12 +63,14 @@ The client configuration object contains the following fields:
 
 ```json
 {
-  "id": "<NODE_ID>",
-  "hostname": "localhost",
-  "port": "<NODE_PORT>",
+  "id": "<CLIENT_ID>",
+  "hostname": "<CLIENT_HOSTNAME>",
+  "port": "<CLIENT_SERVER_PORT>",
+  "clientPort": "<CLIENT_PORT>",
   "scriptPath": "<SCRIPT_PATH>",
   "privateKeyPath": "<PRIVATE_KEY_PATH>",
-  "publicKeyPath": "<PUBLIC_KEY_PATH>"
+  "publicKeyPath": "<PUBLIC_KEY_PATH>",
+  "behavior": "<CLIENT_BEHAVIOR>"
 }
 ```
 
@@ -98,7 +100,12 @@ This should install the following dependencies:
 ### Puppet Master
 
 The puppet master is a python script `puppet-master.py` which is responsible for starting the nodes of the blockchain.
-The script runs with `kitty` terminal emulator by default since it's installed on the RNL labs.
+
+The script can be used to run the blockchain nodes and clients with different configurations, on different operating
+systems:
+
+* Linux - The script runs with `kitty` terminal emulator by default since it's installed on the RNL labs.
+* Windows - The script runs with `cmd` terminal emulator by default.
 
 To run the script you need to have `python3` installed.
 The script has arguments which can be modified:
@@ -109,13 +116,19 @@ The script has arguments which can be modified:
 - `client_config` - a string from the array `client_configs` which contains the possible configurations for the client
   nodes
 
-Run the script with the following command:
+If you are using Linux, you can run the script with:
 
 ```bash
 python3 puppet_master.py
 ```
 
-Note: You may need to install **kitty** in your computer
+Note: You may need to install **kitty** in your computer, if you are using Linux, to run the script.
+
+If you are using Windows, you can run the script with:
+
+```bash
+py puppet_master.py
+```
 
 ### Maven
 

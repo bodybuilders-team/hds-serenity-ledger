@@ -1,16 +1,16 @@
 <append, "Alice, 100">
-<sleep, "3000">
+<sleep, 3000>
 <append, "Bob, 200">
-<sleep, "1000">
+<sleep, 1000>
 <append, "Charlie, 300">
-<sleep, "3000">
+<sleep, 3000>
 <append, "Dave, 400">
-<sleep, "1000">
+<sleep, 1000>
 <append, "Eve, 500">
-<sleep, "3000">
+<sleep, 3000>
 <append, "Frank, 600">
-<sleep, "1000">
+<sleep, 1000>
 <append, "Grace, 700">
-<sleep, "5000">
+<sleep, 5000>
 <read>
-<sleep, "2000">
+<sleep, 2000>

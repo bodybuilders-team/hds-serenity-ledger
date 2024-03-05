@@ -22,16 +22,19 @@ if os.name == "nt":
     import signal
     import sys
     import subprocess
+
     # Terminal Emulator used to spawn the processes
     terminal = "cmd"
 
     # Store the spawned terminal process IDs
     terminal_pids = []
 
+
     def quit_handler(*args):
         for pid in terminal_pids:
             subprocess.run(f"taskkill /PID {pid} /T /F", shell=True)
         sys.exit()
+
 
     # Compile classes
     subprocess.run("mvn clean install", shell=True)
@@ -50,8 +53,9 @@ if os.name == "nt":
     with open(f"Client/src/main/resources/{client_config}") as f:
         data = json.load(f)
         for key in data:
+            has_script = "scriptPath" in key
             process = subprocess.Popen(
-                f'start "{terminal}" /wait cmd /c "cd Client && mvn exec:java -Dexec.args=\"{key["id"]} {client_config} {server_config} {key["scriptPath"]}\""',
+                f'start "{terminal}" /wait cmd /c "cd Client && mvn exec:java -Dexec.args=\"{key["id"]} {client_config} {server_config} {"-script" if has_script else ""}"',
                 shell=True,
             )
             terminal_pids.append(process.pid)
@@ -71,6 +75,7 @@ else:
 
     # Terminal Emulator used to spawn the processes
     terminal = "kitty"
+
 
     def quit_handler(*args):
         os.system(f"pkill -i {terminal}")
