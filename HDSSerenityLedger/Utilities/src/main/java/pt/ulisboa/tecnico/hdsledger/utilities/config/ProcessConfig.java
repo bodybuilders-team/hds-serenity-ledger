@@ -19,9 +19,11 @@ public class ProcessConfig {
         // Nodes
         NON_LEADER_CONSENSUS_INITIATION,    // Initiate consensus without being the leader
         LEADER_IMPERSONATION,               // Send messages with leader ID
+        CRASH_AFTER_FIXED_TIME,             // Crash after a fixed time
+        
 
         // Clients
-        // TODO: Add bad behaviors for clients
+        // TODO: Add bad behaviors for clients, ... No Need?? supposedly clients are not byzantine
     }
 
     public ProcessConfig(

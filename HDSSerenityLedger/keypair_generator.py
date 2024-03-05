@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-num_nodes = 4
+num_nodes = 5
 num_clients = 3
 
 if not os.path.exists('keypairs'):

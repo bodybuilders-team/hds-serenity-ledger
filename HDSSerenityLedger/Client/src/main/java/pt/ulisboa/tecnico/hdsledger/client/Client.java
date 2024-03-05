@@ -13,6 +13,7 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.logging.LogManager;
 
 /**
  * Client of the HDSLedger system.
@@ -29,11 +30,13 @@ public class Client {
     private static boolean running = true;
     private static ClientLibrary clientLibrary;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         if (args.length > 4 || args.length < 3) {
             System.out.println("Usage: java Client <clientID> <clientConfig> <nodesConfig> [<script>]");
             return;
         }
+        // Disable Logging
+        CustomLogger.disableLogging();
 
         String clientID = args[0];
         clientsConfigPath += args[1];
@@ -90,6 +93,7 @@ public class Client {
      * @param line line to be parsed
      */
     private static void executeCommand(String line) throws InterruptedException {
+        System.out.println("Executing: " + line);
         String[] parts = line.split(", \"");
         String command = parts[0];
         String params = parts.length > 1 ? parts[1].substring(0, parts[1].length() - 1) : null;
@@ -99,7 +103,8 @@ public class Client {
             case "read" -> clientLibrary.read();
             case "append" -> clientLibrary.append(Objects.requireNonNull(params));
             case "sleep" -> Thread.sleep(Integer.parseInt(Objects.requireNonNull(params)));
-            default -> LOGGER.warn("Unknown command: " + command);
+            case "kill" -> clientLibrary.kill();
+            default -> System.out.println("Unknown command");
         }
     }
 
@@ -121,9 +126,9 @@ public class Client {
      */
     private static void printMenu() {
         System.out.println("""
-                ########## Menu ##########
+                ########## Menu ###########
                 # 1. read                 #
-                # 2. append <message>     #
+                # 2. append, "<message>"  #
                 # 3. exit                 #
                 ###########################"""
         );

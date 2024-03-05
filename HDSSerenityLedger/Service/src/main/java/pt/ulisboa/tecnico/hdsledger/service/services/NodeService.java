@@ -127,6 +127,18 @@ public class NodeService implements UDPService {
             InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
             LOGGER.info(MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
             this.authenticatedPerfectLink.broadcast(this.createConsensusMessage(inputValue, localConsensusInstance, instance.getCurrentRound()));
+        } else if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.LEADER_IMPERSONATION) {
+            InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
+            LOGGER.info(MessageFormat.format("{0} - Node is not leader, sending PRE-PREPARE message with leader ID", config.getId()));
+            PrePrepareMessage prePrepareMessage = new PrePrepareMessage(inputValue);
+
+            var message = new ConsensusMessageBuilder(leaderConfig.getId(), Message.Type.PRE_PREPARE)
+                    .setConsensusInstance(localConsensusInstance)
+                    .setRound(instance.getCurrentRound())
+                    .setMessage(prePrepareMessage.toJson())
+                    .build();
+
+            this.authenticatedPerfectLink.broadcast(message);
         } else {
             LOGGER.info(MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
         }
@@ -206,7 +218,7 @@ public class NodeService implements UDPService {
         prepareMessages.addMessage(message);
 
         // Set instance values
-        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(value));
+        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(value)); // TODO: Check if we should trust the value coming from prepare message for input value (specially for round change)
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         // Within an instance of the algorithm, each upon rule is triggered at most once

@@ -10,6 +10,7 @@ import java.util.logging.*;
 public class CustomLogger {
 
     private static Logger LOGGER;
+    private static boolean enabled = true;
 
     /**
      * Constructs a {@code CustomLogger} with the specified name.
@@ -28,6 +29,10 @@ public class CustomLogger {
         LOGGER.addHandler(handler);
     }
 
+    public static void disableLogging() {
+        enabled = false;
+    }
+
     /**
      * Logs a message at the specified level.
      *
@@ -35,23 +40,28 @@ public class CustomLogger {
      * @param message the log message
      */
     public void log(Level level, String message) {
-        LOGGER.log(level, message);
+        if (enabled)
+            LOGGER.log(level, message);
     }
 
     public void info(String message) {
-        LOGGER.log(Level.INFO, message);
+        if (enabled)
+            LOGGER.log(Level.INFO, message);
     }
 
     public void warn(String message) {
-        LOGGER.log(Level.WARNING, message);
+        if (enabled)
+            LOGGER.log(Level.WARNING, message);
     }
 
     public void error(String message) {
-        LOGGER.log(Level.SEVERE, message);
+        if (enabled)
+            LOGGER.log(Level.SEVERE, message);
     }
 
     public void debug(String message) {
-        LOGGER.log(Level.FINE, message);
+        if (enabled)
+            LOGGER.log(Level.FINE, message);
     }
 }
 

@@ -97,10 +97,13 @@ public class AuthenticatedPerfectLink {
         Gson gson = new Gson();
 
         if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.DIFFERENTIAL_BROADCASTING) {
-            Map<String, Message> differentialMessages = createDifferentialMessages(data);
+            // Send different messages to different nodes (Alter the message)
+            nodes.forEach((destId, dest) -> {
+                Message message = gson.fromJson(gson.toJson(data), data.getClass());
+                message.setMessageId((int) (Math.random() * nodes.size()));
+                send(destId, message);
+            });
 
-            // Send different messages to different nodes
-            differentialMessages.forEach((destId, message) -> send(destId, message));
         } else
             nodes.forEach((destId, dest) -> send(destId, gson.fromJson(gson.toJson(data), data.getClass())));
     }

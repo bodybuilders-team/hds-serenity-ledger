@@ -7,11 +7,14 @@ import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 
 /**
@@ -54,6 +57,15 @@ public class Node {
             // Abstraction to send and receive messages
             AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);
             AuthenticatedPerfectLink authenticatedPerfectLinkToClients = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getClientPort(), clientConfigs, HDSLedgerMessage.class);
+
+            if (nodeConfig.getBehavior().equals(ProcessConfig.ProcessBehavior.CRASH_AFTER_FIXED_TIME)) {
+                var crashTimeout = nodeConfig.getCrashTimeout();
+                new Timer().schedule(new TimerTask() {
+                    public void run() {
+                        System.exit(0);
+                    }
+                }, crashTimeout);
+            }
 
             // Service to handle the node's logic - consensus
             NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, leaderConfig, nodeConfigs);

@@ -100,6 +100,12 @@ public class HDSLedgerService implements UDPService {
 
                             case READ -> uponRead(ledgerMessage);
 
+                            case KILL -> {
+                                LOGGER.info(MessageFormat.format("{0} - Received kill message", serverProcessConfig.getId()));
+                                System.exit(0);
+                                // Didn't work
+                                System.out.println("Received kill message but didn't work");
+                            }
                             default ->
                                     LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
                                             serverProcessConfig.getId(), ledgerMessage.getType()));
