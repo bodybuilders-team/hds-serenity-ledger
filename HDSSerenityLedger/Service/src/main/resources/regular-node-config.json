@@ -2,7 +2,7 @@
   {
     "id": "1",
     "hostname": "localhost",
-    "port": 3011,
+    "port": 3001,
     "clientPort": 3011,
     "privateKeyPath": "../keypairs/node_1/private_key.der",
     "publicKeyPath": "../keypairs/node_1/public_key.der",
@@ -11,7 +11,7 @@
   {
     "id": "2",
     "hostname": "localhost",
-    "port": 3012,
+    "port": 3002,
     "clientPort": 3012,
     "privateKeyPath": "../keypairs/node_2/private_key.der",
     "publicKeyPath": "../keypairs/node_2/public_key.der",
@@ -20,7 +20,7 @@
   {
     "id": "3",
     "hostname": "localhost",
-    "port": 3013,
+    "port": 3003,
     "clientPort": 3013,
     "privateKeyPath": "../keypairs/node_3/private_key.der",
     "publicKeyPath": "../keypairs/node_3/public_key.der",
@@ -29,7 +29,7 @@
   {
     "id": "4",
     "hostname": "localhost",
-    "port": 3014,
+    "port": 3004,
     "clientPort": 3014,
     "privateKeyPath": "../keypairs/node_4/private_key.der",
     "publicKeyPath": "../keypairs/node_4/public_key.der",

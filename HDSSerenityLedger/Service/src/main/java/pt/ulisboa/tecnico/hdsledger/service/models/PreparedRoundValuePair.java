@@ -1,5 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.service.models;
 
+import java.util.Objects;
+
 public class PreparedRoundValuePair {
     public int round;
     public String value;
@@ -17,6 +19,15 @@ public class PreparedRoundValuePair {
         if (!(obj instanceof PreparedRoundValuePair preparedRoundValuePair)) {
             return false;
         }
-        return preparedRoundValuePair.round == round && preparedRoundValuePair.value.equals(value);
+
+        return preparedRoundValuePair.round == round &&
+                ((preparedRoundValuePair.value == null && value == null) ||
+                        (preparedRoundValuePair.value != null && preparedRoundValuePair.value.equals(value))
+                );
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(round, value);
     }
 }

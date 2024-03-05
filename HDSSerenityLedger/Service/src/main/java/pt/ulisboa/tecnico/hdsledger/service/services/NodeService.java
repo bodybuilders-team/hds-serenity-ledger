@@ -1,29 +1,15 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
-import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.*;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
-import pt.ulisboa.tecnico.hdsledger.service.models.CommitMessageBucket;
-import pt.ulisboa.tecnico.hdsledger.service.models.InstanceInfo;
-import pt.ulisboa.tecnico.hdsledger.service.models.PrepareMessageBucket;
-import pt.ulisboa.tecnico.hdsledger.service.models.PreparedRoundValuePair;
-import pt.ulisboa.tecnico.hdsledger.service.models.RoundChangeMessageBucket;
+import pt.ulisboa.tecnico.hdsledger.service.models.*;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,7 +23,7 @@ public class NodeService implements UDPService {
     // Time to periodically wait for the previous consensus to be decided before starting a new one
     private static final int CONSENSUS_WAIT_TIME = 1000;
     // Expire time for the round-change timer
-    private static final int ROUND_CHANGE_TIMER_EXPIRE_TIME = 1000;
+    private static final int ROUND_CHANGE_TIMER_EXPIRE_TIME = 500;
 
     private final ServerProcessConfig[] nodesConfig; // All nodes configuration
     private final ServerProcessConfig config; // Current node configuration
@@ -373,9 +359,7 @@ public class NodeService implements UDPService {
 
         var nodeIsLeader = isNodeLeader(consensusInstance, round, this.config.getId());
 
-        if (nodeIsLeader && justifyRoundChange(consensusInstance, round) && highestPrepared.isPresent() &&
-                instance.getCurrentRound() < round) {
-
+        if (nodeIsLeader && justifyRoundChange(consensusInstance, round) && highestPrepared.isPresent()) {
             LOGGER.info(
                     MessageFormat.format("{0} - Updated round to {1} for Consensus Instance {2}",
                             config.getId(), round, consensusInstance));
@@ -455,7 +439,7 @@ public class NodeService implements UDPService {
 
         return roundChangeMessages.getMessages(consensusInstance, round).values().stream()
                 .allMatch((roundChangeMessage) ->
-                        roundChangeMessage.getPreparedRound() == 0 && roundChangeMessage.getPreparedValue() == null
+                        roundChangeMessage.getPreparedRound() == -1 && roundChangeMessage.getPreparedValue() == null
                 )
                 ||
                 roundChangeMessages.getHighestPrepared(config.getId(), consensusInstance, round)
@@ -497,13 +481,13 @@ public class NodeService implements UDPService {
             @Override
             public void run() {
                 LOGGER.info(
-                        MessageFormat.format("{0} - Timer expired for Consensus Instance {1}, triggering round-change", config.getId(), consensusInstance.get()));
+                        MessageFormat.format("{0} - Timer expired for Consensus Instance {1}, triggering round-change", config.getId(), lastDecidedConsensusInstance.get() + 1));
 
-                InstanceInfo instance = instanceInfo.get(consensusInstance.get());
+                InstanceInfo instance = instanceInfo.get(lastDecidedConsensusInstance.get() + 1);
                 instance.setCurrentRound(instance.getCurrentRound() + 1);
 
                 ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
-                        .setConsensusInstance(consensusInstance.get())
+                        .setConsensusInstance(lastDecidedConsensusInstance.get() + 1)
                         .setRound(instance.getCurrentRound())
                         .setPreparedRound(instance.getPreparedRound())
                         .setPreparedValue(instance.getPreparedValue())

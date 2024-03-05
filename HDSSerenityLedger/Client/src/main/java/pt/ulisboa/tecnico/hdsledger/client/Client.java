@@ -54,11 +54,8 @@ public class Client {
 
         if (args.length == 4 && args[3].equals("-script"))
             runScript();
-        else
-            runCLI();
 
-        System.out.println("\u001B[34mExiting...\u001B[0m");
-        System.exit(0);
+        runCLI();
     }
 
     /**
