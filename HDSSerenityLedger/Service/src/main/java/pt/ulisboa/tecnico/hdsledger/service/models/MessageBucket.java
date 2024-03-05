@@ -1,26 +1,22 @@
 package pt.ulisboa.tecnico.hdsledger.service.models;
 
-import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Bucket to store consensus messages.
  */
-public class MessageBucket {
+public abstract class MessageBucket {
 
-    private static final CustomLogger LOGGER = new CustomLogger(MessageBucket.class.getName());
+    protected static final CustomLogger LOGGER = new CustomLogger(MessageBucket.class.getName());
 
-    private final int quorumSize;
+    protected final int quorumSize;
 
     // Instance -> Round -> Sender ID -> Consensus message
-    private final Map<Integer, Map<Integer, Map<String, ConsensusMessage>>> bucket = new ConcurrentHashMap<>();
+    protected final Map<Integer, Map<Integer, Map<String, ConsensusMessage>>> bucket = new ConcurrentHashMap<>();
 
     public MessageBucket(int nodeCount) {
         int f = Math.floorDiv(nodeCount - 1, 3);
@@ -39,89 +35,6 @@ public class MessageBucket {
         bucket.putIfAbsent(consensusInstance, new ConcurrentHashMap<>());
         bucket.get(consensusInstance).putIfAbsent(round, new ConcurrentHashMap<>());
         bucket.get(consensusInstance).get(round).put(message.getSenderId(), message);
-    }
-
-    /**
-     * Check if the bucket has a valid prepare quorum.
-     *
-     * @param nodeId   The node ID
-     * @param instance The consensus instance
-     * @param round    The round
-     * @return The value if a valid prepare quorum exists
-     */
-    public Optional<String> hasValidPrepareQuorum(String nodeId, int instance, int round) {
-        // Create mapping of value to frequency
-        HashMap<String, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach((message) -> {
-            PrepareMessage prepareMessage = message.deserializePrepareMessage();
-            String value = prepareMessage.getValue();
-            frequency.put(value, frequency.getOrDefault(value, 0) + 1);
-        });
-
-        // Only one value (if any, thus the optional) will have a frequency
-        // greater than or equal to the quorum size
-        return frequency.entrySet().stream()
-                .filter((Map.Entry<String, Integer> entry) -> entry.getValue() >= quorumSize)
-                .map(Map.Entry::getKey)
-                .findFirst();
-    }
-
-    /**
-     * Check if the bucket has a valid commit quorum.
-     *
-     * @param nodeId   The node ID
-     * @param instance The consensus instance
-     * @param round    The round
-     * @return The value if a valid commit quorum exists
-     */
-    public Optional<String> hasValidCommitQuorum(String nodeId, int instance, int round) {
-        // Create mapping of value to frequency
-        HashMap<String, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach((message) -> {
-            CommitMessage commitMessage = message.deserializeCommitMessage();
-            String value = commitMessage.getValue();
-            frequency.put(value, frequency.getOrDefault(value, 0) + 1);
-        });
-
-        // Only one value (if any, thus the optional) will have a frequency
-        // greater than or equal to the quorum size
-        return frequency.entrySet().stream()
-                .filter((Map.Entry<String, Integer> entry) -> entry.getValue() >= quorumSize)
-                .map(Map.Entry::getKey)
-                .findFirst();
-    }
-
-    class Prepared {
-        public int round;
-        public String value;
-
-        public Prepared(int round, String value) {
-            this.round = round;
-            this.value = value;
-        }
-    }
-
-    /**
-     * Check if the bucket has a valid round change quorum.
-     *
-     * @param nodeId   The node ID
-     * @param instance The consensus instance
-     * @param round    The round
-     * @return The highest prepared pair (value, round) if a valid round change quorum exists
-     */
-    public Optional<Prepared> hasValidRoundChangeQuorum(String nodeId, int instance, int round) {
-        // Create mapping of value (round) to frequency
-        HashMap<Prepared, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach((message) -> {
-            frequency.put(new Prepared(message.getPreparedRound(), message.getPreparedValue()), frequency.getOrDefault(round, 0) + 1);
-        });
-
-        // Only one value (if any, thus the optional) will have a frequency
-        // greater than or equal to the quorum size
-        return frequency.entrySet().stream()
-                .filter((Map.Entry<Prepared, Integer> entry) -> entry.getValue() >= quorumSize)
-                .map(Map.Entry::getKey)
-                .findFirst();
     }
 
     /**

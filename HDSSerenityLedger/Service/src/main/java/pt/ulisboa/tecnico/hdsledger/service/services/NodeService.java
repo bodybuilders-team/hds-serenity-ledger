@@ -7,8 +7,10 @@ import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.service.models.CommitMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.service.models.InstanceInfo;
-import pt.ulisboa.tecnico.hdsledger.service.models.MessageBucket;
+import pt.ulisboa.tecnico.hdsledger.service.models.PrepareMessageBucket;
+import pt.ulisboa.tecnico.hdsledger.service.models.RoundChangeMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
@@ -31,20 +33,20 @@ public class NodeService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(NodeService.class.getName());
 
+    // Expire time for the round-change timer
+    private static final int ROUND_CHANGE_TIMER_EXPIRE_TIME = 1000;
+
     private final ServerProcessConfig[] nodesConfig; // All nodes configuration
     private final ServerProcessConfig config; // Current node configuration
     private final ServerProcessConfig leaderConfig; // Leader configuration
-
     // Link to communicate with nodes
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
-
     // Consensus instance -> Round -> List of prepare messages
-    private final MessageBucket prepareMessages;
+    private final PrepareMessageBucket prepareMessages;
     // Consensus instance -> Round -> List of commit messages
-    private final MessageBucket commitMessages;
+    private final CommitMessageBucket commitMessages;
     // Consensus instance -> Round -> List of round-change messages
-    private final MessageBucket roundChangeMessages;
-
+    private final RoundChangeMessageBucket roundChangeMessages;
     // Store if already received pre-prepare for a given <consensus, round>
     private final Map<Integer, Map<Integer, Boolean>> receivedPrePrepare = new ConcurrentHashMap<>();
     // Consensus instance information per consensus instance
@@ -53,9 +55,6 @@ public class NodeService implements UDPService {
     private final AtomicInteger consensusInstance = new AtomicInteger(0);
     // Last decided consensus instance
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
-
-    // Expire time for the round-change timer
-    private static final int ROUND_CHANGE_TIMER_EXPIRE_TIME = 1000;
     // Timer for the consensus instance, triggering round-change
     private final Timer timer = new Timer();
 
@@ -69,9 +68,9 @@ public class NodeService implements UDPService {
         this.leaderConfig = leaderConfig;
         this.nodesConfig = nodesConfig;
 
-        this.prepareMessages = new MessageBucket(nodesConfig.length);
-        this.commitMessages = new MessageBucket(nodesConfig.length);
-        this.roundChangeMessages = new MessageBucket(nodesConfig.length);
+        this.prepareMessages = new PrepareMessageBucket(nodesConfig.length);
+        this.commitMessages = new CommitMessageBucket(nodesConfig.length);
+        this.roundChangeMessages = new RoundChangeMessageBucket(nodesConfig.length);
     }
 
     public ProcessConfig getConfig() {
@@ -314,9 +313,9 @@ public class NodeService implements UDPService {
 
         if (instance == null) {
             // Should never happen because only receives commit as a response to a prepare message
-            MessageFormat.format(
+            LOGGER.severe(MessageFormat.format(
                     "{0} - CRITICAL: Received COMMIT message from {1}: Consensus Instance {2}, Round {3} BUT NO INSTANCE INFO",
-                    config.getId(), message.getSenderId(), consensusInstance, round);
+                    config.getId(), message.getSenderId(), consensusInstance, round));
             return;
         }
 
@@ -370,10 +369,8 @@ public class NodeService implements UDPService {
     public synchronized void uponRoundChange(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
-        int preparedRound = message.getPreparedRound();
-        String preparedValue = message.getPreparedValue();
 
-        LOGGER.log(Level.INFO,
+        LOGGER.info(
                 MessageFormat.format("{0} - Received ROUND-CHANGE message from node {1}: Consensus Instance {2}, Round {3}",
                         config.getId(), message.getSenderId(), consensusInstance, round));
 
@@ -382,27 +379,63 @@ public class NodeService implements UDPService {
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         if (instance == null) {
-            LOGGER.log(Level.INFO,
+            LOGGER.severe(
                     MessageFormat.format("{0} - CRITICAL: Received ROUND-CHANGE message from {1}: Consensus Instance {2}, Round {3} BUT NO INSTANCE INFO",
                             config.getId(), message.getSenderId(), consensusInstance, round));
             return;
         }
 
-        Optional<Integer> newRound = roundChangeMessages.hasValidRoundChangeQuorum(config.getId(), consensusInstance, round);
+        Optional<PreparedRoundValuePair> highestPrepared = roundChangeMessages.getHighestPrepared(config.getId(), consensusInstance, round);
 
-        if (this.config.isLeader() && newRound.isPresent() && instance.getCurrentRound() < round) {
-            instance.setCurrentRound(round);
-            instance.setPreparedRound(preparedRound);
-            instance.setPreparedValue(preparedValue);
+        if (this.config.isLeader() && justifyRoundChange(consensusInstance, round) && highestPrepared.isPresent() &&
+                instance.getCurrentRound() < round) {
 
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Updated round to {1} for Consensus Instance {2}",
-                            config.getId(), newRound, consensusInstance));
+                            config.getId(), round, consensusInstance));
 
-            // Start timer
-            timer.cancel();
-            startTimer();
+            String valueToBroadcast = highestPrepared.get().round != 0 && highestPrepared.get().value != null
+                    ? highestPrepared.get().value
+                    : instance.getInputValue();
+
+            // Broadcast preprepare message
+            ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PRE_PREPARE)
+                    .setConsensusInstance(consensusInstance)
+                    .setRound(round)
+                    .setMessage(new PrePrepareMessage(valueToBroadcast).toJson())
+                    .build();
+
+            authenticatedPerfectLink.broadcast(consensusMessage);
         }
+    }
+
+    /**
+     * A round change is justified if:
+     * <p>
+     * 1. Every round change message in the quorum has prepared round and prepared value as null
+     * <p>
+     * 2. There is a valid quorum of prepare messages such that their prepared pair is the same as the highest prepared pair
+     *
+     * @param consensusInstance Consensus instance
+     * @param round             Consensus round
+     * @return True if the round change is justified
+     */
+    boolean justifyRoundChange(int consensusInstance, int round) {
+        if (!roundChangeMessages.hasValidRoundChangeQuorum(config.getId(), consensusInstance, round))
+            return false;
+
+        return roundChangeMessages.getMessages(consensusInstance, round).values().stream()
+                .allMatch((roundChangeMessage) ->
+                        roundChangeMessage.getPreparedRound() == 0 && roundChangeMessage.getPreparedValue() == null
+                )
+                ||
+                roundChangeMessages.getHighestPrepared(config.getId(), consensusInstance, round)
+                        .map((highestPrepared) -> prepareMessages
+                                .hasValidPrepareQuorum(config.getId(), consensusInstance, highestPrepared.round)
+                                .map((value) -> highestPrepared.value.equals(value))
+                                .orElse(false))
+                        .orElse(false);
+
     }
 
     /**
@@ -449,8 +482,10 @@ public class NodeService implements UDPService {
 
                                 case COMMIT -> uponCommit((ConsensusMessage) message);
 
+                                case ROUND_CHANGE -> uponRoundChange((ConsensusMessage) message);
+
                                 case ACK -> LOGGER.info(MessageFormat.format("{0} - Received ACK message from {1}",
-                                        config.getId(), message.getSenderId()));
+                                                config.getId(), message.getSenderId()));
 
                                 case IGNORE -> LOGGER.info(
                                         MessageFormat.format("{0} - Received IGNORE message from {1}",
