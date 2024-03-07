@@ -10,13 +10,21 @@ public class InstanceInfo {
 
     private int currentRound = 1;
     private int preparedRound = -1;
-    private String preparedValue;
+    private String preparedValue = null;
     private CommitMessage commitMessage;
     private String inputValue;
     private int committedRound = -1;
 
     public InstanceInfo(String inputValue) {
         this.inputValue = inputValue;
+    }
+
+    /**
+     * Check if the instance has already decided.
+     * @return true if the instance has already decided, false otherwise.
+     */
+    public boolean alreadyDecided() {
+        return committedRound != -1;
     }
 
     public int getCurrentRound() {
@@ -55,7 +63,7 @@ public class InstanceInfo {
         return committedRound;
     }
 
-    public void setCommittedRound(int committedRound) {
+    public void setDecidedRound(int committedRound) {
         this.committedRound = committedRound;
     }
 

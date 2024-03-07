@@ -3,12 +3,24 @@ package pt.ulisboa.tecnico.hdsledger.service.models;
 import java.util.Objects;
 
 public class PreparedRoundValuePair {
-    public int round;
-    public String value;
+    private int round;
+    private String value;
 
     public PreparedRoundValuePair(int round, String value) {
         this.round = round;
         this.value = value;
+    }
+
+    public int getRound() {
+        return round;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public boolean isNull() {
+        return round == -1 && value == null;
     }
 
     @Override
