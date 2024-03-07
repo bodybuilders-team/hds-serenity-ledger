@@ -38,7 +38,7 @@ public class NodeService implements UDPService {
     // Time to periodically wait for the previous consensus to be decided before starting a new one
     private static final int CONSENSUS_WAIT_TIME = 1000;
     // Expire time for the round-change timer
-    private static final int ROUND_CHANGE_TIMER_EXPIRE_TIME = 500;
+    private static final int ROUND_CHANGE_TIMER_EXPIRE_TIME = 1000;
     // Starting round
     private static final int STARTING_ROUND = 1;
 
@@ -151,7 +151,7 @@ public class NodeService implements UDPService {
         }
 
         // Start timer for the consensus instance
-        startTimer();
+        startTimer(localConsensusInstance);
     }
 
     /**
@@ -186,7 +186,7 @@ public class NodeService implements UDPService {
                                     + "replying again to make sure it reaches the initial sender",
                             config.getId(), consensusInstance, round));
         } else {
-            startTimer();
+            startTimer(consensusInstance);
         }
 
         ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
@@ -396,7 +396,7 @@ public class NodeService implements UDPService {
 
             instance.setCurrentRound(newRound);
 
-            startTimer();
+            startTimer(consensusInstance);
 
             LOGGER.info(
                     MessageFormat.format("{0} - Updated round to {1} for Consensus Instance {2}, broadcasting ROUND-CHANGE",
@@ -458,9 +458,11 @@ public class NodeService implements UDPService {
                                 case ACK -> LOGGER.info(MessageFormat.format("{0} - Received ACK message from {1}",
                                         config.getId(), message.getSenderId()));
 
-                                case IGNORE -> LOGGER.info(
+                                case IGNORE -> {
+                                    /*LOGGER.info(
                                         MessageFormat.format("{0} - Received IGNORE message from {1}",
-                                                config.getId(), message.getSenderId()));
+                                                config.getId(), message.getSenderId()));*/
+                                }
 
                                 default -> LOGGER.info(
                                         MessageFormat.format("{0} - Received unknown message from {1}",
@@ -533,8 +535,10 @@ public class NodeService implements UDPService {
     /**
      * Start the timer for the consensus instance, expiring after TIMER_EXPIRE_TIME.
      * If the timer expires, the round is incremented and a ROUND-CHANGE message is broadcast.
+     *
+     * @param consensusInstance the consensus instance
      */
-    private void startTimer() {
+    private void startTimer(int consensusInstance) {
         stopTimer();
         timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -543,7 +547,6 @@ public class NodeService implements UDPService {
                 LOGGER.info(
                         MessageFormat.format("{0} - Timer expired for Consensus Instance {1}, triggering round-change", config.getId(), lastDecidedConsensusInstance.get() + 1));
 
-                int consensusInstance = lastDecidedConsensusInstance.get() + 1;
                 InstanceInfo instance = instanceInfo.get(consensusInstance);
                 instance.setCurrentRound(instance.getCurrentRound() + 1);
 

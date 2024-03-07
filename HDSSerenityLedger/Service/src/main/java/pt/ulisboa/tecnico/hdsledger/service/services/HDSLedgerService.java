@@ -104,6 +104,9 @@ public class HDSLedgerService implements UDPService {
 
                             case READ -> uponRead(ledgerMessage);
 
+                            case IGNORE -> {
+                            }
+
                             default -> LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
                                     serverProcessConfig.getId(), ledgerMessage.getType()));
                         }
