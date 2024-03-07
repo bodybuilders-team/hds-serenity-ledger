@@ -367,6 +367,25 @@ public class NodeService implements UDPService {
             return;
         }
 
+        if (instance.alreadyDecided()) {
+            LOGGER.info(
+                    MessageFormat.format(
+                            "{0} - Received ROUND_CHANGE from {1} - Already decided for Consensus Instance {2}, sending a COMMIT back to sender",
+                            config.getId(), message.getSenderId(), consensusInstance));
+
+            authenticatedPerfectLink.send(message.getSenderId(),
+                    new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
+                            .setConsensusInstance(consensusInstance)
+                            .setRound(round)
+                            .setReplyTo(message.getSenderId())
+                            .setReplyToMessageId(message.getMessageId())
+                            .setMessage(instance.getCommitMessage().toJson())
+                            .build()
+            );
+
+            return;
+        }
+
         Optional<PreparedRoundValuePair> highestPrepared = roundChangeMessages.getHighestPrepared(config.getId(), consensusInstance, round);
 
         var nodeIsLeader = isNodeLeader(consensusInstance, round, this.config.getId());
