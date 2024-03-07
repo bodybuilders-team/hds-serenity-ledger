@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Timer;
@@ -385,6 +386,30 @@ public class NodeService implements UDPService {
 
             return;
         }
+
+        List<ConsensusMessage> biggerRoundChangeMessages =
+                this.roundChangeMessages.getMessagesFromRoundGreaterThan(consensusInstance, round);
+        if (biggerRoundChangeMessages.size() >= nodesConfig.length / 3 + 1) {
+            int newRound = biggerRoundChangeMessages.stream()
+                    .mapToInt(ConsensusMessage::getRound)
+                    .min().getAsInt();
+
+            instance.setCurrentRound(newRound);
+
+            startTimer();
+
+            LOGGER.info(
+                    MessageFormat.format("{0} - Updated round to {1} for Consensus Instance {2}, broadcasting ROUND-CHANGE",
+                            config.getId(), newRound, consensusInstance));
+
+            authenticatedPerfectLink.broadcast(new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
+                    .setConsensusInstance(consensusInstance)
+                    .setRound(newRound)
+                    .setPreparedRound(instance.getPreparedRound())
+                    .setPreparedValue(instance.getPreparedValue())
+                    .build());
+        }
+
 
         Optional<PreparedRoundValuePair> highestPrepared = roundChangeMessages.getHighestPrepared(config.getId(), consensusInstance, round);
 

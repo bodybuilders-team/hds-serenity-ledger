@@ -1,6 +1,10 @@
 package pt.ulisboa.tecnico.hdsledger.service.models;
 
+import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -23,6 +27,8 @@ public class RoundChangeMessageBucket extends MessageBucket {
 
     /**
      * Get the highest prepared pair from the existing round change quorum.
+     * <p>
+     * Only one pair, if any, will have a frequency greater than or equal to the quorum size.
      *
      * @param nodeId   The node ID
      * @param instance The consensus instance
@@ -30,19 +36,34 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * @return The highest prepared pair (value, round) of the existing round change quorum
      */
     public Optional<PreparedRoundValuePair> getHighestPrepared(String nodeId, int instance, int round) {
-        // Create mapping of value (round) to frequency
         HashMap<PreparedRoundValuePair, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach((message) -> {
             PreparedRoundValuePair preparedRoundValuePair = new PreparedRoundValuePair(message.getPreparedRound(), message.getPreparedValue());
             frequency.put(preparedRoundValuePair, frequency.getOrDefault(preparedRoundValuePair, 0) + 1);
         });
 
-        // Only one value (if any, thus the optional) will have a frequency
-        // greater than or equal to the quorum size
         return frequency.entrySet().stream()
                 .filter((Map.Entry<PreparedRoundValuePair, Integer> entry) -> entry.getValue() >= quorumSize)
                 .map(Map.Entry::getKey)
                 .findFirst();
+    }
+
+    /**
+     * Get messages from rounds greater than the specified round.
+     *
+     * @param round The round
+     * @return The messages
+     */
+    public List<ConsensusMessage> getMessagesFromRoundGreaterThan(int consensusInstance, int round) {
+        List<ConsensusMessage> messages = new ArrayList<>();
+
+        for (Map.Entry<Integer, Map<String, ConsensusMessage>> roundEntry : bucket.get(consensusInstance).entrySet()) {
+            if (roundEntry.getKey() > round) {
+                messages.addAll(roundEntry.getValue().values());
+            }
+        }
+
+        return messages;
     }
 }
 
