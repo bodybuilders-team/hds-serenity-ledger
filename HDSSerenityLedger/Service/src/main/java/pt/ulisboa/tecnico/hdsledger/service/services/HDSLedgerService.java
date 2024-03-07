@@ -64,13 +64,18 @@ public class HDSLedgerService implements UDPService {
      * @param message the read message
      */
     public void uponRead(HDSLedgerMessage message) {
-        LOGGER.info(MessageFormat.format("{0} - Reading: {1}",
-                serverProcessConfig.getId(), message.getValue()));
+        LOGGER.info(MessageFormat.format("{0} - Reading from ledger...",
+                serverProcessConfig.getId()));
 
         try {
             ArrayList<String> ledger = nodeService.getLedger();
+            String ledgerString = String.join(", ", ledger);
+
+            LOGGER.info(MessageFormat.format("{0} - Read from ledger: {1} - Sending response...",
+                    serverProcessConfig.getId(), ledgerString));
+
             HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.READ_RESPONSE)
-                    .setValue(String.join(", ", ledger))
+                    .setValue(ledgerString)
                     .build();
 
             authenticatedPerfectLink.send(message.getSenderId(), response);
@@ -98,6 +103,9 @@ public class HDSLedgerService implements UDPService {
                             case APPEND -> uponAppend(ledgerMessage);
 
                             case READ -> uponRead(ledgerMessage);
+
+                            case IGNORE -> {
+                            }
 
                             default -> LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
                                     serverProcessConfig.getId(), ledgerMessage.getType()));

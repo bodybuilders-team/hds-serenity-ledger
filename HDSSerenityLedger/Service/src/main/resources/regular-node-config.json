@@ -1,7 +1,6 @@
 [
   {
     "id": "1",
-    "isLeader": true,
     "hostname": "localhost",
     "port": 3001,
     "clientPort": 3011,
@@ -11,7 +10,6 @@
   },
   {
     "id": "2",
-    "isLeader": false,
     "hostname": "localhost",
     "port": 3002,
     "clientPort": 3012,
@@ -21,7 +19,6 @@
   },
   {
     "id": "3",
-    "isLeader": false,
     "hostname": "localhost",
     "port": 3003,
     "clientPort": 3013,
@@ -31,7 +28,6 @@
   },
   {
     "id": "4",
-    "isLeader": false,
     "hostname": "localhost",
     "port": 3004,
     "clientPort": 3014,

@@ -92,6 +92,8 @@ public class ClientLibrary implements UDPService {
                                     clientConfig.getId(), ledgerMessage.getValue()));
                             System.out.println("Received read response: " + ledgerMessage.getValue());
                         }
+                        case IGNORE -> {
+                        }
                         default -> {
                             LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
                                     clientConfig.getId(), ledgerMessage.getType()));

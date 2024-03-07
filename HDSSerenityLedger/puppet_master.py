@@ -14,7 +14,7 @@ client_configs = [
     "regular-client-config.json",
 ]
 
-server_config = server_configs[4]
+server_config = server_configs[1]
 client_config = client_configs[0]
 
 if os.name == "nt":
@@ -102,8 +102,9 @@ else:
         for key in data:
             pid = os.fork()
             if pid == 0:
+                has_script = "scriptPath" in key
                 os.system(
-                    f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config} {server_config} {key['scriptPath']}' ; sleep 500\" ")
+                    f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config} {server_config} {'-script' if has_script else ''}' ; sleep 500\" ")
                 sys.exit()
 
     signal.signal(signal.SIGINT, quit_handler)

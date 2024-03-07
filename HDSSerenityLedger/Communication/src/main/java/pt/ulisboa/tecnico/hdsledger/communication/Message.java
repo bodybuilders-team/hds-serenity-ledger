@@ -42,7 +42,7 @@ public class Message implements Serializable {
 
     public enum Type {
         // Messages for consensus (node to node)
-        PRE_PREPARE, PREPARE, COMMIT, ACK, IGNORE,
+        PRE_PREPARE, PREPARE, COMMIT, ACK, IGNORE, ROUND_CHANGE,
 
         // Messages for the library (client to node)
         APPEND, APPEND_RESPONSE, READ, READ_RESPONSE
