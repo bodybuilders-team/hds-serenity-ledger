@@ -100,14 +100,22 @@ public class AuthenticatedPerfectLink {
     public void broadcast(Message data) {
         Gson gson = new Gson();
 
-        if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.DIFFERENTIAL_BROADCASTING) {
+        if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_BROADCAST) {
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
                 Message message = gson.fromJson(gson.toJson(data), data.getClass());
                 message.setMessageId((int) (Math.random() * nodes.size()));
                 send(destId, message);
             });
+        } else if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_LEADER
+                && data.getType() == Type.PRE_PREPARE && (((ConsensusMessage) data).getRound() == 1)) {
+            ConsensusMessage prePrepareMessage = (ConsensusMessage) data;
+            // Send different messages to different nodes (Alter the message)
+            nodes.forEach((destId, dest) -> {
+                prePrepareMessage.setMessage(new PrePrepareMessage(String.format("Corrupted Value, ci: %d destId: %s", prePrepareMessage.getConsensusInstance(), destId)).toJson());
 
+                send(destId, prePrepareMessage);
+            });
         } else
             nodes.forEach((destId, dest) -> send(destId, gson.fromJson(gson.toJson(data), data.getClass())));
     }
@@ -217,7 +225,6 @@ public class AuthenticatedPerfectLink {
         } else {
             byte[] buf = new byte[65535];
             response = new DatagramPacket(buf, buf.length);
-
             socket.receive(response);
 
             byte[] buffer = Arrays.copyOfRange(response.getData(), 0, response.getLength());

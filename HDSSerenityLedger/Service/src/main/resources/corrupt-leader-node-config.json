@@ -6,7 +6,7 @@
     "clientPort": 3011,
     "privateKeyPath": "../keypairs/node_1/private_key.der",
     "publicKeyPath": "../keypairs/node_1/public_key.der",
-    "behavior": "REGULAR"
+    "behavior": "CORRUPT_LEADER"
   },
   {
     "id": "2",
@@ -15,7 +15,7 @@
     "clientPort": 3012,
     "privateKeyPath": "../keypairs/node_2/private_key.der",
     "publicKeyPath": "../keypairs/node_2/public_key.der",
-    "behavior": "DIFFERENTIAL_BROADCASTING"
+    "behavior": "REGULAR"
   },
   {
     "id": "3",

@@ -3,10 +3,12 @@ import os
 # Blockchain node configuration file name
 server_configs = [
     "regular-node-config.json",
-    "crash-node-config.json",
+    "crash-node-config-0s.json",
+    "crash-node-config-10s.json",
     "leader-impersonation-node-config.json",
     "non-leader-start-consensus-node-config.json",
     "differential-broadcasting-node-config.json",
+    "corrupt-leader-node-config.json",
 ]
 
 # Blockchain client configuration file name
@@ -14,7 +16,7 @@ client_configs = [
     "regular-client-config.json",
 ]
 
-server_config = server_configs[1]
+server_config = server_configs[6]
 client_config = client_configs[0]
 
 if os.name == "nt":

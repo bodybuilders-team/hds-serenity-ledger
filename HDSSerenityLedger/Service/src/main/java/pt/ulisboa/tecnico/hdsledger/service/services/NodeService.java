@@ -16,7 +16,6 @@ import pt.ulisboa.tecnico.hdsledger.utilities.NodeLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -437,8 +436,8 @@ public class NodeService implements UDPService {
         try {
             // Thread to listen on every request
             new Thread(() -> {
-                try {
-                    while (true) {
+                while (true) {
+                    try {
                         Message message = authenticatedPerfectLink.receive();
 
                         // Separate thread to handle each message
@@ -465,9 +464,10 @@ public class NodeService implements UDPService {
                                         message.getSenderId()));
                             }
                         }).start();
+                    } catch (Exception e) {
+                        LOGGER.error(MessageFormat.format("{0} - Error receiving message: {1}",
+                                config.getId(), e.getMessage()));
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }).start();
         } catch (Exception e) {

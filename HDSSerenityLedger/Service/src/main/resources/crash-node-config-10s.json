@@ -1,0 +1,48 @@
+[
+  {
+    "id": "1",
+    "hostname": "localhost",
+    "port": 3001,
+    "clientPort": 3011,
+    "privateKeyPath": "../keypairs/node_1/private_key.der",
+    "publicKeyPath": "../keypairs/node_1/public_key.der",
+    "behavior": "CRASH_AFTER_FIXED_TIME",
+    "crashTimeout": 10000
+  },
+  {
+    "id": "2",
+    "hostname": "localhost",
+    "port": 3002,
+    "clientPort": 3012,
+    "privateKeyPath": "../keypairs/node_2/private_key.der",
+    "publicKeyPath": "../keypairs/node_2/public_key.der",
+    "behavior": "REGULAR"
+  },
+  {
+    "id": "3",
+    "hostname": "localhost",
+    "port": 3003,
+    "clientPort": 3013,
+    "privateKeyPath": "../keypairs/node_3/private_key.der",
+    "publicKeyPath": "../keypairs/node_3/public_key.der",
+    "behavior": "REGULAR"
+  },
+  {
+    "id": "4",
+    "hostname": "localhost",
+    "port": 3004,
+    "clientPort": 3014,
+    "privateKeyPath": "../keypairs/node_4/private_key.der",
+    "publicKeyPath": "../keypairs/node_4/public_key.der",
+    "behavior": "REGULAR"
+  },
+  {
+    "id": "5",
+    "hostname": "localhost",
+    "port": 3005,
+    "clientPort": 3015,
+    "privateKeyPath": "../keypairs/node_5/private_key.der",
+    "publicKeyPath": "../keypairs/node_5/public_key.der",
+    "behavior": "REGULAR"
+  }
+]

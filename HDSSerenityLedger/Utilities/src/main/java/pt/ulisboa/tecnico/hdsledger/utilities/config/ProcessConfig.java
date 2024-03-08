@@ -35,8 +35,8 @@ public class ProcessConfig {
             case "LEADER_IMPERSONATION":
                 this.behavior = ProcessBehavior.LEADER_IMPERSONATION;
                 break;
-            case "DIFFERENTIAL_BROADCASTING":
-                this.behavior = ProcessBehavior.DIFFERENTIAL_BROADCASTING;
+            case "CORRUPT_BROADCAST":
+                this.behavior = ProcessBehavior.CORRUPT_BROADCAST;
                 break;
             default:
                 this.behavior = ProcessBehavior.REGULAR;
@@ -73,13 +73,13 @@ public class ProcessConfig {
 
     public enum ProcessBehavior {
         REGULAR,
-        DIFFERENTIAL_BROADCASTING,          // During broadcast, send different messages to different nodes
+        CORRUPT_BROADCAST,          // During broadcast, send different messages to different nodes
 
         // Nodes
         NON_LEADER_CONSENSUS_INITIATION,    // Initiate consensus without being the leader
         LEADER_IMPERSONATION,               // Send messages with leader ID
         CRASH_AFTER_FIXED_TIME,             // Crash after a fixed time
-
+        CORRUPT_LEADER,                      // Leader sends different messages to different nodes
 
         // Clients
         // TODO: Add bad behaviors for clients, ... No Need?? supposedly clients are not byzantine
