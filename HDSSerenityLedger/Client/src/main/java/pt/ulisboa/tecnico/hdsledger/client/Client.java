@@ -2,6 +2,7 @@ package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.ClientLibrary;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.NodeLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
@@ -17,8 +18,6 @@ import java.util.Scanner;
  * Client of the HDS Serenity Ledger system.
  */
 public class Client {
-
-    private static final CustomLogger LOGGER = new CustomLogger(Client.class.getName());
 
     // Hardcoded path to files
     private static String clientsConfigPath = "src/main/resources/";
@@ -46,7 +45,10 @@ public class Client {
         ServerProcessConfig[] nodesConfig = new ProcessConfigBuilder().fromFileServer(nodesConfigPath);
 
         clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(clientID)).findAny().get();
-        LOGGER.info(MessageFormat.format("{0} - Running at {1}:{2};", clientConfig.getId(),
+
+        NodeLogger LOGGER = new NodeLogger(Client.class.getName(), clientConfig.getId());
+
+        LOGGER.info(MessageFormat.format("Running at {0}:{1};",
                 clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
 
         clientLibrary = new ClientLibrary(clientConfig, nodesConfig);

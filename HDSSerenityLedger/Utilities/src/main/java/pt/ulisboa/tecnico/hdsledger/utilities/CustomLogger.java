@@ -43,7 +43,7 @@ public class CustomLogger {
      * @param level   the log level
      * @param message the log message
      */
-    public void log(Level level, String message) {
+    protected void log(Level level, String message) {
         if (enabled) {
             System.out.println(message);
             //LOGGER.log(level, message);

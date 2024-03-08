@@ -12,8 +12,10 @@ public class NodeLogger extends CustomLogger {
         this.nodeId = nodeId;
     }
 
+
+    @Override
     public void log(Level level, String message) {
-        super.log(level, MessageFormat.format("\u001B[33m{0} - {1}", nodeId, message));
+        super.log(level, MessageFormat.format("\u001B[33m{0}\u001B[1m - \u001B[32m{1}\u001B[0m", nodeId, message));
     }
 
     public void info(String message) {

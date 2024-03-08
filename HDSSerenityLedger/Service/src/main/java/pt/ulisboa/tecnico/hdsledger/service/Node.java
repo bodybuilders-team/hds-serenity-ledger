@@ -5,7 +5,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
-import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.NodeLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
@@ -20,8 +20,6 @@ import java.util.TimerTask;
  * A node in the system.
  */
 public class Node {
-
-    private static final CustomLogger LOGGER = new CustomLogger(Node.class.getName());
 
     // Hardcoded path to files
     private static String nodesConfigPath = "src/main/resources/";
@@ -48,9 +46,9 @@ public class Node {
             ClientProcessConfig[] clientConfigs = new ProcessConfigBuilder().fromFileClient(clientsConfigPath);
             ServerProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
 
-            // TODO add to log if the node is leader
-            LOGGER.info(MessageFormat.format("{0} - Running at {1}:{2}",
-                    nodeConfig.getId(), nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort())));
+            NodeLogger LOGGER = new NodeLogger(Node.class.getName(), nodeConfig.getId());
+            LOGGER.info(MessageFormat.format("Running at {0}:{1}",
+                    nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort())));
 
             // Abstraction to send and receive messages
             AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);

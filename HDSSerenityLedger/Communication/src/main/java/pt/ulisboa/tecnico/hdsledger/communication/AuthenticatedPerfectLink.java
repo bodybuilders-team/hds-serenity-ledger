@@ -4,9 +4,9 @@ import com.google.gson.Gson;
 import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.utilities.CollapsingSet;
-import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
+import pt.ulisboa.tecnico.hdsledger.utilities.NodeLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 
 import java.io.IOException;
@@ -33,7 +33,7 @@ import java.util.logging.LogManager;
  */
 public class AuthenticatedPerfectLink {
 
-    private static final CustomLogger LOGGER = new CustomLogger(AuthenticatedPerfectLink.class.getName());
+    private final NodeLogger LOGGER;
 
     // Time to wait for an ACK before resending the message
     private final long BASE_SLEEP_TIME;
@@ -71,6 +71,7 @@ public class AuthenticatedPerfectLink {
         this.messageClass = messageClass;
         this.BASE_SLEEP_TIME = baseSleepTime;
         this.sendToClientSocket = sendToClientSocket;
+        this.LOGGER = new NodeLogger(AuthenticatedPerfectLink.class.getName(), self.getId());
 
         Arrays.stream(nodes).forEach(node -> {
             String id = node.getId();
@@ -151,15 +152,15 @@ public class AuthenticatedPerfectLink {
                     this.localhostQueue.add(data);
 
                     LOGGER.info(
-                            MessageFormat.format("{0} - Message {1} (locally) with message ID {2} sent to {3}:{4} successfully",
-                                    config.getId(), data.getType(), messageId, destAddress, String.valueOf(destPort)));
+                            MessageFormat.format("Message {0} (locally) with message ID {1} sent to {2}:{3} successfully",
+                                    data.getType(), messageId, destAddress, String.valueOf(destPort)));
 
                     return;
                 }
 
                 for (; ; ) {
                     LOGGER.info(MessageFormat.format(
-                            "{0} - Sending {1} message to {2}:{3} with message ID {4} - Attempt #{5}", config.getId(),
+                            "Sending {0} message to {1}:{2} with message ID {3} - Attempt #{4}",
                             data.getType(), destAddress, String.valueOf(destPort), messageId, count++));
 
                     unreliableSend(destAddress, destPort, data);
@@ -174,8 +175,8 @@ public class AuthenticatedPerfectLink {
                     sleepTime <<= 1;
                 }
 
-                LOGGER.info(MessageFormat.format("{0} - Message {1} sent to {2}:{3} successfully",
-                        config.getId(), data.getType(), destAddress, String.valueOf(destPort)));
+                LOGGER.info(MessageFormat.format("Message {0} sent to {1}:{2} successfully",
+                        data.getType(), destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
             }
@@ -241,11 +242,11 @@ public class AuthenticatedPerfectLink {
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
         if (response == null)
-            LOGGER.info(MessageFormat.format("{0} - Received {1} message from self with message ID {2}",
-                    config.getId(), message.getType(), messageId));
+            LOGGER.info(MessageFormat.format("Received {0} message from self with message ID {1}",
+                    message.getType(), messageId));
         else
-            LOGGER.info(MessageFormat.format("{0} - Received {1} message from {2}:{3} with message ID {4}",
-                    config.getId(), message.getType(), response.getAddress(), String.valueOf(response.getPort()), messageId));
+            LOGGER.info(MessageFormat.format("Received {0} message from {1}:{2} with message ID {3}",
+                    message.getType(), response.getAddress(), String.valueOf(response.getPort()), messageId));
 
         // Validate signature
         if (signedPacket != null) {
@@ -311,7 +312,7 @@ public class AuthenticatedPerfectLink {
             // it will discard duplicates
 
             LOGGER.info(MessageFormat.format(
-                    "{0} - Sending {1} message to {2}:{3} with message ID {4}", config.getId(),
+                    "Sending {0} message to {1}:{2} with message ID {3}",
                     Type.ACK, address, String.valueOf(port), messageId));
 
             unreliableSend(address, port, responseMessage);

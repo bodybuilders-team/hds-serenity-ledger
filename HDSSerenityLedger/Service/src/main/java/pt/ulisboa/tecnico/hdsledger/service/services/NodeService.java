@@ -34,15 +34,13 @@ public class NodeService implements UDPService {
 
     //private static final CustomLogger LOGGER = new CustomLogger(NodeService.class.getName());
 
-    private final NodeLogger LOGGER;
-
     // Time to periodically wait for the previous consensus to be decided before starting a new one
     private static final int CONSENSUS_WAIT_TIME = 1000;
     // Expire time for the round-change timer
     private static final int ROUND_CHANGE_TIMER_EXPIRE_TIME = 1000;
     // Starting round
     private static final int STARTING_ROUND = 1;
-
+    private final NodeLogger LOGGER;
     private final ServerProcessConfig[] nodesConfig; // All nodes configuration
     private final ServerProcessConfig config; // Current node configuration
 
@@ -62,11 +60,10 @@ public class NodeService implements UDPService {
     private final AtomicInteger consensusInstance = new AtomicInteger(0);
     // Last decided consensus instance
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
-    // Timer for the consensus instance, triggering round-change
-    private Timer timer = new Timer();
-
     // Ledger (for now, just a list of strings)
     private final ArrayList<String> ledger = new ArrayList<>();
+    // Timer for the consensus instance, triggering round-change
+    private Timer timer = new Timer();
 
     public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, ServerProcessConfig config, ServerProcessConfig[] nodesConfig) {
         this.authenticatedPerfectLink = authenticatedPerfectLink;
@@ -465,8 +462,8 @@ public class NodeService implements UDPService {
                             }
                         }).start();
                     } catch (Exception e) {
-                        LOGGER.error(MessageFormat.format("{0} - Error receiving message: {1}",
-                                config.getId(), e.getMessage()));
+                        LOGGER.error(MessageFormat.format("Error receiving message: {0}",
+                                e.getMessage()));
                     }
                 }
             }).start();
