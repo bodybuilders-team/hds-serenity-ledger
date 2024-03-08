@@ -389,7 +389,8 @@ public class NodeService implements UDPService {
 
         List<ConsensusMessage> biggerRoundChangeMessages =
                 this.roundChangeMessages.getMessagesFromRoundGreaterThan(consensusInstance, round);
-        if (biggerRoundChangeMessages.size() >= nodesConfig.length / 3 + 1) {
+        int f = Math.floorDiv(nodesConfig.length - 1, 3);
+        if (biggerRoundChangeMessages.size() >= f + 1) {
             int newRound = biggerRoundChangeMessages.stream()
                     .mapToInt(ConsensusMessage::getRound)
                     .min().getAsInt();
