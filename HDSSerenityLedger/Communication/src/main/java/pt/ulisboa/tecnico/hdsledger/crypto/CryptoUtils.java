@@ -71,7 +71,6 @@ public class CryptoUtils {
             KeyFactory kf = KeyFactory.getInstance(KEY_ALGORITHM);
             return kf.generatePublic(spec);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
             throw new HDSSException(ErrorMessage.PublicKeyLoadError);
         }
     }
@@ -95,7 +94,6 @@ public class CryptoUtils {
             KeyFactory kf = KeyFactory.getInstance(KEY_ALGORITHM);
             return kf.generatePrivate(spec);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
             throw new HDSSException(ErrorMessage.PrivateKeyLoadError);
         }
     }

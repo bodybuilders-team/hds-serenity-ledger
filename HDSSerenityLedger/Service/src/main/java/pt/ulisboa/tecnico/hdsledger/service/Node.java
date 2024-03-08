@@ -5,7 +5,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
-import pt.ulisboa.tecnico.hdsledger.utilities.NodeLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
@@ -20,6 +20,8 @@ import java.util.TimerTask;
  * A node in the system.
  */
 public class Node {
+
+    private static ProcessLogger logger;
 
     // Hardcoded path to files
     private static String nodesConfigPath = "src/main/resources/";
@@ -41,14 +43,14 @@ public class Node {
             nodesConfigPath += args[1];
             clientsConfigPath += args[2];
 
+            logger = new ProcessLogger(Node.class.getName(), id);
+
             // Create configuration instances
             ServerProcessConfig[] nodeConfigs = new ProcessConfigBuilder().fromFileServer(nodesConfigPath);
             ClientProcessConfig[] clientConfigs = new ProcessConfigBuilder().fromFileClient(clientsConfigPath);
             ServerProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
 
-            NodeLogger LOGGER = new NodeLogger(Node.class.getName(), nodeConfig.getId());
-            LOGGER.info(MessageFormat.format("Running at {0}:{1}",
-                    nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort())));
+            logger.info(MessageFormat.format("Running at {0}:{1}", nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort())));
 
             // Abstraction to send and receive messages
             AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);
@@ -67,7 +69,7 @@ public class Node {
             NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs);
 
             // Service to handle the node's logic - ledger
-            HDSLedgerService hdsLedgerService = new HDSLedgerService(nodeConfig, authenticatedPerfectLinkToClients, nodeService);
+            HDSLedgerService hdsLedgerService = new HDSLedgerService(authenticatedPerfectLinkToClients, nodeService);
 
             nodeService.listen();
             hdsLedgerService.listen();

@@ -19,7 +19,7 @@ public class ProcessConfig {
             int clientPort,
             String privateKeyPath,
             String publicKeyPath,
-            String behavior
+            ProcessBehavior behavior
     ) {
         this.id = id;
         this.hostname = hostname;
@@ -27,20 +27,7 @@ public class ProcessConfig {
         this.clientPort = clientPort;
         this.privateKeyPath = privateKeyPath;
         this.publicKeyPath = publicKeyPath;
-
-        switch (behavior) {
-            case "NON_LEADER_CONSENSUS_INITIATION":
-                this.behavior = ProcessBehavior.NON_LEADER_CONSENSUS_INITIATION;
-                break;
-            case "LEADER_IMPERSONATION":
-                this.behavior = ProcessBehavior.LEADER_IMPERSONATION;
-                break;
-            case "CORRUPT_BROADCAST":
-                this.behavior = ProcessBehavior.CORRUPT_BROADCAST;
-                break;
-            default:
-                this.behavior = ProcessBehavior.REGULAR;
-        }
+        this.behavior = behavior;
     }
 
     public int getPort() {
@@ -73,13 +60,13 @@ public class ProcessConfig {
 
     public enum ProcessBehavior {
         REGULAR,
-        CORRUPT_BROADCAST,          // During broadcast, send different messages to different nodes
+        CORRUPT_BROADCAST,                  // During broadcast, send different messages to different nodes
 
         // Nodes
         NON_LEADER_CONSENSUS_INITIATION,    // Initiate consensus without being the leader
         LEADER_IMPERSONATION,               // Send messages with leader ID
         CRASH_AFTER_FIXED_TIME,             // Crash after a fixed time
-        CORRUPT_LEADER,                      // Leader sends different messages to different nodes
+        CORRUPT_LEADER,                     // Leader sends different messages to different nodes
 
         // Clients
         // TODO: Add bad behaviors for clients, ... No Need?? supposedly clients are not byzantine

@@ -1,5 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+/**
+ * The {@code SignedPacket} class represents a packet that contains a message and a signature.
+ */
 public class SignedPacket {
     private final byte[] message;
     private final byte[] signature;

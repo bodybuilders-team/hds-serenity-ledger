@@ -36,6 +36,13 @@ public class ProcessConfigBuilder {
         }
     }
 
+    /**
+     * Returns the instance of ServerProcessConfig, read from a file.
+     *
+     * @param path The path to the file.
+     * @return The instance of ServerProcessConfig.
+     * @throws HDSSException If the file is not found or the format is incorrect.
+     */
     public ServerProcessConfig[] fromFileServer(String path) {
         try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(path))) {
             String input = new String(is.readAllBytes(), StandardCharsets.UTF_8);
@@ -48,6 +55,13 @@ public class ProcessConfigBuilder {
         }
     }
 
+    /**
+     * Returns the instance of ClientProcessConfig, read from a file.
+     *
+     * @param path The path to the file.
+     * @return The instance of ClientProcessConfig.
+     * @throws HDSSException If the file is not found or the format is incorrect.
+     */
     public ClientProcessConfig[] fromFileClient(String path) {
         try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(path))) {
             String input = new String(is.readAllBytes(), StandardCharsets.UTF_8);

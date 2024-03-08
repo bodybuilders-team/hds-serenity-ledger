@@ -55,7 +55,8 @@ Each node has a configuration object that contains the following fields:
   "clientPort": "<CLIENT_PORT>",
   "privateKeyPath": "<PRIVATE_KEY_PATH>",
   "publicKeyPath": "<PUBLIC_KEY_PATH>",
-  "behavior": "<NODE_BEHAVIOR>"
+  "behavior": "<NODE_BEHAVIOR>"//,
+  //["crashTimeout": "<CRASH_TIMEOUT>"]
 }
 ```
 
@@ -80,8 +81,16 @@ To generate the keys for the nodes and clients, you can use the script `keypair_
 There you can define the number of nodes and clients, and the script will generate the necessary keys inside
 the `keypairs` folder.
 
+If you are using Linux, you can run the script with:
+
 ```bash
 python3 keypair_generator.py
+```
+
+or if you are using Windows:
+
+```bash
+py keypair_generator.py
 ```
 
 ### Dependencies
@@ -156,7 +165,7 @@ mvn compile exec:java -Dexec.args="..."
 
 ---
 
-## Acknowledgement
+## Acknowledgements
 
 The base code for this project was provided by the course's professors, which was kindly provided by the following
 group: [David Belchior](https://github.com/DavidAkaFunky), [Diogo Santos](https://github.com/DiogoSantoss), [Vasco Correia](https://github.com/Vaascoo).

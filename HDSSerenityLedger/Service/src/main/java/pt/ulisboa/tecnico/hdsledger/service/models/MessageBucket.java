@@ -1,7 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.models;
 
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,14 +10,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class MessageBucket {
 
-    protected static final CustomLogger LOGGER = new CustomLogger(MessageBucket.class.getName());
-
     protected final int quorumSize;
 
     // Instance -> Round -> Sender ID -> Consensus message
     protected final Map<Integer, Map<Integer, Map<String, ConsensusMessage>>> bucket = new ConcurrentHashMap<>();
 
-    public MessageBucket(int nodeCount) {
+    protected MessageBucket(int nodeCount) {
         int f = Math.floorDiv(nodeCount - 1, 3);
         quorumSize = Math.floorDiv(nodeCount + f, 2) + 1;
     }
