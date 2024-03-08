@@ -36,7 +36,7 @@ public class AuthenticatedPerfectLink {
     private static final CustomLogger LOGGER = new CustomLogger(AuthenticatedPerfectLink.class.getName());
 
     // Time to wait for an ACK before resending the message
-    private final int BASE_SLEEP_TIME;
+    private final long BASE_SLEEP_TIME;
     private final boolean sendToClientSocket;
     // UDP Socket
     private final DatagramSocket socket;
@@ -136,7 +136,7 @@ public class AuthenticatedPerfectLink {
                 int destPort = sendToClientSocket ? node.getClientPort() : node.getPort();
                 int count = 1;
                 int messageId = data.getMessageId();
-                int sleepTime = BASE_SLEEP_TIME;
+                long sleepTime = BASE_SLEEP_TIME;
 
                 // Send message to local queue instead of using network if destination in self
                 if (nodeId.equals(this.config.getId())) {

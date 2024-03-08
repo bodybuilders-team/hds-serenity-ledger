@@ -44,28 +44,30 @@ public class CustomLogger {
      * @param message the log message
      */
     public void log(Level level, String message) {
-        if (enabled)
-            LOGGER.log(level, message);
+        if (enabled) {
+            System.out.println(message);
+            //LOGGER.log(level, message);
+        }
     }
 
     public void info(String message) {
         if (enabled)
-            LOGGER.log(Level.INFO, message);
+            log(Level.INFO, message);
     }
 
     public void warn(String message) {
         if (enabled)
-            LOGGER.log(Level.WARNING, message);
+            log(Level.WARNING, message);
     }
 
     public void error(String message) {
         if (enabled)
-            LOGGER.log(Level.SEVERE, message);
+            log(Level.SEVERE, message);
     }
 
     public void debug(String message) {
         if (enabled)
-            LOGGER.log(Level.FINE, message);
+            log(Level.FINE, message);
     }
 }
 
