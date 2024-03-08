@@ -100,6 +100,18 @@ public class AuthenticatedPerfectLink {
     public void broadcast(Message data) {
         Gson gson = new Gson();
 
+        switch (data.getType()) {
+            case PRE_PREPARE -> logger.info(MessageFormat.format("Broadcasting PRE-PREPARE({0}, {1}, \"{2}\")",
+                    ((ConsensusMessage) data).getConsensusInstance(), ((ConsensusMessage) data).getRound(),
+                    gson.fromJson(((ConsensusMessage) data).getMessage(), PrePrepareMessage.class).getValue()));
+            case PREPARE -> logger.info(MessageFormat.format("Broadcasting PREPARE({0}, {1}, \"{2}\")",
+                    ((ConsensusMessage) data).getConsensusInstance(), ((ConsensusMessage) data).getRound(),
+                    gson.fromJson(((ConsensusMessage) data).getMessage(), PrepareMessage.class).getValue()));
+            case COMMIT -> logger.info(MessageFormat.format("Broadcasting COMMIT({0}, {1}, \"{2}\")",
+                    ((ConsensusMessage) data).getConsensusInstance(), ((ConsensusMessage) data).getRound(),
+                    gson.fromJson(((ConsensusMessage) data).getMessage(), CommitMessage.class).getValue()));
+        }
+
         if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_BROADCAST) {
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
@@ -174,7 +186,7 @@ public class AuthenticatedPerfectLink {
                     sleepTime <<= 1;
                 }
 
-                logger.info(MessageFormat.format("Message {0} sent to {1}:{2} successfully",
+                logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully",
                         data.getType(), destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();

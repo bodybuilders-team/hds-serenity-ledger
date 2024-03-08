@@ -14,7 +14,7 @@ public class ClientProcessConfig extends ProcessConfig {
             String scriptPath,
             String privateKeyPath,
             String publicKeyPath,
-            String behavior
+            ProcessBehavior behavior
     ) {
         super(id, hostname, port, clientPort, privateKeyPath, publicKeyPath, behavior);
         this.scriptPath = scriptPath;

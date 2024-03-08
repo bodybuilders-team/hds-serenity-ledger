@@ -19,7 +19,7 @@ public class ProcessConfig {
             int clientPort,
             String privateKeyPath,
             String publicKeyPath,
-            String behavior
+            ProcessBehavior behavior
     ) {
         this.id = id;
         this.hostname = hostname;
@@ -27,20 +27,7 @@ public class ProcessConfig {
         this.clientPort = clientPort;
         this.privateKeyPath = privateKeyPath;
         this.publicKeyPath = publicKeyPath;
-
-        switch (behavior) { // TODO: Unnecessary switch statement?
-            case "NON_LEADER_CONSENSUS_INITIATION":
-                this.behavior = ProcessBehavior.NON_LEADER_CONSENSUS_INITIATION;
-                break;
-            case "LEADER_IMPERSONATION":
-                this.behavior = ProcessBehavior.LEADER_IMPERSONATION;
-                break;
-            case "CORRUPT_BROADCAST":
-                this.behavior = ProcessBehavior.CORRUPT_BROADCAST;
-                break;
-            default:
-                this.behavior = ProcessBehavior.REGULAR;
-        }
+        this.behavior = behavior;
     }
 
     public int getPort() {

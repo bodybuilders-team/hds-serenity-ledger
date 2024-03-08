@@ -13,7 +13,7 @@ public class ServerProcessConfig extends ProcessConfig {
             int clientPort,
             String privateKeyPath,
             String publicKeyPath,
-            String behavior,
+            ProcessBehavior behavior,
             int crashTimeout
     ) {
         super(id, hostname, port, clientPort, privateKeyPath, publicKeyPath, behavior);

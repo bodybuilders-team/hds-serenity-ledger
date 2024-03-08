@@ -47,7 +47,7 @@ public class RoundChangeMessageBucket extends MessageBucket {
         });
 
         return frequency.entrySet().stream()
-                .filter((Map.Entry<PreparedRoundValuePair, Integer> entry) -> entry.getValue() >= quorumSize)
+                .filter(entry -> entry.getValue() >= quorumSize)
                 .map(Map.Entry::getKey)
                 .findFirst();
     }

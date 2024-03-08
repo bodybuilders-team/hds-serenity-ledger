@@ -122,11 +122,11 @@ public class NodeService implements UDPService {
         // Leader broadcasts PRE-PREPARE message
         if (nodeIsLeader || this.config.getBehavior() == ProcessConfig.ProcessBehavior.NON_LEADER_CONSENSUS_INITIATION) {
             if (nodeIsLeader)
-                logger.info(MessageFormat.format("Sending PRE-PREPARE({0}, {1}) - Node is leader",
-                        localConsensusInstance, STARTING_ROUND));
+                logger.info(MessageFormat.format("Broadcasting PRE-PREPARE({0}, {1}, \"{2}\") - Node is leader",
+                        localConsensusInstance, STARTING_ROUND, inputValue));
             else
-                logger.info(MessageFormat.format("Sending PRE-PREPARE({0}, {1}) - Node is not leader, but still sending",
-                        localConsensusInstance, STARTING_ROUND));
+                logger.info(MessageFormat.format("Broadcasting PRE-PREPARE({0}, {1}, \"{2}\") - Node is not leader, but still sending",
+                        localConsensusInstance, STARTING_ROUND, inputValue));
 
             this.authenticatedPerfectLink.broadcast(
                     new ConsensusMessageBuilder(config.getId(), Message.Type.PRE_PREPARE)
@@ -136,7 +136,7 @@ public class NodeService implements UDPService {
                             .build()
             );
         } else if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.LEADER_IMPERSONATION) {
-            logger.info(MessageFormat.format("Sending PRE-PREPARE({0}, {1}, {2}) - Node is not leader, but is impersonating leader",
+            logger.info(MessageFormat.format("Broadcasting PRE-PREPARE({0}, {1}, \"{2}\") - Node is not leader, but is impersonating leader",
                     localConsensusInstance, STARTING_ROUND, inputValue));
 
             this.authenticatedPerfectLink.broadcast(
@@ -168,7 +168,8 @@ public class NodeService implements UDPService {
 
         PrePrepareMessage prePrepareMessage = message.deserializePrePrepareMessage();
 
-        logger.info(MessageFormat.format("Received PRE-PREPARE({0}, {1}) from node {2}", consensusInstance, round, senderId));
+        logger.info(MessageFormat.format("Received PRE-PREPARE({0}, {1}, \"{2}\") from node {3}",
+                consensusInstance, round, prePrepareMessage.getValue(), senderId));
 
         if (!isNodeLeader(consensusInstance, round, senderId) || !justifyPrePrepare(consensusInstance, round))
             return;
@@ -179,21 +180,20 @@ public class NodeService implements UDPService {
         if (receivedPrePrepare.get(consensusInstance).put(round, true) != null) {
             logger.info(
                     MessageFormat.format(
-                            "Already received PRE-PREPARE({0}, {1}) replying again to make sure it reaches the initial sender",
-                            consensusInstance, round));
+                            "Already received PRE-PREPARE({0}, {1}, _) from node {2}, Leader({0}, {1}). Replying again to make sure it reaches the initial sender",
+                            consensusInstance, round, senderId));
         } else {
             startTimer(consensusInstance);
         }
 
-        ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
-                .setConsensusInstance(consensusInstance)
-                .setRound(round)
-                .setMessage(new PrepareMessage(prePrepareMessage.getValue()).toJson())
-                .setReplyTo(senderId)
-                .setReplyToMessageId(senderMessageId)
-                .build();
-
-        this.authenticatedPerfectLink.broadcast(consensusMessage);
+        this.authenticatedPerfectLink.broadcast(
+                new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
+                        .setConsensusInstance(consensusInstance)
+                        .setRound(round)
+                        .setMessage(new PrepareMessage(prePrepareMessage.getValue()).toJson())
+                        .setReplyTo(senderId)
+                        .setReplyToMessageId(senderMessageId)
+                        .build());
     }
 
     /**
@@ -212,6 +212,9 @@ public class NodeService implements UDPService {
 
         prepareMessages.addMessage(message);
 
+        PrepareMessage prepareMessage = message.deserializePrepareMessage();
+
+        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(prepareMessage.getValue()));
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         if (instance.getPreparedRound() >= round) {
@@ -253,6 +256,9 @@ public class NodeService implements UDPService {
             // Must reply to prepare message senders
             Collection<ConsensusMessage> sendersMessage = prepareMessages.getMessages(consensusInstance, round)
                     .values();
+
+            logger.info(MessageFormat.format("Broadcasting COMMIT({0}, {1}, \"{2}\")",
+                    consensusInstance, round, preparedValue.get()));
 
             sendersMessage.forEach(senderMessage -> {
                 ConsensusMessage m = new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
@@ -388,7 +394,7 @@ public class NodeService implements UDPService {
             startTimer(consensusInstance);
 
             logger.info(
-                    MessageFormat.format("Updated round to {0} for Consensus Instance {1}, broadcasting ROUND-CHANGE({1}, {0}, {2}, {3})",
+                    MessageFormat.format("Updated round to {0} for Consensus Instance {1}, broadcasting ROUND-CHANGE({1}, {0}, {2}, \"{3}\")",
                             newRound, consensusInstance, instance.getPreparedRound(), instance.getPreparedValue()));
 
             authenticatedPerfectLink.broadcast(new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
@@ -410,7 +416,7 @@ public class NodeService implements UDPService {
                     : instance.getInputValue();
 
             logger.info(
-                    MessageFormat.format("Updated round to {0} for Consensus Instance {1}, broadcasting PRE-PREPARE({1}, {0}, {2})",
+                    MessageFormat.format("Updated round to {0} for Consensus Instance {1}, broadcasting PRE-PREPARE({1}, {0}, \"{2}\")",
                             round, consensusInstance, valueToBroadcast));
 
             // Broadcast preprepare message
@@ -444,7 +450,7 @@ public class NodeService implements UDPService {
 
                                 case ROUND_CHANGE -> uponRoundChange((ConsensusMessage) message);
 
-                                case ACK -> logger.info(MessageFormat.format("Received ACK({0} from {1}",
+                                case ACK -> logger.info(MessageFormat.format("Received ACK({0}) from {1}",
                                         message.getMessageId(), message.getSenderId()));
 
                                 case IGNORE -> {
@@ -540,7 +546,7 @@ public class NodeService implements UDPService {
 
                 logger.info(
                         MessageFormat.format("Timer expired for Consensus Instance {0}. Updated round to {1}, triggering round-change. " +
-                                        "Broadcasting ROUND_CHANGE({0}, {1}, {2}, {3})",
+                                        "Broadcasting ROUND_CHANGE({0}, {1}, {2}, \"{3}\")",
                                 consensusInstance, round, preparedRound, preparedValue));
 
                 authenticatedPerfectLink.broadcast(new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
