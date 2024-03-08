@@ -8,7 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Bucket for round change messages.
+ */
 public class RoundChangeMessageBucket extends MessageBucket {
+
     public RoundChangeMessageBucket(int nodeCount) {
         super(nodeCount);
     }
@@ -21,7 +25,7 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * @param round    The round
      * @return True if a valid round change quorum exists
      */
-    public boolean hasValidRoundChangeQuorum(String nodeId, int instance, int round) {
+    public boolean hasValidRoundChangeQuorum(String nodeId, int instance, int round) { // TODO: nodeID is not used
         return bucket.get(instance).get(round).values().size() >= quorumSize;
     }
 
@@ -35,10 +39,10 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * @param round    The round
      * @return The highest prepared pair (value, round) of the existing round change quorum
      */
-    public Optional<PreparedRoundValuePair> getHighestPrepared(String nodeId, int instance, int round) {
+    public Optional<PreparedRoundValuePair> getHighestPrepared(String nodeId, int instance, int round) { // TODO: nodeID is not used
         HashMap<PreparedRoundValuePair, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach((message) -> {
-            PreparedRoundValuePair preparedRoundValuePair = new PreparedRoundValuePair(message.getPreparedRound(), message.getPreparedValue());
+        bucket.get(instance).get(round).values().forEach(message -> {
+            var preparedRoundValuePair = new PreparedRoundValuePair(message.getPreparedRound(), message.getPreparedValue());
             frequency.put(preparedRoundValuePair, frequency.getOrDefault(preparedRoundValuePair, 0) + 1);
         });
 

@@ -13,7 +13,8 @@ public class ServerProcessConfig extends ProcessConfig {
             int clientPort,
             String privateKeyPath,
             String publicKeyPath,
-            String behavior, int crashTimeout
+            String behavior,
+            int crashTimeout
     ) {
         super(id, hostname, port, clientPort, privateKeyPath, publicKeyPath, behavior);
         this.crashTimeout = crashTimeout;

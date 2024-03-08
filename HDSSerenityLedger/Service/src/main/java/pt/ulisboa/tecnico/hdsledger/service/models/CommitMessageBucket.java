@@ -6,7 +6,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Bucket for commit messages.
+ */
 public class CommitMessageBucket extends MessageBucket {
+
     public CommitMessageBucket(int nodeCount) {
         super(nodeCount);
     }
@@ -19,10 +23,10 @@ public class CommitMessageBucket extends MessageBucket {
      * @param round    The round
      * @return The value if a valid commit quorum exists
      */
-    public Optional<String> hasValidCommitQuorum(String nodeId, int instance, int round) {
+    public Optional<String> hasValidCommitQuorum(String nodeId, int instance, int round) { // TODO: nodeID is not used
         // Create mapping of value to frequency
         HashMap<String, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach((message) -> {
+        bucket.get(instance).get(round).values().forEach(message -> {
             CommitMessage commitMessage = message.deserializeCommitMessage();
             String value = commitMessage.getValue();
             frequency.put(value, frequency.getOrDefault(value, 0) + 1);

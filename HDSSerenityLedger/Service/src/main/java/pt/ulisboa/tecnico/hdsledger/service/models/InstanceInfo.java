@@ -21,6 +21,7 @@ public class InstanceInfo {
 
     /**
      * Check if the instance has already decided.
+     *
      * @return true if the instance has already decided, false otherwise.
      */
     public boolean alreadyDecided() {

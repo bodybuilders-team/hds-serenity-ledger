@@ -6,7 +6,7 @@ import pt.ulisboa.tecnico.hdsledger.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.utilities.CollapsingSet;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
-import pt.ulisboa.tecnico.hdsledger.utilities.NodeLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
 
 import java.io.IOException;
@@ -33,8 +33,6 @@ import java.util.logging.LogManager;
  */
 public class AuthenticatedPerfectLink {
 
-    private final NodeLogger LOGGER;
-
     // Time to wait for an ACK before resending the message
     private final long BASE_SLEEP_TIME;
     private final boolean sendToClientSocket;
@@ -55,6 +53,7 @@ public class AuthenticatedPerfectLink {
     // Send messages to self by pushing to queue instead of through the network
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
     private final KeyPair keyPair;
+    private final ProcessLogger logger;
 
     public AuthenticatedPerfectLink(
             ProcessConfig self, int port, ProcessConfig[] nodes,
@@ -71,7 +70,7 @@ public class AuthenticatedPerfectLink {
         this.messageClass = messageClass;
         this.BASE_SLEEP_TIME = baseSleepTime;
         this.sendToClientSocket = sendToClientSocket;
-        this.LOGGER = new NodeLogger(AuthenticatedPerfectLink.class.getName(), self.getId());
+        this.logger = new ProcessLogger(AuthenticatedPerfectLink.class.getName(), self.getId());
 
         Arrays.stream(nodes).forEach(node -> {
             String id = node.getId();
@@ -151,7 +150,7 @@ public class AuthenticatedPerfectLink {
                 if (nodeId.equals(this.config.getId())) {
                     this.localhostQueue.add(data);
 
-                    LOGGER.info(
+                    logger.info(
                             MessageFormat.format("Message {0} (locally) with message ID {1} sent to {2}:{3} successfully",
                                     data.getType(), messageId, destAddress, String.valueOf(destPort)));
 
@@ -159,7 +158,7 @@ public class AuthenticatedPerfectLink {
                 }
 
                 for (; ; ) {
-                    LOGGER.info(MessageFormat.format(
+                    logger.info(MessageFormat.format(
                             "Sending {0} message to {1}:{2} with message ID {3} - Attempt #{4}",
                             data.getType(), destAddress, String.valueOf(destPort), messageId, count++));
 
@@ -175,7 +174,7 @@ public class AuthenticatedPerfectLink {
                     sleepTime <<= 1;
                 }
 
-                LOGGER.info(MessageFormat.format("Message {0} sent to {1}:{2} successfully",
+                logger.info(MessageFormat.format("Message {0} sent to {1}:{2} successfully",
                         data.getType(), destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
@@ -201,7 +200,6 @@ public class AuthenticatedPerfectLink {
                 DatagramPacket packet = new DatagramPacket(buf, buf.length, hostname, port);
                 socket.send(packet);
             } catch (IOException e) {
-                e.printStackTrace();
                 throw new HDSSException(ErrorMessage.SocketSendingError);
             }
         }).start();
@@ -213,7 +211,7 @@ public class AuthenticatedPerfectLink {
      * @return The received message
      */
     public Message receive() throws IOException {
-        Message message = null;
+        Message message;
         SignedPacket signedPacket = null;
         String serializedMessage = "";
         Boolean local = false;
@@ -242,10 +240,10 @@ public class AuthenticatedPerfectLink {
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
         if (response == null)
-            LOGGER.info(MessageFormat.format("Received {0} message from self with message ID {1}",
+            logger.info(MessageFormat.format("Received {0} message from self with message ID {1}",
                     message.getType(), messageId));
         else
-            LOGGER.info(MessageFormat.format("Received {0} message from {1}:{2} with message ID {3}",
+            logger.info(MessageFormat.format("Received {0} message from {1}:{2} with message ID {3}",
                     message.getType(), response.getAddress(), String.valueOf(response.getPort()), messageId));
 
         // Validate signature
@@ -311,7 +309,7 @@ public class AuthenticatedPerfectLink {
             // Even if a node receives the message multiple times,
             // it will discard duplicates
 
-            LOGGER.info(MessageFormat.format(
+            logger.info(MessageFormat.format(
                     "Sending {0} message to {1}:{2} with message ID {3}",
                     Type.ACK, address, String.valueOf(port), messageId));
 

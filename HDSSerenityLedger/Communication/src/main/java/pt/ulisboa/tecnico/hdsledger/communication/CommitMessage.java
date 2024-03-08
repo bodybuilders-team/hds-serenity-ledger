@@ -2,10 +2,9 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 
-public class CommitMessage {
+public class CommitMessage { // TODO: Can be record
 
-    // Value
-    private String value;
+    private final String value;
 
     public CommitMessage(String value) {
         this.value = value;

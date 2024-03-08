@@ -2,9 +2,12 @@ package pt.ulisboa.tecnico.hdsledger.service.models;
 
 import java.util.Objects;
 
-public class PreparedRoundValuePair {
-    private int round;
-    private String value;
+/**
+ * Stores a prepared round and value pair.
+ */
+public class PreparedRoundValuePair { // TODO: can be a record
+    private final int round;
+    private final String value;
 
     public PreparedRoundValuePair(int round, String value) {
         this.round = round;

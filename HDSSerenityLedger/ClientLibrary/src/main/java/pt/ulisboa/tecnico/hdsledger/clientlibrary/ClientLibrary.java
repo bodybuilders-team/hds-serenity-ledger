@@ -5,7 +5,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.HDSLedgerMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.service.services.UDPService;
-import pt.ulisboa.tecnico.hdsledger.utilities.NodeLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
@@ -16,20 +16,26 @@ import java.text.MessageFormat;
  */
 public class ClientLibrary implements UDPService {
 
-    private final NodeLogger LOGGER;
-
     private final ClientProcessConfig clientConfig;
+    private ProcessLogger logger;
     private AuthenticatedPerfectLink authenticatedPerfectLink;
 
     public ClientLibrary(ClientProcessConfig clientConfig, ServerProcessConfig[] nodesConfig) {
         this.clientConfig = clientConfig;
-        this.LOGGER = new NodeLogger(ClientLibrary.class.getName(), clientConfig.getId());
+        this.logger = new ProcessLogger(ClientLibrary.class.getName(), clientConfig.getId());
 
         try {
-            this.authenticatedPerfectLink = new AuthenticatedPerfectLink(clientConfig, clientConfig.getPort(), nodesConfig, HDSLedgerMessage.class, true, 200, true);
+            this.authenticatedPerfectLink = new AuthenticatedPerfectLink(
+                    clientConfig,
+                    clientConfig.getPort(),
+                    nodesConfig,
+                    HDSLedgerMessage.class,
+                    true,
+                    200,
+                    true
+            );
         } catch (Exception e) {
-            LOGGER.error(MessageFormat.format("Error creating link: {0}",
-                    e.getMessage()));
+            logger.error(MessageFormat.format("Error creating link: {0}", e.getMessage()));
         }
     }
 
@@ -39,7 +45,7 @@ public class ClientLibrary implements UDPService {
      * @param value value to append
      */
     public void append(String value) {
-        LOGGER.info(MessageFormat.format("Appending: {0}", value));
+        logger.info(MessageFormat.format("Appending: {0}", value));
 
         try {
             HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.APPEND)
@@ -48,8 +54,7 @@ public class ClientLibrary implements UDPService {
 
             authenticatedPerfectLink.broadcast(message);
         } catch (Exception e) {
-            LOGGER.error(MessageFormat.format("Error sending append: {0}",
-                    e.getMessage()));
+            logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
         }
     }
 
@@ -57,21 +62,20 @@ public class ClientLibrary implements UDPService {
      * Reads the ledger.
      */
     public void read() {
-        LOGGER.info("Reading...");
+        logger.info("Reading...");
 
         try {
             HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.READ).build();
 
             authenticatedPerfectLink.broadcast(message);
         } catch (Exception e) {
-            LOGGER.error(MessageFormat.format("Error sending read: {0}",
-                    e.getMessage()));
+            logger.error(MessageFormat.format("Error sending read: {0}", e.getMessage()));
         }
     }
 
     @Override
     public void listen() {
-        LOGGER.info("Listening for messages...");
+        logger.info("Listening for messages...");
 
         new Thread(() -> {
             while (true) {
@@ -82,28 +86,17 @@ public class ClientLibrary implements UDPService {
                         continue;
 
                     switch (ledgerMessage.getType()) {
-                        case APPEND_RESPONSE -> {
-                            LOGGER.info(MessageFormat.format("Received append response: {1}",
-                                    ledgerMessage.getValue()));
-                            System.out.println("Received append response: " + ledgerMessage.getValue());
-                        }
-                        case READ_RESPONSE -> {
-                            LOGGER.info(MessageFormat.format("Received read response: {1}",
-                                    clientConfig.getId(), ledgerMessage.getValue()));
-                            System.out.println("Received read response: " + ledgerMessage.getValue());
-                        }
-                        case IGNORE -> {
-                        }
-                        default -> {
-                            LOGGER.warn(MessageFormat.format("{0} - Received unknown message type: {1}",
-                                    clientConfig.getId(), ledgerMessage.getType()));
-                            System.out.println("Received unknown message type: " + ledgerMessage.getType());
-                        }
+                        case APPEND_RESPONSE ->
+                                logger.info(MessageFormat.format("Received append response: {0}", ledgerMessage.getValue()));
+                        case READ_RESPONSE ->
+                                logger.info(MessageFormat.format("Received read response: {0}", ledgerMessage.getValue()));
+                        case IGNORE -> { /* Do nothing */ }
+                        default ->
+                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessage.getType()));
                     }
 
                 } catch (Exception e) {
-                    LOGGER.error(MessageFormat.format("{0} - Error receiving message: {1}",
-                            clientConfig.getId(), e.getMessage()));
+                    logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
                 }
             }
         }).start();

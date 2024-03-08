@@ -4,8 +4,7 @@ import com.google.gson.Gson;
 
 public class PrepareMessage {
 
-    // Value
-    private String value;
+    private final String value;
 
     public PrepareMessage(String value) {
         this.value = value;

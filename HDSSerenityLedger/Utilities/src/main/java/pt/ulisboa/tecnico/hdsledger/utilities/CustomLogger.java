@@ -13,7 +13,7 @@ import java.util.logging.Logger;
  */
 public class CustomLogger {
 
-    private static Logger LOGGER;
+    private static Logger logger;
     private static boolean enabled = true;
 
     /**
@@ -22,17 +22,20 @@ public class CustomLogger {
      * @param name the name of the logger
      */
     public CustomLogger(String name) {
-        LOGGER = Logger.getLogger(name);
-        LOGGER.setLevel(Level.ALL);
-        LOGGER.setUseParentHandlers(false);
+        logger = Logger.getLogger(name);
+        logger.setLevel(Level.ALL);
+        logger.setUseParentHandlers(false);
         ConsoleHandler handler = new ConsoleHandler();
 
         Formatter formatter = new CustomLog();
         handler.setFormatter(formatter);
 
-        LOGGER.addHandler(handler);
+        logger.addHandler(handler);
     }
 
+    /**
+     * Disables logging.
+     */
     public static void disableLogging() {
         enabled = false;
     }
@@ -43,11 +46,9 @@ public class CustomLogger {
      * @param level   the log level
      * @param message the log message
      */
-    protected void log(Level level, String message) {
-        if (enabled) {
-            System.out.println(message);
-            //LOGGER.log(level, message);
-        }
+    public void log(Level level, String message) {
+        if (enabled)
+            logger.log(level, levelToString(level) + " " + message);
     }
 
     public void info(String message) {
@@ -68,6 +69,16 @@ public class CustomLogger {
     public void debug(String message) {
         if (enabled)
             log(Level.FINE, message);
+    }
+
+    private String levelToString(Level level) {
+        return switch (level.getName()) {
+            case "INFO" -> "[\u001B[34m\u001B[1mINFO\u001B[0m]";
+            case "WARNING" -> "[\u001B[33m\u001B[1mWARN\u001B[0m]";
+            case "SEVERE" -> "[\u001B[31m\u001B[1mERROR\u001B[0m]";
+            case "FINE" -> "[\u001B[32m\u001B[1mDEBUG\u001B[0m]";
+            default -> "[" + level.getName() + "]";
+        };
     }
 }
 

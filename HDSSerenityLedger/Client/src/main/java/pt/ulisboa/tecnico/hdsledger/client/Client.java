@@ -1,8 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.ClientLibrary;
-import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.NodeLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
@@ -28,27 +27,24 @@ public class Client {
     private static ClientProcessConfig clientConfig;
     private static ClientLibrary clientLibrary;
 
+    private static ProcessLogger logger;
+
     public static void main(String[] args) throws InterruptedException {
         if (args.length > 4 || args.length < 3) {
             System.out.println("Usage: java Client <clientID> <clientConfig> <nodesConfig> [-script]");
             return;
         }
 
-        // Disable Logging
-        CustomLogger.disableLogging();
-
         String clientID = args[0];
         clientsConfigPath += args[1];
         nodesConfigPath += args[2];
+        logger = new ProcessLogger(Client.class.getName(), clientID);
 
         ClientProcessConfig[] clientsConfig = new ProcessConfigBuilder().fromFileClient(clientsConfigPath);
         ServerProcessConfig[] nodesConfig = new ProcessConfigBuilder().fromFileServer(nodesConfigPath);
 
         clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(clientID)).findAny().get();
-
-        NodeLogger LOGGER = new NodeLogger(Client.class.getName(), clientConfig.getId());
-
-        LOGGER.info(MessageFormat.format("Running at {0}:{1};",
+        logger.info(MessageFormat.format("Running at {0}:{1};",
                 clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
 
         clientLibrary = new ClientLibrary(clientConfig, nodesConfig);
@@ -62,6 +58,8 @@ public class Client {
 
     /**
      * Runs the client in a loop, reading commands from the command line interface.
+     *
+     * @throws InterruptedException if the thread is interrupted
      */
     private static void runCLI() throws InterruptedException {
         printWelcomeMessage();
@@ -75,6 +73,8 @@ public class Client {
 
     /**
      * Runs the client in a loop, reading commands from a script.
+     *
+     * @throws RuntimeException if an I/O error occurs
      */
     private static void runScript() throws InterruptedException {
         scriptPath += clientConfig.getScriptPath();
