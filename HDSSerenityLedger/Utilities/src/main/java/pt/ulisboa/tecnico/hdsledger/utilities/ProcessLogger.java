@@ -17,6 +17,6 @@ public class ProcessLogger extends CustomLogger {
 
     @Override
     public void log(Level level, String message) {
-        super.log(level, MessageFormat.format("\u001B[33m{0}\u001b[37;1m - {1}", nodeId, message));
+        super.log(level, MessageFormat.format("\u001B[33m{0}\u001b[37m - {1}", nodeId, message));
     }
 }

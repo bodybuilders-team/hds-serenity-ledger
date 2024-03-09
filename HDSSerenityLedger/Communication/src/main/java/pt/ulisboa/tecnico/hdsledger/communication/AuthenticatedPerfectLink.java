@@ -100,17 +100,7 @@ public class AuthenticatedPerfectLink {
     public void broadcast(Message data) {
         Gson gson = new Gson();
 
-        switch (data.getType()) {
-            case PRE_PREPARE -> logger.info(MessageFormat.format("Broadcasting PRE-PREPARE({0}, {1}, \"{2}\")",
-                    ((ConsensusMessage) data).getConsensusInstance(), ((ConsensusMessage) data).getRound(),
-                    gson.fromJson(((ConsensusMessage) data).getMessage(), PrePrepareMessage.class).getValue()));
-            case PREPARE -> logger.info(MessageFormat.format("Broadcasting PREPARE({0}, {1}, \"{2}\")",
-                    ((ConsensusMessage) data).getConsensusInstance(), ((ConsensusMessage) data).getRound(),
-                    gson.fromJson(((ConsensusMessage) data).getMessage(), PrepareMessage.class).getValue()));
-            case COMMIT -> logger.info(MessageFormat.format("Broadcasting COMMIT({0}, {1}, \"{2}\")",
-                    ((ConsensusMessage) data).getConsensusInstance(), ((ConsensusMessage) data).getRound(),
-                    gson.fromJson(((ConsensusMessage) data).getMessage(), CommitMessage.class).getValue()));
-        }
+        logger.info(MessageFormat.format("Broadcasting {0}", data.getMessageRepresentation()));
 
         if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_BROADCAST) {
             // Send different messages to different nodes (Alter the message)
@@ -163,16 +153,16 @@ public class AuthenticatedPerfectLink {
                     this.localhostQueue.add(data);
 
                     logger.info(
-                            MessageFormat.format("Message {0} (locally) with message ID {1} sent to {2}:{3} successfully",
-                                    data.getType(), messageId, destAddress, String.valueOf(destPort)));
+                            MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m with message ID \u001B[34m{1}\u001B[37m successfully",
+                                    data.getMessageRepresentation(), messageId));
 
                     return;
                 }
 
                 for (; ; ) {
                     logger.info(MessageFormat.format(
-                            "Sending {0} message to {1}:{2} with message ID {3} - Attempt #{4}",
-                            data.getType(), destAddress, String.valueOf(destPort), messageId, count++));
+                            "Sending {0} to \u001B[34m{1}:{2}\u001B[37m with message ID \u001B[34m{3}\u001B[37m - \u001B[36mAttempt #{4}\u001B[37m",
+                            data.getMessageRepresentation(), destAddress, String.valueOf(destPort), messageId, count++));
 
                     unreliableSend(destAddress, destPort, data);
 
@@ -186,8 +176,8 @@ public class AuthenticatedPerfectLink {
                     sleepTime <<= 1;
                 }
 
-                logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully",
-                        data.getType(), destAddress, String.valueOf(destPort)));
+                logger.info(MessageFormat.format("Message {0} received by \u001B[34m{1}:{2}\u001B[37m successfully",
+                        data.getMessageRepresentation(), destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
             }
@@ -204,11 +194,12 @@ public class AuthenticatedPerfectLink {
      */
     public void unreliableSend(InetAddress hostname, int port, Message message) {
         new Thread(() -> {
+            Gson gson = new Gson();
             try {
-                byte[] messageBuf = new Gson().toJson(message).getBytes();
+                byte[] messageBuf = gson.toJson(message).getBytes();
                 byte[] signature = CryptoUtils.sign(messageBuf, keyPair.getPrivate());
                 SignedPacket signedPacket = new SignedPacket(messageBuf, signature);
-                byte[] buf = new Gson().toJson(signedPacket).getBytes();
+                byte[] buf = gson.toJson(signedPacket).getBytes();
                 DatagramPacket packet = new DatagramPacket(buf, buf.length, hostname, port);
                 socket.send(packet);
             } catch (IOException e) {
@@ -226,8 +217,9 @@ public class AuthenticatedPerfectLink {
         Message message;
         SignedPacket signedPacket = null;
         String serializedMessage = "";
-        Boolean local = false;
+        boolean local = false;
         DatagramPacket response = null;
+        Gson gson = new Gson();
 
         if (!this.localhostQueue.isEmpty()) {
             message = this.localhostQueue.poll();
@@ -240,9 +232,9 @@ public class AuthenticatedPerfectLink {
 
             byte[] buffer = Arrays.copyOfRange(response.getData(), 0, response.getLength());
             String serializedSignedPacket = new String(buffer);
-            signedPacket = new Gson().fromJson(serializedSignedPacket, SignedPacket.class);
+            signedPacket = gson.fromJson(serializedSignedPacket, SignedPacket.class);
             serializedMessage = new String(signedPacket.getMessage());
-            message = new Gson().fromJson(serializedMessage, Message.class);
+            message = gson.fromJson(serializedMessage, Message.class);
         }
 
         String senderId = message.getSenderId();
@@ -252,11 +244,11 @@ public class AuthenticatedPerfectLink {
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
         if (response == null)
-            logger.info(MessageFormat.format("Received {0} message from self with message ID {1}",
-                    message.getType(), messageId));
+            logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID \u001B[34m{1}\u001B[37m",
+                    (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), messageId));
         else
-            logger.info(MessageFormat.format("Received {0} message from {1}:{2} with message ID {3}",
-                    message.getType(), response.getAddress(), String.valueOf(response.getPort()), messageId));
+            logger.info(MessageFormat.format("Received {0} from \u001B[34m{1}:{2}\u001B[37m with message ID \u001B[34m{3}\u001B[37m",
+                    (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), response.getAddress(), String.valueOf(response.getPort()), messageId));
 
         // Validate signature
         if (signedPacket != null) {
@@ -275,7 +267,7 @@ public class AuthenticatedPerfectLink {
         }
         // It's not an ACK -> Deserialize for the correct type
         if (!local)
-            message = new Gson().fromJson(serializedMessage, this.messageClass);
+            message = gson.fromJson(serializedMessage, this.messageClass);
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
         Type originalType = message.getType();
         // Message already received (add returns false if already exists) => Discard
@@ -322,8 +314,8 @@ public class AuthenticatedPerfectLink {
             // it will discard duplicates
 
             logger.info(MessageFormat.format(
-                    "Sending {0} message to {1}:{2} with message ID {3}",
-                    Type.ACK, address, String.valueOf(port), messageId));
+                    "Sending {0} to \u001B[34m{1}:{2}\u001B[37m with message ID \u001B[34m{3}\u001B[37m",
+                    responseMessage.getMessageRepresentation(), address, String.valueOf(port), messageId));
 
             unreliableSend(address, port, responseMessage);
         }

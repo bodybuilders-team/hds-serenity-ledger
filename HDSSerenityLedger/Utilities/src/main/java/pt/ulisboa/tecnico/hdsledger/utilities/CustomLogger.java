@@ -73,10 +73,10 @@ public class CustomLogger {
 
     private String levelToString(Level level) {
         return switch (level.getName()) {
-            case "INFO" -> "[\u001B[34m\u001B[1mINFO\u001B[0m]";
-            case "WARNING" -> "[\u001B[33m\u001B[1mWARN\u001B[0m]";
-            case "SEVERE" -> "[\u001B[31m\u001B[1mERROR\u001B[0m]";
-            case "FINE" -> "[\u001B[32m\u001B[1mDEBUG\u001B[0m]";
+            case "INFO" -> "[\u001B[34m\u001B[1mINFO\u001B[37m]";
+            case "WARNING" -> "[\u001B[33m\u001B[1mWARN\u001B[37m]";
+            case "SEVERE" -> "[\u001B[31m\u001B[1mERROR\u001B[37m]";
+            case "FINE" -> "[\u001B[32m\u001B[1mDEBUG\u001B[37m]";
             default -> "[" + level.getName() + "]";
         };
     }
@@ -95,7 +95,7 @@ class CustomLog extends Formatter {
      */
     @Override
     public String format(LogRecord record) {
-        return record.getMessage() + '\n';
+        return "\u001B[37;1m" + record.getMessage() + '\n';
     }
 }
 

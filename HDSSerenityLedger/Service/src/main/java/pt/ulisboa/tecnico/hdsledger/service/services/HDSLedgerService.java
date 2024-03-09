@@ -35,14 +35,14 @@ public class HDSLedgerService implements UDPService {
      * @param message the append message
      */
     public void uponAppend(HDSLedgerMessage message) {
-        logger.info(MessageFormat.format("Appending: {0}", message.getValue()));
+        logger.info(MessageFormat.format("Proceeding with a consensus trying to append: \u001B[33m\"{0}\"\u001B[37m...", message.getValue()));
 
         try {
             nodeService.startConsensus(message.getValue());
 
             // Send the response
             HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.APPEND_RESPONSE)
-                    .setValue("Value appended successfully")
+                    .setValue(MessageFormat.format("Received append request. Will try to append \"{0}\"", message.getValue()))
                     .build();
 
             authenticatedPerfectLink.send(message.getSenderId(), response);
@@ -63,7 +63,7 @@ public class HDSLedgerService implements UDPService {
             ArrayList<String> ledger = nodeService.getLedger();
             String ledgerString = String.join(", ", ledger);
 
-            logger.info(MessageFormat.format("Read from ledger: {0} - Sending response...", ledgerString));
+            logger.info(MessageFormat.format("Read from ledger: \u001B[33m\"{0}\"\u001B[37m - Sending response...", ledgerString));
 
             HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.READ_RESPONSE)
                     .setValue(ledgerString)

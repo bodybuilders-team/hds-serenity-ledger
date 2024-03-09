@@ -21,8 +21,6 @@ import java.util.TimerTask;
  */
 public class Node {
 
-    private static ProcessLogger logger;
-
     // Hardcoded path to files
     private static String nodesConfigPath = "src/main/resources/";
     private static String clientsConfigPath = "../Client/src/main/resources/";
@@ -43,14 +41,14 @@ public class Node {
             nodesConfigPath += args[1];
             clientsConfigPath += args[2];
 
-            logger = new ProcessLogger(Node.class.getName(), id);
+            ProcessLogger logger = new ProcessLogger(Node.class.getName(), id);
 
             // Create configuration instances
             ServerProcessConfig[] nodeConfigs = new ProcessConfigBuilder().fromFileServer(nodesConfigPath);
             ClientProcessConfig[] clientConfigs = new ProcessConfigBuilder().fromFileClient(clientsConfigPath);
             ServerProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
 
-            logger.info(MessageFormat.format("Running at {0}:{1}", nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort())));
+            logger.info(MessageFormat.format("Running at \u001B[34m{0}:{1}\u001B[37m", nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort())));
 
             // Abstraction to send and receive messages
             AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class);

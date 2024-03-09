@@ -27,8 +27,6 @@ public class Client {
     private static ClientProcessConfig clientConfig;
     private static ClientLibrary clientLibrary;
 
-    private static ProcessLogger logger;
-
     public static void main(String[] args) throws InterruptedException {
         if (args.length > 4 || args.length < 3) {
             System.out.println("Usage: java Client <clientID> <clientConfig> <nodesConfig> [-script]");
@@ -38,13 +36,13 @@ public class Client {
         String clientID = args[0];
         clientsConfigPath += args[1];
         nodesConfigPath += args[2];
-        logger = new ProcessLogger(Client.class.getName(), clientID);
+        ProcessLogger logger = new ProcessLogger(Client.class.getName(), clientID);
 
         ClientProcessConfig[] clientsConfig = new ProcessConfigBuilder().fromFileClient(clientsConfigPath);
         ServerProcessConfig[] nodesConfig = new ProcessConfigBuilder().fromFileServer(nodesConfigPath);
 
         clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(clientID)).findAny().get();
-        logger.info(MessageFormat.format("Running at {0}:{1};",
+        logger.info(MessageFormat.format("Running at \u001B[34m{0}:{1}\u001B[37m",
                 clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
 
         clientLibrary = new ClientLibrary(clientConfig, nodesConfig);
@@ -137,7 +135,7 @@ public class Client {
      */
     private static void printWelcomeMessage() {
         System.out.print("""
-                \u001B[34m\u001B[1m                     
+                \u001B[34m\u001B[1m                    \s
                            __ _____  ____   ____                     __          __          __           \s
                           / // / _ \\/ __/  / __/__ _______ ___  ___ / /___ __   / /  ___ ___/ /__ ____ ____
                          / _  / // /\\ \\   _\\ \\/ -_) __/ -_) _ \\/ -_) __/ // /  / /__/ -_) _  / _ `/ -_) __/

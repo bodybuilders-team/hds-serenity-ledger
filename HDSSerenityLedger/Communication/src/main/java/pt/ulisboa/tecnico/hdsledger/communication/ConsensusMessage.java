@@ -2,6 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 
+import java.text.MessageFormat;
+
 public class ConsensusMessage extends Message {
 
     // Consensus instance
@@ -89,6 +91,33 @@ public class ConsensusMessage extends Message {
 
     public void setReplyToMessageId(int replyToMessageId) {
         this.replyToMessageId = replyToMessageId;
+    }
+
+    public String getConsensusMessageRepresentation() {
+        switch (this.getType()) {
+            case PRE_PREPARE -> {
+                return MessageFormat.format("\u001B[32mPRE-PREPARE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, \u001B[33m\"{2}\"\u001B[37m)",
+                        this.getConsensusInstance(), this.getRound(),
+                        deserializePrepareMessage().getValue());
+            }
+            case PREPARE -> {
+                return MessageFormat.format("\u001B[32mPREPARE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, \u001B[33m\"{2}\"\u001B[37m)",
+                        this.getConsensusInstance(), this.getRound(),
+                        deserializePrepareMessage().getValue());
+            }
+            case COMMIT -> {
+                return MessageFormat.format("\u001B[32mCOMMIT\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, \u001B[33m\"{2}\"\u001B[37m)",
+                        this.getConsensusInstance(), this.getRound(),
+                        deserializeCommitMessage().getValue());
+            }
+            case ROUND_CHANGE -> {
+                return MessageFormat.format("\u001B[32mROUND-CHANGE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, \u001B[34m{2}\u001B[37m, \u001B[33m\"{3}\"\u001B[37m)",
+                        this.getConsensusInstance(), this.getRound(), this.getPreparedRound(), this.getPreparedValue());
+            }
+            default -> {
+                return "NO REPRESENTATION";
+            }
+        }
     }
 }
 
