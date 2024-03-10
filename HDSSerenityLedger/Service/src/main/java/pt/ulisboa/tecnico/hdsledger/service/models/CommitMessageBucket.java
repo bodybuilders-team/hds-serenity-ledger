@@ -20,7 +20,6 @@ public class CommitMessageBucket extends MessageBucket {
      * <p>
      * Only one value, if any, will have a frequency greater than or equal to the quorum size.
      *
-     * @param nodeId   The node ID
      * @param instance The consensus instance
      * @param round    The round
      * @return The value if a valid commit quorum exists

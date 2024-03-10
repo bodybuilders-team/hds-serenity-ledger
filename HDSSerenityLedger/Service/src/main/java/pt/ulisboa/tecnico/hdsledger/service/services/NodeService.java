@@ -33,8 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("CallToPrintStackTrace")
 public class NodeService implements UDPService {
 
-    // Time to periodically wait for the previous consensus to be decided before starting a new one
-    private static final int CONSENSUS_WAIT_TIME = 1000;
     // Expire time for the round-change timer
     private static final int ROUND_CHANGE_TIMER_EXPIRE_TIME = 1000;
     // Starting round
@@ -67,11 +65,13 @@ public class NodeService implements UDPService {
     // Timer for the consensus instance, triggering round-change
     private final MultiThreadTimer timer = new MultiThreadTimer();
     // Lock objects for prepare messages
-    Map<Integer, Object> prepareLockObjects = new ConcurrentHashMap<>();
+    private final Map<Integer, Object> prepareLockObjects = new ConcurrentHashMap<>();
     // Lock objects for commit messages
-    Map<Integer, Object> commitLockObjects = new ConcurrentHashMap<>();
+    private final Map<Integer, Object> commitLockObjects = new ConcurrentHashMap<>();
     // Lock objects for round-change messages
-    Map<Integer, Object> roundChangeLockObjects = new ConcurrentHashMap<>();
+    private final Map<Integer, Object> roundChangeLockObjects = new ConcurrentHashMap<>();
+    // Wait for consensus object
+    private final Map<Integer, Object> waitForConsensusObjects = new ConcurrentHashMap<>();
 
     public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, ServerProcessConfig config, ServerProcessConfig[] nodesConfig) {
         this.authenticatedPerfectLink = authenticatedPerfectLink;
@@ -226,8 +226,7 @@ public class NodeService implements UDPService {
         this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(prepareMessage.getValue()));
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
-        prepareLockObjects.putIfAbsent(consensusInstance, new Object());
-        synchronized (prepareLockObjects.get(consensusInstance)) {
+        synchronized (prepareLockObjects.computeIfAbsent(consensusInstance, k -> new Object())) {
             if (instance.getPreparedRound() >= round) {
                 logger.info(
                         MessageFormat.format(
@@ -306,8 +305,7 @@ public class NodeService implements UDPService {
             return;
         }
 
-        commitLockObjects.putIfAbsent(consensusInstance, new Object());
-        synchronized (commitLockObjects.get(consensusInstance)) {
+        synchronized (commitLockObjects.computeIfAbsent(consensusInstance, k -> new Object())) {
             if (instance.alreadyDecided()) {
                 logger.info(
                         MessageFormat.format(
@@ -328,7 +326,11 @@ public class NodeService implements UDPService {
 
                 appendToLedger(consensusInstance, commitValue.get());
 
-                lastDecidedConsensusInstance.getAndIncrement();
+                Object waitObject = waitForConsensusObjects.computeIfAbsent(lastDecidedConsensusInstance.get() + 1, k -> new Object());
+                synchronized (waitObject) {
+                    lastDecidedConsensusInstance.getAndIncrement();
+                    waitObject.notifyAll();
+                }
             }
         }
     }
@@ -386,8 +388,7 @@ public class NodeService implements UDPService {
             return;
         }
 
-        roundChangeLockObjects.putIfAbsent(consensusInstance, new Object());
-        synchronized (roundChangeLockObjects.get(consensusInstance)) {
+        synchronized (roundChangeLockObjects.computeIfAbsent(consensusInstance, k -> new Object())) {
             if (instance.getCurrentRound() <= round) {
                 List<ConsensusMessage> biggerRoundChangeMessages =
                         this.roundChangeMessages.getMessagesFromRoundGreaterThan(consensusInstance, round);
@@ -414,8 +415,7 @@ public class NodeService implements UDPService {
                 }
             }
 
-            receivedRoundChangeQuorum.putIfAbsent(consensusInstance, new ConcurrentHashMap<>());
-            if (receivedRoundChangeQuorum.get(consensusInstance).get(round) != null) {
+            if (receivedRoundChangeQuorum.computeIfAbsent(consensusInstance, k -> new ConcurrentHashMap<>()).get(round) != null) {
                 logger.info(MessageFormat.format("Already received quorum of \u001B[32mROUND_CHANGE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, _, _). Ignoring...",
                         consensusInstance, round));
                 return;
@@ -604,11 +604,14 @@ public class NodeService implements UDPService {
      * @param localConsensusInstance current consensus instance waiting to start
      */
     private void waitForPreviousConsensus(int localConsensusInstance) {
-        while (lastDecidedConsensusInstance.get() < localConsensusInstance - 1) {
-            try {
-                Thread.sleep(CONSENSUS_WAIT_TIME);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        Object waitObject = waitForConsensusObjects.computeIfAbsent(localConsensusInstance - 1, k -> new Object());
+        synchronized (waitObject) {
+            while (lastDecidedConsensusInstance.get() < localConsensusInstance - 1) {
+                try {
+                    waitObject.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

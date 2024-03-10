@@ -20,7 +20,6 @@ public class RoundChangeMessageBucket extends MessageBucket {
     /**
      * Check if the bucket has a valid round change quorum.
      *
-     * @param nodeId   The node ID
      * @param instance The consensus instance
      * @param round    The round
      * @return True if a valid round change quorum exists
@@ -34,7 +33,6 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * <p>
      * Only one pair, if any, will have a frequency greater than or equal to the quorum size.
      *
-     * @param nodeId   The node ID
      * @param instance The consensus instance
      * @param round    The round
      * @return The highest prepared pair (value, round) of the existing round change quorum
