@@ -3,7 +3,8 @@ package pt.ulisboa.tecnico.hdsledger.service.models;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,32 +26,30 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * @return True if a valid round change quorum exists
      */
     public boolean hasValidRoundChangeQuorum(int instance, int round) {
+        if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
+            return false;
+
         return bucket.get(instance).get(round).values().size() >= quorumSize;
+    }
+
+    public List<ConsensusMessage> getValidRoundChangeQuorumMessages(int instance, int round) {
+        if (!hasValidRoundChangeQuorum(instance, round))
+            return Collections.emptyList();
+
+        return new ArrayList<>(bucket.get(instance).get(round).values());
     }
 
     /**
      * Get the highest prepared pair from the existing round change quorum.
-     * <p>
-     * Only one pair, if any, will have a frequency greater than or equal to the quorum size.
      *
      * @param instance The consensus instance
      * @param round    The round
      * @return The highest prepared pair (value, round) of the existing round change quorum
      */
     public Optional<PreparedRoundValuePair> getHighestPrepared(int instance, int round) {
-        if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
-            return Optional.empty();
-
-        HashMap<PreparedRoundValuePair, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach(message -> {
-            var preparedRoundValuePair = new PreparedRoundValuePair(message.getPreparedRound(), message.getPreparedValue());
-            frequency.put(preparedRoundValuePair, frequency.getOrDefault(preparedRoundValuePair, 0) + 1);
-        });
-
-        return frequency.entrySet().stream()
-                .filter(entry -> entry.getValue() >= quorumSize)
-                .map(Map.Entry::getKey)
-                .findFirst();
+        return getValidRoundChangeQuorumMessages(instance, round).stream()
+                .max(Comparator.comparingInt(ConsensusMessage::getPreparedRound))
+                .map(m -> new PreparedRoundValuePair(m.getPreparedRound(), m.getPreparedValue()));
     }
 
     /**

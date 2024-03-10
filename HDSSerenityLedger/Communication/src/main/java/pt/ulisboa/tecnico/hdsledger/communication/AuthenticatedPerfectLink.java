@@ -137,7 +137,8 @@ public class AuthenticatedPerfectLink {
                 if (node == null)
                     throw new HDSSException(ErrorMessage.NoSuchNode);
 
-                data.setMessageId(messageCounter.getAndIncrement());
+                if (data.getType() != Type.ACK)
+                    data.setMessageId(messageCounter.getAndIncrement());
 
                 // If the message is not ACK, it will be resent
                 InetAddress destAddress = InetAddress.getByName(node.getHostname());
@@ -267,9 +268,11 @@ public class AuthenticatedPerfectLink {
         // It's not an ACK -> Deserialize for the correct type
         if (!local)
             message = gson.fromJson(serializedMessage, this.messageClass);
-        boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
+
         Type originalType = message.getType();
+
         // Message already received (add returns false if already exists) => Discard
+        boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
         if (isRepeated) {
             message.setType(Message.Type.IGNORE);
         }
@@ -279,8 +282,11 @@ public class AuthenticatedPerfectLink {
                 return message;
             }
             case IGNORE -> {
-                if (!originalType.equals(Type.COMMIT))
+                if (!originalType.equals(Type.COMMIT)) {
+                    logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID \u001B[34m{0}\u001B[37m from node \u001B[33m{1}\u001B[37m",
+                            message.getMessageId(), message.getSenderId()));
                     return message;
+                }
             }
             case PREPARE -> {
                 ConsensusMessage consensusMessage = (ConsensusMessage) message;
