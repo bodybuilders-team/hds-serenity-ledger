@@ -17,14 +17,18 @@ public class CommitMessageBucket extends MessageBucket {
 
     /**
      * Check if the bucket has a valid commit quorum.
+     * <p>
+     * Only one value, if any, will have a frequency greater than or equal to the quorum size.
      *
      * @param nodeId   The node ID
      * @param instance The consensus instance
      * @param round    The round
      * @return The value if a valid commit quorum exists
      */
-    public Optional<String> hasValidCommitQuorum(String nodeId, int instance, int round) { // TODO: nodeID is not used
-        // Create mapping of value to frequency
+    public Optional<String> hasValidCommitQuorum(int instance, int round) {
+        if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
+            return Optional.empty();
+
         HashMap<String, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach(message -> {
             CommitMessage commitMessage = message.deserializeCommitMessage();
@@ -32,8 +36,6 @@ public class CommitMessageBucket extends MessageBucket {
             frequency.put(value, frequency.getOrDefault(value, 0) + 1);
         });
 
-        // Only one value (if any, thus the optional) will have a frequency
-        // greater than or equal to the quorum size
         return frequency.entrySet().stream()
                 .filter(entry -> entry.getValue() >= quorumSize)
                 .map(Map.Entry::getKey)

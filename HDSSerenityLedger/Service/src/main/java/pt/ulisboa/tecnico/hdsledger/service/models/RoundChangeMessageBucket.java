@@ -25,7 +25,7 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * @param round    The round
      * @return True if a valid round change quorum exists
      */
-    public boolean hasValidRoundChangeQuorum(String nodeId, int instance, int round) { // TODO: nodeID is not used
+    public boolean hasValidRoundChangeQuorum(int instance, int round) {
         return bucket.get(instance).get(round).values().size() >= quorumSize;
     }
 
@@ -39,7 +39,10 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * @param round    The round
      * @return The highest prepared pair (value, round) of the existing round change quorum
      */
-    public Optional<PreparedRoundValuePair> getHighestPrepared(String nodeId, int instance, int round) { // TODO: nodeID is not used
+    public Optional<PreparedRoundValuePair> getHighestPrepared(int instance, int round) {
+        if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
+            return Optional.empty();
+
         HashMap<PreparedRoundValuePair, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach(message -> {
             var preparedRoundValuePair = new PreparedRoundValuePair(message.getPreparedRound(), message.getPreparedValue());
