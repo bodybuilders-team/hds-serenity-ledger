@@ -53,6 +53,8 @@ public class NodeService implements UDPService {
     private final RoundChangeMessageBucket roundChangeMessages;
     // Store if already received pre-prepare for a given <consensus, round>
     private final Map<Integer, Map<Integer, Boolean>> receivedPrePrepare = new ConcurrentHashMap<>();
+    // Store if already received quorum of round-change for a given <consensus, round>
+    private final Map<Integer, Map<Integer, Boolean>> receivedRoundChangeQuorum = new ConcurrentHashMap<>();
     // Consensus instance information per consensus instance
     private final Map<Integer, InstanceInfo> instanceInfo = new ConcurrentHashMap<>();
     // Current consensus instance
@@ -62,7 +64,13 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private final ArrayList<String> ledger = new ArrayList<>();
     // Timer for the consensus instance, triggering round-change
-    private Timer timer = new Timer();
+    private final MultiThreadTimer timer = new MultiThreadTimer();
+    // Lock objects for prepare messages
+    Map<Integer, Object> prepareLockObjects = new ConcurrentHashMap<>();
+    // Lock objects for commit messages
+    Map<Integer, Object> commitLockObjects = new ConcurrentHashMap<>();
+    // Lock objects for round-change messages
+    Map<Integer, Object> roundChangeLockObjects = new ConcurrentHashMap<>();
 
     public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, ServerProcessConfig config, ServerProcessConfig[] nodesConfig) {
         this.authenticatedPerfectLink = authenticatedPerfectLink;
@@ -200,7 +208,7 @@ public class NodeService implements UDPService {
      *
      * @param message Message to be handled
      */
-    public synchronized void uponPrepare(ConsensusMessage message) {
+    public void uponPrepare(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
         String senderId = message.getSenderId();
@@ -214,61 +222,64 @@ public class NodeService implements UDPService {
         this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(prepareMessage.getValue()));
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
-        if (instance.getPreparedRound() >= round) {
-            logger.info(
-                    MessageFormat.format(
-                            "Already received quorum of \u001B[32mPREPARE\u001B[37m for Consensus Instance \u001B[34m{0}\u001B[37m. " +
-                                    "Replying with \u001B[32mCOMMIT\u001B[37m to make sure it reaches the initial sender",
-                            consensusInstance));
+        prepareLockObjects.putIfAbsent(consensusInstance, new Object());
+        synchronized (prepareLockObjects.get(consensusInstance)) {
+            if (instance.getPreparedRound() >= round) {
+                logger.info(
+                        MessageFormat.format(
+                                "Already received quorum of \u001B[32mPREPARE\u001B[37m for Consensus Instance \u001B[34m{0}\u001B[37m. " +
+                                        "Replying with \u001B[32mCOMMIT\u001B[37m to make sure it reaches the initial sender",
+                                consensusInstance));
 
-            authenticatedPerfectLink.send(senderId,
-                    new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
-                            .setConsensusInstance(consensusInstance)
-                            .setRound(round)
-                            .setReplyTo(senderId)
-                            .setReplyToMessageId(message.getMessageId())
-                            .setMessage(instance.getCommitMessage().toJson())
-                            .build()
-            );
+                this.authenticatedPerfectLink.send(senderId,
+                        new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
+                                .setConsensusInstance(consensusInstance)
+                                .setRound(round)
+                                .setReplyTo(senderId)
+                                .setReplyToMessageId(message.getMessageId())
+                                .setMessage(instance.getCommitMessage().toJson())
+                                .build()
+                );
 
-            return;
-        }
+                return;
+            }
 
-        Optional<String> preparedValue = prepareMessages.hasValidPrepareQuorum(config.getId(), consensusInstance, round);
+            Optional<String> preparedValue = prepareMessages.hasValidPrepareQuorum(config.getId(), consensusInstance, round);
 
-        if (preparedValue.isPresent() && instance.getPreparedRound() < round) {
-            CommitMessage commitMessage = new CommitMessage(preparedValue.get());
-            instance.setCommitMessage(commitMessage);
+            if (preparedValue.isPresent() && instance.getPreparedRound() < round) {
+                CommitMessage commitMessage = new CommitMessage(preparedValue.get());
+                instance.setCommitMessage(commitMessage);
 
-            instance.setPreparedValue(preparedValue.get());
-            instance.setPreparedRound(round);
+                instance.setPreparedValue(preparedValue.get());
+                instance.setPreparedRound(round);
 
-            // TODO Change to normal broadcast instead of sending only to those who sent prepare messages
-            /*authenticatedPerfectLink.broadcast(
+                // TODO Change to normal broadcast instead of sending only to those who sent prepare messages
+                /*this.authenticatedPerfectLink.broadcast(
                     new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
                             .setConsensusInstance(consensusInstance)
                             .setRound(round)
                             .setMessage(c.toJson())
                             .build());*/
 
-            // Must reply to prepare message senders
-            Collection<ConsensusMessage> sendersMessage = prepareMessages.getMessages(consensusInstance, round)
-                    .values();
+                // Must reply to prepare message senders
+                Collection<ConsensusMessage> sendersMessage = prepareMessages.getMessages(consensusInstance, round)
+                        .values();
 
-            logger.info(MessageFormat.format("Broadcasting \u001B[32mCOMMIT\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, \u001B[33m\"{2}\"\u001B[37m)",
-                    consensusInstance, round, preparedValue.get()));
+                logger.info(MessageFormat.format("Broadcasting \u001B[32mCOMMIT\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, \u001B[33m\"{2}\"\u001B[37m)",
+                        consensusInstance, round, preparedValue.get()));
 
-            sendersMessage.forEach(senderMessage -> {
-                ConsensusMessage m = new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
-                        .setConsensusInstance(consensusInstance)
-                        .setRound(round)
-                        .setReplyTo(senderMessage.getSenderId())
-                        .setReplyToMessageId(senderMessage.getMessageId())
-                        .setMessage(commitMessage.toJson())
-                        .build();
+                sendersMessage.forEach(senderMessage -> {
+                    ConsensusMessage m = new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
+                            .setConsensusInstance(consensusInstance)
+                            .setRound(round)
+                            .setReplyTo(senderMessage.getSenderId())
+                            .setReplyToMessageId(senderMessage.getMessageId())
+                            .setMessage(commitMessage.toJson())
+                            .build();
 
-                authenticatedPerfectLink.send(senderMessage.getSenderId(), m);
-            });
+                    this.authenticatedPerfectLink.send(senderMessage.getSenderId(), m);
+                });
+            }
         }
     }
 
@@ -278,7 +289,7 @@ public class NodeService implements UDPService {
      *
      * @param message Message to be handled
      */
-    public synchronized void uponCommit(ConsensusMessage message) {
+    public void uponCommit(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
 
@@ -294,27 +305,29 @@ public class NodeService implements UDPService {
             return;
         }
 
-        if (instance.alreadyDecided()) {
-            logger.info(
-                    MessageFormat.format(
-                            "Received {0} from node \u001B[33m{1}\u001B[37m but already decided for Consensus Instance \u001B[34m{2}\u001B[37m, ignoring...",
-                            message.getConsensusMessageRepresentation(), message.getSenderId(), consensusInstance));
-            return;
-        }
+        commitLockObjects.putIfAbsent(consensusInstance, new Object());
+        synchronized (commitLockObjects.get(consensusInstance)) {
+            if (instance.alreadyDecided()) {
+                logger.info(
+                        MessageFormat.format(
+                                "Received {0} from node \u001B[33m{1}\u001B[37m but already decided for Consensus Instance \u001B[34m{2}\u001B[37m, ignoring...",
+                                message.getConsensusMessageRepresentation(), message.getSenderId(), consensusInstance));
+                return;
+            }
 
-        Optional<String> commitValue = commitMessages.hasValidCommitQuorum(config.getId(), consensusInstance, round);
+            Optional<String> commitValue = commitMessages.hasValidCommitQuorum(config.getId(), consensusInstance, round);
 
-        if (commitValue.isPresent()) {
-            stopTimer();
+            if (commitValue.isPresent()) {
+                stopTimer();
 
-            instance.setDecidedRound(round);
+                instance.setDecidedRound(round);
 
-            logger.info(MessageFormat.format("Decided on value \u001B[33m\"{0}\"\u001B[37m for Consensus Instance \u001B[34m{1}\u001B[37m, Round \u001B[34m{2}\u001B[37m successfully", commitValue.get(), consensusInstance, round));
+                logger.info(MessageFormat.format("Decided on value \u001B[33m\"{0}\"\u001B[37m for Consensus Instance \u001B[34m{1}\u001B[37m, Round \u001B[34m{2}\u001B[37m successfully", commitValue.get(), consensusInstance, round));
 
-            appendToLedger(consensusInstance, commitValue.get());
+                appendToLedger(consensusInstance, commitValue.get());
 
-            lastDecidedConsensusInstance.getAndIncrement();
-
+                lastDecidedConsensusInstance.getAndIncrement();
+            }
         }
     }
 
@@ -325,22 +338,21 @@ public class NodeService implements UDPService {
      * @param value             Value to append
      */
     private void appendToLedger(int consensusInstance, String value) {
-        logger.info(MessageFormat.format("Appending value \u001B[33m\"{0}\"\u001B[37m to ledger", value));
+        logger.info(MessageFormat.format("Appending or waiting to append value \u001B[33m\"{0}\"\u001B[37m to ledger...", value));
+
+        waitForPreviousConsensus(consensusInstance); // TODO Optimize to not wait in the thread, store a list of consensus values that are to be appended later
 
         synchronized (ledger) {
-            // Increment size of ledger to accommodate current instance
             ledger.ensureCapacity(consensusInstance);
-            while (ledger.size() < consensusInstance - 1) {
-                ledger.add("");
-            }
 
-            ledger.add(consensusInstance - 1, value);
+            ledger.add(value);
 
-            logger.info(MessageFormat.format("Current Ledger: \u001B[33m\"{0}\"\u001B[37m", String.join("", ledger)));
+            logger.info(MessageFormat.format("Value \u001B[33m\"{0}\"\u001B[37m appended successfully to ledger. Current Ledger: \u001B[33m\"{1}\"\u001B[37m",
+                    value, String.join(", ", ledger)));
         }
     }
 
-    public synchronized void uponRoundChange(ConsensusMessage message) {
+    public void uponRoundChange(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
 
@@ -359,7 +371,7 @@ public class NodeService implements UDPService {
             logger.info(MessageFormat.format("Received {0} from node \u001B[33m{1}\u001B[37m but already decided for Consensus Instance \u001B[34m{2}\u001B[37m, sending a \u001B[32mCOMMIT\u001B[37m back to sender",
                     message.getConsensusMessageRepresentation(), message.getSenderId(), consensusInstance));
 
-            authenticatedPerfectLink.send(message.getSenderId(),
+            this.authenticatedPerfectLink.send(message.getSenderId(),
                     new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
                             .setConsensusInstance(consensusInstance)
                             .setRound(round)
@@ -372,48 +384,63 @@ public class NodeService implements UDPService {
             return;
         }
 
-        List<ConsensusMessage> biggerRoundChangeMessages =
-                this.roundChangeMessages.getMessagesFromRoundGreaterThan(consensusInstance, round);
-        int f = Math.floorDiv(nodesConfig.length - 1, 3);
-        if (biggerRoundChangeMessages.size() >= f + 1) {
-            int newRound = biggerRoundChangeMessages.stream()
-                    .mapToInt(ConsensusMessage::getRound)
-                    .min().orElseThrow();
+        roundChangeLockObjects.putIfAbsent(consensusInstance, new Object());
+        synchronized (roundChangeLockObjects.get(consensusInstance)) {
+            if (instance.getCurrentRound() <= round) {
+                List<ConsensusMessage> biggerRoundChangeMessages =
+                        this.roundChangeMessages.getMessagesFromRoundGreaterThan(consensusInstance, round);
+                int f = Math.floorDiv(nodesConfig.length - 1, 3);
+                if (biggerRoundChangeMessages.size() >= f + 1) {
+                    int newRound = biggerRoundChangeMessages.stream()
+                            .mapToInt(ConsensusMessage::getRound)
+                            .min().orElseThrow();
 
-            instance.setCurrentRound(newRound);
+                    instance.setCurrentRound(newRound);
 
-            startTimer(consensusInstance);
+                    startTimer(consensusInstance);
 
-            ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
-                    .setConsensusInstance(consensusInstance)
-                    .setRound(newRound)
-                    .setPreparedRound(instance.getPreparedRound())
-                    .setPreparedValue(instance.getPreparedValue())
-                    .build();
+                    ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
+                            .setConsensusInstance(consensusInstance)
+                            .setRound(newRound)
+                            .setPreparedRound(instance.getPreparedRound())
+                            .setPreparedValue(instance.getPreparedValue())
+                            .build();
 
-            logger.info(MessageFormat.format("Updated round to \u001B[34m{0}\u001B[37m for Consensus Instance \u001B[34m{1}\u001B[37m. Broadcasting {2}", newRound, consensusInstance, messageToBroadcast.getConsensusMessageRepresentation()));
+                    logger.info(MessageFormat.format("Updated round to \u001B[34m{0}\u001B[37m for Consensus Instance \u001B[34m{1}\u001B[37m. Broadcasting {2}", newRound, consensusInstance, messageToBroadcast.getConsensusMessageRepresentation()));
 
-            authenticatedPerfectLink.broadcast(messageToBroadcast);
-        }
+                    this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+                }
+            }
 
-        Optional<PreparedRoundValuePair> highestPrepared = roundChangeMessages.getHighestPrepared(config.getId(), consensusInstance, round);
+            receivedRoundChangeQuorum.putIfAbsent(consensusInstance, new ConcurrentHashMap<>());
+            if (receivedRoundChangeQuorum.get(consensusInstance).get(round) != null) {
+                logger.info(MessageFormat.format("Already received quorum of \u001B[32mROUND_CHANGE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, _, _). Ignoring...",
+                        consensusInstance, round));
+                return;
+            }
 
-        var nodeIsLeader = isNodeLeader(consensusInstance, round, this.config.getId());
+            Optional<PreparedRoundValuePair> highestPrepared = roundChangeMessages.getHighestPrepared(config.getId(), consensusInstance, round);
 
-        if (nodeIsLeader && justifyRoundChange(consensusInstance, round) && highestPrepared.isPresent()) {
-            String valueToBroadcast = !highestPrepared.get().isNull()
-                    ? highestPrepared.get().getValue()
-                    : instance.getInputValue();
+            var nodeIsLeader = isNodeLeader(consensusInstance, round, this.config.getId());
 
-            ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.PRE_PREPARE)
-                    .setConsensusInstance(consensusInstance)
-                    .setRound(round)
-                    .setMessage(new PrePrepareMessage(valueToBroadcast).toJson())
-                    .build();
+            if (nodeIsLeader && justifyRoundChange(consensusInstance, round) && highestPrepared.isPresent()) {
+                receivedRoundChangeQuorum.get(consensusInstance).putIfAbsent(round, true);
 
-            logger.info(MessageFormat.format("Updated round to \u001B[34m{0}\u001B[37m for Consensus Instance \u001B[34m{1}\u001B[37m. Broadcasting {2}", round, consensusInstance, messageToBroadcast.getConsensusMessageRepresentation()));
+                String valueToBroadcast = !highestPrepared.get().isNull()
+                        ? highestPrepared.get().getValue()
+                        : instance.getInputValue();
 
-            authenticatedPerfectLink.broadcast(messageToBroadcast);
+                ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.PRE_PREPARE)
+                        .setConsensusInstance(consensusInstance)
+                        .setRound(round)
+                        .setMessage(new PrePrepareMessage(valueToBroadcast).toJson())
+                        .build();
+
+                logger.info(MessageFormat.format("Received quorum of \u001B[32mROUND_CHANGE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, _, _). Broadcasting {2}",
+                        consensusInstance, round, messageToBroadcast.getConsensusMessageRepresentation()));
+
+                this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+            }
         }
     }
 
@@ -424,7 +451,7 @@ public class NodeService implements UDPService {
             new Thread(() -> {
                 while (true) {
                     try {
-                        Message message = authenticatedPerfectLink.receive();
+                        Message message = this.authenticatedPerfectLink.receive();
 
                         // Separate thread to handle each message
                         new Thread(() -> {
@@ -517,9 +544,7 @@ public class NodeService implements UDPService {
      * @param consensusInstance the consensus instance
      */
     private void startTimer(int consensusInstance) {
-        stopTimer();
-        timer = new Timer();
-        timer.schedule(new TimerTask() {
+        timer.startTimer(new TimerTask() {
             @Override
             public void run() {
                 InstanceInfo instance = instanceInfo.get(consensusInstance);
@@ -543,7 +568,29 @@ public class NodeService implements UDPService {
     }
 
     private void stopTimer() {
-        timer.cancel();
+        timer.stopTimer();
+    }
+
+    static class MultiThreadTimer {
+        private Timer timer;
+
+        public MultiThreadTimer() {
+            this.timer = new Timer();
+        }
+
+        public void startTimer(TimerTask task, long delay) {
+            synchronized (this) {
+                this.stopTimer();
+                this.timer.schedule(task, delay);
+            }
+        }
+
+        public void stopTimer() {
+            synchronized (this) {
+                this.timer.cancel();
+                this.timer = new Timer();
+            }
+        }
     }
 
     /**
@@ -552,7 +599,6 @@ public class NodeService implements UDPService {
      * @param localConsensusInstance current consensus instance waiting to start
      */
     private void waitForPreviousConsensus(int localConsensusInstance) {
-
         while (lastDecidedConsensusInstance.get() < localConsensusInstance - 1) {
             try {
                 Thread.sleep(CONSENSUS_WAIT_TIME);
