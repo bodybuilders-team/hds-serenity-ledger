@@ -35,7 +35,8 @@ public class HDSLedgerService implements UDPService {
      * @param message the append message
      */
     public void uponAppend(HDSLedgerMessage message) {
-        logger.info(MessageFormat.format("Proceeding with a consensus trying to append: \u001B[33m\"{0}\"\u001B[37m...", message.getValue()));
+        logger.info(MessageFormat.format("Received {0} from client \u001B[33m{1}\u001B[37m", message.getHDSLedgerMessageRepresentation(), message.getSenderId()));
+        logger.info(MessageFormat.format("Proceeding with a consensus trying to append \u001B[33m\"{0}\"\u001B[37m...", message.getValue()));
 
         try {
             nodeService.startConsensus(message.getValue());

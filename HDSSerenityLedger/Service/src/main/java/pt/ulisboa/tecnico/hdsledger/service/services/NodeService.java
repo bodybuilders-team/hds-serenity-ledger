@@ -193,14 +193,17 @@ public class NodeService implements UDPService {
             startTimer(consensusInstance);
         }
 
-        this.authenticatedPerfectLink.broadcast(
-                new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
-                        .setConsensusInstance(consensusInstance)
-                        .setRound(round)
-                        .setMessage(new PrepareMessage(prePrepareMessage.getValue()).toJson())
-                        .setReplyTo(senderId)
-                        .setReplyToMessageId(senderMessageId)
-                        .build());
+        ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
+                .setConsensusInstance(consensusInstance)
+                .setRound(round)
+                .setMessage(new PrepareMessage(prePrepareMessage.getValue()).toJson())
+                .setReplyTo(senderId)
+                .setReplyToMessageId(senderMessageId)
+                .build();
+
+        logger.info(MessageFormat.format("Broadcasting {0}", messageToBroadcast.getMessageRepresentation()));
+
+        this.authenticatedPerfectLink.broadcast(messageToBroadcast);
     }
 
     /**

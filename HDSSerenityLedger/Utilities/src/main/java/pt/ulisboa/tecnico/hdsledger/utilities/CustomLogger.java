@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 public class CustomLogger {
 
     private static Logger logger;
-    private static boolean enabled = true;
+    private boolean enabled = true;
 
     /**
      * Constructs a {@code CustomLogger} with the specified name.
@@ -36,7 +36,7 @@ public class CustomLogger {
     /**
      * Disables logging.
      */
-    public static void disableLogging() {
+    public void disableLogging() {
         enabled = false;
     }
 

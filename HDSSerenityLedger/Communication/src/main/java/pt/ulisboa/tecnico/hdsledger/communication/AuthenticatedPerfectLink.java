@@ -57,9 +57,9 @@ public class AuthenticatedPerfectLink {
 
     public AuthenticatedPerfectLink(
             ProcessConfig self, int port, ProcessConfig[] nodes,
-            Class<? extends Message> messageClass
+            Class<? extends Message> messageClass, boolean activateLogs
     ) {
-        this(self, port, nodes, messageClass, false, 200, false);
+        this(self, port, nodes, messageClass, activateLogs, 200, false);
     }
 
     public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass,
@@ -71,6 +71,9 @@ public class AuthenticatedPerfectLink {
         this.BASE_SLEEP_TIME = baseSleepTime;
         this.sendToClientSocket = sendToClientSocket;
         this.logger = new ProcessLogger(AuthenticatedPerfectLink.class.getName(), self.getId());
+        if (!activateLogs) {
+            this.logger.disableLogging();
+        }
 
         Arrays.stream(nodes).forEach(node -> {
             String id = node.getId();
@@ -82,9 +85,6 @@ public class AuthenticatedPerfectLink {
             this.socket = new DatagramSocket(port, InetAddress.getByName(config.getHostname()));
         } catch (UnknownHostException | SocketException e) {
             throw new HDSSException(ErrorMessage.CannotOpenSocket);
-        }
-        if (!activateLogs) {
-            LogManager.getLogManager().reset();
         }
     }
 
