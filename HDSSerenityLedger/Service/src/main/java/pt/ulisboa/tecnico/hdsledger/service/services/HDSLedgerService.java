@@ -1,13 +1,18 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.communication.builder.HDSLedgerMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.LedgerTransferMessage;
+import pt.ulisboa.tecnico.hdsledger.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.service.models.Account;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 
+import java.security.PublicKey;
 import java.text.MessageFormat;
-import java.util.List;
+import java.util.Arrays;
 
 /**
  * Service used to interact with the HDSLedger.
@@ -16,63 +21,98 @@ public class HDSLedgerService implements UDPService {
 
     private final NodeService nodeService;
     private final ProcessLogger logger;
+    private final ClientProcessConfig[] clientsConfig; // All clients configuration
 
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
 
     public HDSLedgerService(
             AuthenticatedPerfectLink authenticatedPerfectLink,
-            NodeService nodeService
+            NodeService nodeService,
+            ClientProcessConfig[] clientsConfig
     ) {
         this.nodeService = nodeService;
         this.authenticatedPerfectLink = authenticatedPerfectLink;
         this.logger = new ProcessLogger(HDSLedgerService.class.getName(), nodeService.getConfig().getId());
+        this.clientsConfig = clientsConfig;
     }
 
     /**
-     * Handles an append message.
+     * Handles a register message.
      *
-     * @param message the append message
+     * @param message the register message
      */
-    public void uponAppend(HDSLedgerMessage message) {
-        logger.info(MessageFormat.format("Received {0} from client {1}", message.getHDSLedgerMessageRepresentation(), message.getSenderId()));
-        logger.info(MessageFormat.format("Proceeding with a consensus trying to append \"{0}\"...", message.getValue()));
+    public void uponRegister(HDSLedgerMessage message) {
+        logger.info(MessageFormat.format("Received register request: {0}", message.getValue()));
 
         try {
-            nodeService.startConsensus(message.getValue());
+            String ownerId = message.getValue();
+            String publicKey = CryptoUtils.getPublicKey(ownerId).toString();
+
+            nodeService.getLedger().addAccount(publicKey, new Account(ownerId, publicKey));
 
             // Send the response
-            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.APPEND_RESPONSE)
-                    .setValue(MessageFormat.format("Received append request. Will try to append \"{0}\"", message.getValue()))
+            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.REGISTER_RESPONSE)
+                    .setValue("Account created successfully")
                     .build();
 
             authenticatedPerfectLink.send(message.getSenderId(), response);
         } catch (Exception e) {
-            logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
+            logger.error(MessageFormat.format("Error registering account: {0}", e.getMessage()));
         }
     }
 
     /**
-     * Handles a read message.
+     * Handles a transfer message.
      *
-     * @param message the read message
+     * @param message the transfer message
      */
-    public void uponRead(HDSLedgerMessage message) {
-        logger.info("Reading from ledger...");
+    public void uponTransfer(HDSLedgerMessage message) {
+        logger.info(MessageFormat.format("Received transfer request: {0}", message.getValue()));
 
         try {
-            List<String> ledger = nodeService.getLedger();
-            String ledgerString = String.join(", ", ledger);
+            LedgerTransferMessage transferMessage = message.deserializeLedgerTransferMessage();
+            /* TODO: Implement this
+            nodeService.startConsensus(message.getValue());
+            */
 
-            logger.info(MessageFormat.format("Read from ledger: \"{0}\" - Sending response...", ledgerString));
-
-            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.READ_RESPONSE)
-                    .setValue(ledgerString)
+            // Send the response
+            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.TRANSFER_RESPONSE)
+                    .setValue(MessageFormat.format("Transfer from {0} to {1} of {2} was successful",
+                            transferMessage.getSourceAccountId(), transferMessage.getDestinationAccountId(), transferMessage.getAmount()))
                     .build();
 
             authenticatedPerfectLink.send(message.getSenderId(), response);
         } catch (Exception e) {
-            logger.error(MessageFormat.format("Error sending read: {0}", e.getMessage()));
+            logger.error(MessageFormat.format("Error transferring: {0}", e.getMessage()));
+        }
+    }
+
+    /**
+     * Handles a balance message.
+     *
+     * @param message the balance message
+     */
+    public void uponBalance(HDSLedgerMessage message) {
+        logger.info("Received balance request");
+
+        try {
+            String accountId = message.getValue();
+            ClientProcessConfig owner = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(accountId)).findAny().get();
+            PublicKey publicKey = CryptoUtils.getPublicKey(owner.getPublicKeyPath());
+
+            Account account = nodeService.getLedger().getAccount(publicKey.toString());
+            int balance = account.getBalance();
+
+            logger.info(MessageFormat.format("Sending balance response: {0}", balance));
+
+            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.BALANCE_RESPONSE)
+                    .setValue(String.valueOf(balance))
+                    .build();
+
+            authenticatedPerfectLink.send(message.getSenderId(), response);
+        } catch (Exception e) {
+            logger.error(MessageFormat.format("Error retrieving balance: {0}", e.getMessage()));
         }
     }
 
@@ -91,9 +131,11 @@ public class HDSLedgerService implements UDPService {
 
                     new Thread(() -> {
                         switch (ledgerMessage.getType()) {
-                            case APPEND -> uponAppend(ledgerMessage);
+                            case REGISTER -> uponRegister(ledgerMessage);
 
-                            case READ -> uponRead(ledgerMessage);
+                            case BALANCE -> uponBalance(ledgerMessage);
+
+                            case TRANSFER -> uponTransfer(ledgerMessage);
 
                             case IGNORE -> {/* Do nothing */}
 

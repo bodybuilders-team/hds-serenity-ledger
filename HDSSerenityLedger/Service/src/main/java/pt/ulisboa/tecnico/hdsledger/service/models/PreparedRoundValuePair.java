@@ -7,9 +7,9 @@ import java.util.Objects;
  */
 public class PreparedRoundValuePair { // TODO: can be a record
     private final int round;
-    private final String value;
+    private final Block value;
 
-    public PreparedRoundValuePair(int round, String value) {
+    public PreparedRoundValuePair(int round, Block value) {
         this.round = round;
         this.value = value;
     }
@@ -18,7 +18,7 @@ public class PreparedRoundValuePair { // TODO: can be a record
         return round;
     }
 
-    public String getValue() {
+    public Block getValue() {
         return value;
     }
 

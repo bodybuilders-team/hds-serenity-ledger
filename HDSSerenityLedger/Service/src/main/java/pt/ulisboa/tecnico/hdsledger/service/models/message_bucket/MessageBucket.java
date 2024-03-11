@@ -1,6 +1,6 @@
-package pt.ulisboa.tecnico.hdsledger.service.models;
+package pt.ulisboa.tecnico.hdsledger.service.models.message_bucket;
 
-import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessage;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

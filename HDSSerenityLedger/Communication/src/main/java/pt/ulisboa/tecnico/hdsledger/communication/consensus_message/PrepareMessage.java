@@ -1,12 +1,12 @@
-package pt.ulisboa.tecnico.hdsledger.communication;
+package pt.ulisboa.tecnico.hdsledger.communication.consensus_message;
 
 import com.google.gson.Gson;
 
-public class CommitMessage { // TODO: Can be record
+public class PrepareMessage {
 
     private final String value;
 
-    public CommitMessage(String value) {
+    public PrepareMessage(String value) {
         this.value = value;
     }
 
@@ -17,4 +17,4 @@ public class CommitMessage { // TODO: Can be record
     public String toJson() {
         return new Gson().toJson(this);
     }
-}
+}   

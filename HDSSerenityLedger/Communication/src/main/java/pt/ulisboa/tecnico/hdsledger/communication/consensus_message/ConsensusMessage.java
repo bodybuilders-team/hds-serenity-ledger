@@ -1,6 +1,7 @@
-package pt.ulisboa.tecnico.hdsledger.communication;
+package pt.ulisboa.tecnico.hdsledger.communication.consensus_message;
 
 import com.google.gson.Gson;
+import pt.ulisboa.tecnico.hdsledger.communication.Message;
 
 import java.text.MessageFormat;
 

@@ -1,6 +1,5 @@
-package pt.ulisboa.tecnico.hdsledger.communication.builder;
+package pt.ulisboa.tecnico.hdsledger.communication.consensus_message;
 
-import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 
 public class ConsensusMessageBuilder {

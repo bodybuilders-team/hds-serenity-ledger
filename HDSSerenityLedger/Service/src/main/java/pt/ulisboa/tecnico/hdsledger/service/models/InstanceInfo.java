@@ -6,14 +6,14 @@ package pt.ulisboa.tecnico.hdsledger.service.models;
  */
 public class InstanceInfo {
 
-    private String inputValue;
+    private Block inputValue;
     private int currentRound = 1;
     private int preparedRound = -1;
-    private String preparedValue = null;
+    private Block preparedValue = null;
     private int decidedRound = -1;
-    private String decidedValue = null;
+    private Block decidedValue = null;
 
-    public InstanceInfo(String inputValue) {
+    public InstanceInfo(Block inputValue) {
         this.inputValue = inputValue;
     }
 
@@ -26,11 +26,11 @@ public class InstanceInfo {
         return decidedRound != -1;
     }
 
-    public String getInputValue() {
+    public Block getInputValue() {
         return inputValue;
     }
 
-    public void setInputValue(String inputValue) {
+    public void setInputValue(Block inputValue) {
         this.inputValue = inputValue;
     }
 
@@ -50,11 +50,11 @@ public class InstanceInfo {
         this.preparedRound = preparedRound;
     }
 
-    public String getPreparedValue() {
+    public Block getPreparedValue() {
         return preparedValue;
     }
 
-    public void setPreparedValue(String preparedValue) {
+    public void setPreparedValue(Block preparedValue) {
         this.preparedValue = preparedValue;
     }
 
@@ -66,11 +66,11 @@ public class InstanceInfo {
         this.decidedRound = committedRound;
     }
 
-    public String getDecidedValue() {
+    public Block getDecidedValue() {
         return decidedValue;
     }
 
-    public void setDecidedValue(String decidedValue) {
+    public void setDecidedValue(Block decidedValue) {
         this.decidedValue = decidedValue;
     }
 }

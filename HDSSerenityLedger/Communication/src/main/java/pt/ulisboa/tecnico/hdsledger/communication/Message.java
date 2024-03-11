@@ -1,5 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessage;
+
 import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -60,7 +63,7 @@ public class Message implements Serializable {
         PRE_PREPARE, PREPARE, COMMIT, ROUND_CHANGE,
 
         // Messages for the library (client to node)
-        APPEND, APPEND_RESPONSE, READ, READ_RESPONSE,
+        BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE, REGISTER, REGISTER_RESPONSE,
 
         // Others
         ACK, IGNORE;
@@ -70,7 +73,7 @@ public class Message implements Serializable {
         }
 
         public static List<Type> clientLibraryTypes() {
-            return Arrays.asList(APPEND, APPEND_RESPONSE, READ, READ_RESPONSE);
+            return Arrays.asList(BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE, REGISTER, REGISTER_RESPONSE);
         }
     }
 }

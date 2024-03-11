@@ -45,7 +45,7 @@ public class Client {
         logger.info(MessageFormat.format("Running at \u001B[34m{0}:{1}\u001B[37m",
                 clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
 
-        clientLibrary = new ClientLibrary(clientConfig, nodesConfig);
+        clientLibrary = new ClientLibrary(clientConfig, nodesConfig, clientsConfig);
         clientLibrary.listen();
 
         if (args.length == 4 && args[3].equals("-script"))
@@ -99,26 +99,32 @@ public class Client {
      * @throws InterruptedException if the thread is interrupted
      */
     private static void executeCommand(String line, boolean isScript) throws InterruptedException {
-        String[] parts = line.trim().split(isScript ? ", " : " ", 2);
-        String command = parts[0];
-        String params = parts.length > 1 ? parts[1] : null;
+        String[] tokens = line.trim().split(isScript ? ", " : " ");
+        String command = line.substring(0, tokens[0].length()).trim();
 
         switch (command) {
             case "exit" -> running = false;
-            case "read" -> clientLibrary.read();
-            case "append" -> {
-                if (params == null) {
-                    System.out.println("Invalid command: append \"<message>\"");
+            case "register" -> clientLibrary.register();
+            case "balance" -> {
+                if (tokens.length < 2) {
+                    System.out.println("Invalid command: balance <account_id>");
                     return;
                 }
-                clientLibrary.append(params.substring(1, params.length() - 1));
+                clientLibrary.checkBalance(tokens[1]);
+            }
+            case "transfer" -> {
+                if (tokens.length < 4) {
+                    System.out.println("Invalid command: transfer <source_account_id> <destination_account_id> <amount>");
+                    return;
+                }
+                clientLibrary.transfer(tokens[1], tokens[2], Integer.parseInt(tokens[3]));
             }
             case "sleep" -> {
-                if (params == null) {
+                if (tokens.length < 2) {
                     System.out.println("Invalid command: sleep <time>");
                     return;
                 }
-                Thread.sleep(Integer.parseInt(params));
+                Thread.sleep(Integer.parseInt(tokens[1]));
             }
             case "help" -> printMenu();
             default -> {
@@ -155,8 +161,10 @@ public class Client {
     private static void printMenu() {
         System.out.println("""
                 \u001B[33m\u001B[1mAvailable commands:\u001B[21m\u001B[24m
-                    \u001B[32mread\u001B[0m                 Read the ledger
-                    \u001B[32mappend "<message>"\u001B[0m   Append a message to the ledger
+                    \u001B[32mregister\u001B[0m                Create a new account
+                    \u001B[32mbalance "<account_id>"\u001B[0m  Check the balance of an account
+                    \u001B[32mtransfer "<source_account_id>" "<destination_account_id>" <amount>\u001B[0m
+                                            Transfer an amount from one account to another
                     \u001B[32mexit\u001B[0m                 Exit the client
                     \u001B[32mhelp\u001B[0m                 Show this help message
                 """

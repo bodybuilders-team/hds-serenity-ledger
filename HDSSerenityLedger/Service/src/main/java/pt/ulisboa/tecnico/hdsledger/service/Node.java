@@ -1,8 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.service;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
@@ -70,7 +70,7 @@ public class Node {
             NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs);
 
             // Service to handle the node's logic - ledger
-            HDSLedgerService hdsLedgerService = new HDSLedgerService(authenticatedPerfectLinkToClients, nodeService);
+            HDSLedgerService hdsLedgerService = new HDSLedgerService(authenticatedPerfectLinkToClients, nodeService, clientConfigs);
 
             nodeService.listen();
             hdsLedgerService.listen();

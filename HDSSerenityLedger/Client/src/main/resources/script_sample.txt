@@ -1,22 +1,6 @@
-<append, "Alice, 100">
-<sleep, 3000>
-<read>
-<append, "Bob, 200">
+<register>
+<balance, 101>
+<transfer, 101, 102, 100>
 <sleep, 1000>
-<read>
-<append, "Charlie, 300">
-<sleep, 3000>
-<read>
-<append, "Dave, 400">
-<sleep, 1000>
-<read>
-<append, "Eve, 500">
-<sleep, 3000>
-<read>
-<append, "Frank, 600">
-<sleep, 1000>
-<read>
-<append, "Grace, 700">
-<sleep, 5000>
-<read>
-<sleep, 2000>
+<balance, 101>
+<balance, 102>

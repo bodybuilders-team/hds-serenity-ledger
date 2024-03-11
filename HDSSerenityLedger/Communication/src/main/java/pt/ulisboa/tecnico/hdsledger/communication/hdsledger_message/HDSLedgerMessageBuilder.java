@@ -1,6 +1,5 @@
-package pt.ulisboa.tecnico.hdsledger.communication.builder;
+package pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message;
 
-import pt.ulisboa.tecnico.hdsledger.communication.HDSLedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 
 public class HDSLedgerMessageBuilder {

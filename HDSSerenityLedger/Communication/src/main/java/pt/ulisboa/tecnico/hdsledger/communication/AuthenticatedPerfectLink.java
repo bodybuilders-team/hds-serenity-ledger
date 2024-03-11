@@ -2,6 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
+import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.PrePrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.utilities.CollapsingSet;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
