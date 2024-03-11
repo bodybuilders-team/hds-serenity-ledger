@@ -7,7 +7,6 @@ public class ProcessConfig {
     private final String hostname;
     private final String id;
     private final int port;
-    private final int clientPort;
     private final String privateKeyPath;
     private final String publicKeyPath;
     private final ProcessBehavior behavior;
@@ -16,7 +15,6 @@ public class ProcessConfig {
             String id,
             String hostname,
             int port,
-            int clientPort,
             String privateKeyPath,
             String publicKeyPath,
             ProcessBehavior behavior
@@ -24,7 +22,6 @@ public class ProcessConfig {
         this.id = id;
         this.hostname = hostname;
         this.port = port;
-        this.clientPort = clientPort;
         this.privateKeyPath = privateKeyPath;
         this.publicKeyPath = publicKeyPath;
         this.behavior = behavior;
@@ -48,10 +45,6 @@ public class ProcessConfig {
 
     public String getPublicKeyPath() {
         return publicKeyPath;
-    }
-
-    public int getClientPort() {
-        return clientPort;
     }
 
     public ProcessBehavior getBehavior() {

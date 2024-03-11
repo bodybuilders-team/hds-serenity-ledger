@@ -7,7 +7,9 @@ import pt.ulisboa.tecnico.hdsledger.utilities.CollapsingSet;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -34,7 +36,6 @@ public class AuthenticatedPerfectLink {
 
     // Time to wait for an ACK before resending the message
     private final long BASE_SLEEP_TIME;
-    private final boolean sendToClientSocket;
     // UDP Socket
     private final DatagramSocket socket;
     // Map of all nodes in the network
@@ -58,17 +59,16 @@ public class AuthenticatedPerfectLink {
             ProcessConfig self, int port, ProcessConfig[] nodes,
             Class<? extends Message> messageClass, boolean activateLogs
     ) {
-        this(self, port, nodes, messageClass, activateLogs, 200, false);
+        this(self, port, nodes, messageClass, activateLogs, 200);
     }
 
     public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass,
-                                    boolean activateLogs, int baseSleepTime, boolean sendToClientSocket) {
+                                    boolean activateLogs, int baseSleepTime) {
 
         this.keyPair = CryptoUtils.readKeyPair(self.getPrivateKeyPath(), self.getPublicKeyPath());
         this.config = self;
         this.messageClass = messageClass;
         this.BASE_SLEEP_TIME = baseSleepTime;
-        this.sendToClientSocket = sendToClientSocket;
         this.logger = new ProcessLogger(AuthenticatedPerfectLink.class.getName(), self.getId());
         if (!activateLogs) {
             this.logger.disableLogging();
@@ -143,7 +143,12 @@ public class AuthenticatedPerfectLink {
                 // If the message is not ACK, it will be resent
                 InetAddress destAddress = InetAddress.getByName(node.getHostname());
 
-                int destPort = sendToClientSocket ? node.getClientPort() : node.getPort();
+                // If we're a client, we should send messages to the client socket of the blockchain server
+                // otherwise, we are a server and should send messages to the server socket of the client or to the server socket of the blockchain server
+                int destPort = config instanceof ClientProcessConfig
+                        ? ((ServerProcessConfig) node).getClientPort()
+                        : node.getPort();
+
                 int count = 1;
                 int messageId = data.getMessageId();
                 long sleepTime = BASE_SLEEP_TIME;

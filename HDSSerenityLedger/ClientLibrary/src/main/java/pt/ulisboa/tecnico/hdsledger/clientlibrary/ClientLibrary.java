@@ -30,8 +30,6 @@ public class ClientLibrary implements UDPService {
                     clientConfig.getPort(),
                     nodesConfig,
                     HDSLedgerMessage.class,
-                    true,
-                    200,
                     true
             );
         } catch (Exception e) {

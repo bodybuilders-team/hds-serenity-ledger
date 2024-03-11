@@ -52,23 +52,19 @@ public class CustomLogger {
     }
 
     public void info(String message) {
-        if (enabled)
-            log(Level.INFO, message);
+        log(Level.INFO, message);
     }
 
     public void warn(String message) {
-        if (enabled)
-            log(Level.WARNING, message);
+        log(Level.WARNING, message);
     }
 
     public void error(String message) {
-        if (enabled)
-            log(Level.SEVERE, message);
+        log(Level.SEVERE, message);
     }
 
     public void debug(String message) {
-        if (enabled)
-            log(Level.FINE, message);
+        log(Level.FINE, message);
     }
 
     private String levelToString(Level level) {

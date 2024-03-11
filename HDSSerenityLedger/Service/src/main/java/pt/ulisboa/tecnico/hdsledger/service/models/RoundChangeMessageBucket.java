@@ -62,9 +62,8 @@ public class RoundChangeMessageBucket extends MessageBucket {
         List<ConsensusMessage> messages = new ArrayList<>();
 
         for (Map.Entry<Integer, Map<String, ConsensusMessage>> roundEntry : bucket.get(consensusInstance).entrySet()) {
-            if (roundEntry.getKey() > round) {
+            if (roundEntry.getKey() > round)
                 messages.addAll(roundEntry.getValue().values());
-            }
         }
 
         return messages;

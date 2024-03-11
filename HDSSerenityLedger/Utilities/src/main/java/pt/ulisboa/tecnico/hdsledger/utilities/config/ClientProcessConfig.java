@@ -9,14 +9,13 @@ public class ClientProcessConfig extends ProcessConfig {
     public ClientProcessConfig(
             String id,
             String hostname,
-            int port,
-            int clientPort,
+            int port, // Receives and sends messages to the blockchain servers
             String scriptPath,
             String privateKeyPath,
             String publicKeyPath,
             ProcessBehavior behavior
     ) {
-        super(id, hostname, port, clientPort, privateKeyPath, publicKeyPath, behavior);
+        super(id, hostname, port, privateKeyPath, publicKeyPath, behavior);
         this.scriptPath = scriptPath;
     }
 

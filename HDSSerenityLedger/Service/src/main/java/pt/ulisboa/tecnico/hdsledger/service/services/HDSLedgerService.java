@@ -7,7 +7,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.builder.HDSLedgerMessageBuilde
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Service used to interact with the HDSLedger.
@@ -61,7 +61,7 @@ public class HDSLedgerService implements UDPService {
         logger.info("Reading from ledger...");
 
         try {
-            ArrayList<String> ledger = nodeService.getLedger();
+            List<String> ledger = nodeService.getLedger();
             String ledgerString = String.join(", ", ledger);
 
             logger.info(MessageFormat.format("Read from ledger: \u001B[33m\"{0}\"\u001B[37m - Sending response...", ledgerString));
