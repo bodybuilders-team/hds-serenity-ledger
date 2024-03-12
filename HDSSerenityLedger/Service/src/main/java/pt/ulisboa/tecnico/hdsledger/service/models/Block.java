@@ -12,22 +12,26 @@ import java.util.Objects;
  */
 public class Block {
 
-    private int consensusInstance;
     private final List<LedgerTransferMessage> transactions = new ArrayList<>();
+    private int consensusInstance;
 
     public Block() {
+    }
+
+    public static Block fromJson(String json) {
+        return new Gson().fromJson(json, Block.class);
     }
 
     public int getConsensusInstance() {
         return consensusInstance;
     }
 
-    public List<LedgerTransferMessage> getTransactions() {
-        return transactions;
-    }
-
     public void setConsensusInstance(int consensusInstance) {
         this.consensusInstance = consensusInstance;
+    }
+
+    public List<LedgerTransferMessage> getTransactions() {
+        return transactions;
     }
 
     public void addTransaction(LedgerTransferMessage transaction) {
@@ -49,9 +53,5 @@ public class Block {
 
     public String toJson() {
         return new Gson().toJson(this);
-    }
-
-    public static Block fromJson(String json) {
-        return new Gson().fromJson(json, Block.class);
     }
 }

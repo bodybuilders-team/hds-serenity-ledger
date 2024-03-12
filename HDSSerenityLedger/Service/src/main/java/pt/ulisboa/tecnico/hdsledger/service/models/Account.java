@@ -5,11 +5,10 @@ package pt.ulisboa.tecnico.hdsledger.service.models;
  */
 public class Account {
 
+    private static final int INITIAL_BALANCE = 100;
     private final String ownerId;
     private final String publicKey;
     private int balance = INITIAL_BALANCE;
-
-    private static final int INITIAL_BALANCE = 100;
 
     public Account(String ownerId, String publicKey) {
         this.ownerId = ownerId;

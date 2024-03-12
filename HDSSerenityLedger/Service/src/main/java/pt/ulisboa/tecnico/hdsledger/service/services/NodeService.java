@@ -1,18 +1,18 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
+import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.PrePrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.PrepareMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.service.models.Block;
-import pt.ulisboa.tecnico.hdsledger.service.models.message_bucket.CommitMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.service.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.service.models.Ledger;
-import pt.ulisboa.tecnico.hdsledger.service.models.message_bucket.PrepareMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.service.models.PreparedRoundValuePair;
+import pt.ulisboa.tecnico.hdsledger.service.models.message_bucket.CommitMessageBucket;
+import pt.ulisboa.tecnico.hdsledger.service.models.message_bucket.PrepareMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.service.models.message_bucket.RoundChangeMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
@@ -95,13 +95,17 @@ public class NodeService implements UDPService {
 
     /**
      * Get the leader id for a given consensus instance and round.
+     * <p>
+     * This is a deterministic function based on the consensus instance and round, that switches the leader of round 1
+     * in every new consensus instance, such that every process is guaranteed to be the first leader the same number
+     * of times (evenly distributed).
      *
      * @param consensusInstance The consensus instance
      * @param round             The round
      * @return The leader id
      */
     private String getLeaderId(int consensusInstance, int round) {
-        return String.valueOf(((round - 1) % this.nodesConfig.length) + 1);
+        return String.valueOf(((consensusInstance - 1 + round - 1) % this.nodesConfig.length) + 1);
     }
 
     /**
@@ -174,12 +178,11 @@ public class NodeService implements UDPService {
     public void uponPrePrepare(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
+        Block value = message.deserializePrePrepareMessage().getValue();
         String senderId = message.getSenderId();
         int senderMessageId = message.getMessageId();
 
-        PrePrepareMessage prePrepareMessage = message.deserializePrePrepareMessage();
-
-        logger.info(MessageFormat.format("Received {0} from node {1}", message.getConsensusMessageRepresentation(), senderId));
+        logger.info(MessageFormat.format("Received {0} from node \u001B[33m{1}\u001B[37m", message.getConsensusMessageRepresentation(), senderId));
 
         if (!isNodeLeader(consensusInstance, round, senderId) || !justifyPrePrepare(consensusInstance, round, prePrepareMessage.getValue())) {
             logger.info(MessageFormat.format("Received PRE-PREPARE({0}, {1}, _) from node {2}, but not justified. Replying to acknowledge reception", consensusInstance, round, senderId));
@@ -192,7 +195,7 @@ public class NodeService implements UDPService {
             return;
         }
 
-        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(Block.fromJson(prePrepareMessage.getValue())));
+        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(Block.fromJson(value)));
         receivedPrePrepare.putIfAbsent(consensusInstance, new ConcurrentHashMap<>());
         if (receivedPrePrepare.get(consensusInstance).put(round, true) != null)
             logger.info(MessageFormat.format("Already received PRE-PREPARE({0}, {1}, _) from node {2}, leader. Replying again to make sure it reaches the initial sender", consensusInstance, round, senderId));
@@ -202,7 +205,7 @@ public class NodeService implements UDPService {
         ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
                 .setConsensusInstance(consensusInstance)
                 .setRound(round)
-                .setMessage(new PrepareMessage(prePrepareMessage.getValue()).toJson())
+                .setMessage(new PrepareMessage(value).toJson())
                 .setReplyTo(senderId)
                 .setReplyToMessageId(senderMessageId)
                 .build();
@@ -220,15 +223,14 @@ public class NodeService implements UDPService {
     public void uponPrepare(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
+        Block value = message.deserializePrepareMessage().getValue();
         String senderId = message.getSenderId();
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message.getConsensusMessageRepresentation(), senderId));
 
         prepareMessages.addMessage(message);
 
-        PrepareMessage prepareMessage = message.deserializePrepareMessage();
-
-        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(Block.fromJson(prepareMessage.getValue())));
+        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(Block.fromJson(value)));
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         synchronized (prepareLockObjects.computeIfAbsent(consensusInstance, k -> new Object())) {
