@@ -178,14 +178,14 @@ public class NodeService implements UDPService {
     public void uponPrePrepare(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
-        Block value = message.deserializePrePrepareMessage().getValue();
+        Block value = Block.fromJson(message.deserializePrePrepareMessage().getValue());
         String senderId = message.getSenderId();
         int senderMessageId = message.getMessageId();
 
         logger.info(MessageFormat.format("Received {0} from node \u001B[33m{1}\u001B[37m", message.getConsensusMessageRepresentation(), senderId));
 
-        if (!isNodeLeader(consensusInstance, round, senderId) || !justifyPrePrepare(consensusInstance, round, prePrepareMessage.getValue())) {
-            logger.info(MessageFormat.format("Received PRE-PREPARE({0}, {1}, _) from node {2}, but not justified. Replying to acknowledge reception", consensusInstance, round, senderId));
+        if (!isNodeLeader(consensusInstance, round, senderId) || !justifyPrePrepare(consensusInstance, round, value)) {
+            logger.info(MessageFormat.format("Received \u001B[32mPRE-PREPARE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, _) from node \u001B[33m{2}\u001B[37m, but not justified. Replying to acknowledge reception", consensusInstance, round, senderId));
 
             // TODO Improve mechanism. Do not send ACK, keep receiving the same pre-prepare message without treating it as duplicate to eventually make the condition true
 
@@ -195,7 +195,7 @@ public class NodeService implements UDPService {
             return;
         }
 
-        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(Block.fromJson(value)));
+        this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(value));
         receivedPrePrepare.putIfAbsent(consensusInstance, new ConcurrentHashMap<>());
         if (receivedPrePrepare.get(consensusInstance).put(round, true) != null)
             logger.info(MessageFormat.format("Already received PRE-PREPARE({0}, {1}, _) from node {2}, leader. Replying again to make sure it reaches the initial sender", consensusInstance, round, senderId));
@@ -205,7 +205,7 @@ public class NodeService implements UDPService {
         ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
                 .setConsensusInstance(consensusInstance)
                 .setRound(round)
-                .setMessage(new PrepareMessage(value).toJson())
+                .setMessage(new PrepareMessage(value.toJson()).toJson())
                 .setReplyTo(senderId)
                 .setReplyToMessageId(senderMessageId)
                 .build();
@@ -254,11 +254,11 @@ public class NodeService implements UDPService {
                 return;
             }
 
-            Optional<String> preparedValue = prepareMessages.hasValidPrepareQuorum(consensusInstance, round);
+            Optional<Block> preparedValue = prepareMessages.hasValidPrepareQuorum(consensusInstance, round);
 
             if (preparedValue.isPresent() && instance.getPreparedRound() < round) {
                 instance.setPreparedRound(round);
-                instance.setPreparedValue(Block.fromJson(preparedValue.get()));
+                instance.setPreparedValue(preparedValue.get());
 
                 // TODO Change to normal broadcast instead of sending only to those who sent prepare messages (needs ACK to be sent in all messages, though)
                 /*this.authenticatedPerfectLink.broadcast(
@@ -278,7 +278,7 @@ public class NodeService implements UDPService {
                                         .setRound(round)
                                         .setReplyTo(senderMessage.getSenderId())
                                         .setReplyToMessageId(senderMessage.getMessageId())
-                                        .setMessage(new CommitMessage(preparedValue.get()).toJson())
+                                        .setMessage(new CommitMessage(preparedValue.get().toJson()).toJson())
                                         .build()
                         )
                 );
@@ -551,7 +551,7 @@ public class NodeService implements UDPService {
      * @param value             Value in pre-prepare message
      * @return True if the pre-prepare message is justified
      */
-    private boolean justifyPrePrepare(int consensusInstance, int round, String value) {
+    private boolean justifyPrePrepare(int consensusInstance, int round, Block value) {
         if (round == STARTING_ROUND)
             return true;
 
@@ -565,7 +565,7 @@ public class NodeService implements UDPService {
                 .allMatch(roundChangeMessage ->
                         new PreparedRoundValuePair(
                                 roundChangeMessage.getPreparedRound(),
-                                roundChangeMessage.getPreparedValue()
+                                Block.fromJson(roundChangeMessage.getPreparedValue())
                         ).isNull()
                 )
                 ||

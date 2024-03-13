@@ -54,18 +54,6 @@ public class RoundChangeMessageBucket extends MessageBucket {
     }
 
     /**
-     * Get the highest prepared pair from the existing round change quorum.
-     *
-     * @param roundChanceQuorumMessages The messages in the round change quorum messages
-     * @return The highest prepared pair (value, round) of the existing round change quorum
-     */
-    public static Optional<PreparedRoundValuePair> getHighestPrepared(List<ConsensusMessage> roundChanceQuorumMessages) {
-        return roundChanceQuorumMessages.stream()
-                .max(Comparator.comparingInt(ConsensusMessage::getPreparedRound))
-                .map(m -> new PreparedRoundValuePair(m.getPreparedRound(), m.getPreparedValue()));
-    }
-
-    /**
      * Get messages from rounds greater than the specified round.
      *
      * @param round The round

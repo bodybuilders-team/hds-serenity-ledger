@@ -1,6 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.models.message_bucket;
 
-import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.PrepareMessage;
+import pt.ulisboa.tecnico.hdsledger.service.models.Block;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,14 +24,13 @@ public class PrepareMessageBucket extends MessageBucket {
      * @param round    The round
      * @return The value if a valid prepare quorum exists
      */
-    public Optional<String> hasValidPrepareQuorum(int instance, int round) {
+    public Optional<Block> hasValidPrepareQuorum(int instance, int round) {
         if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
             return Optional.empty();
 
-        HashMap<String, Integer> frequency = new HashMap<>();
+        HashMap<Block, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach(message -> {
-            PrepareMessage prepareMessage = message.deserializePrepareMessage();
-            String value = prepareMessage.getValue();
+            Block value = Block.fromJson(message.deserializePrepareMessage().getValue());
             frequency.put(value, frequency.getOrDefault(value, 0) + 1);
         });
 
