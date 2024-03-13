@@ -510,7 +510,7 @@ public class NodeService implements UDPService {
      * <p>
      * 2. There is a valid quorum of prepare messages such that their prepared pair is the same as the highest prepared pair
      *
-     * @param consensusInstance Consensus instance
+     * @param consensusInstance         Consensus instance
      * @param roundChangeQuorumMessages List of round change messages
      * @return True if the round change is justified
      */
@@ -549,20 +549,22 @@ public class NodeService implements UDPService {
      * @return True if the pre-prepare message is justified
      */
     private boolean justifyPrePrepare(int consensusInstance, int round, String value) {
+        if (round == STARTING_ROUND)
+            return true;
+
         var roundChangeQuorumMessages = roundChangeMessages.getValidRoundChangeQuorumMessages(consensusInstance, round).orElse(null);
         if (roundChangeQuorumMessages == null)
             return false;
 
         Optional<PreparedRoundValuePair> highestPreparedPair = RoundChangeMessageBucket.getHighestPrepared(roundChangeQuorumMessages);
 
-        return round == STARTING_ROUND ||
-                roundChangeQuorumMessages.stream()
-                        .allMatch(roundChangeMessage ->
-                                new PreparedRoundValuePair(
-                                        roundChangeMessage.getPreparedRound(),
-                                        roundChangeMessage.getPreparedValue()
-                                ).isNull()
-                        )
+        return roundChangeQuorumMessages.stream()
+                .allMatch(roundChangeMessage ->
+                        new PreparedRoundValuePair(
+                                roundChangeMessage.getPreparedRound(),
+                                roundChangeMessage.getPreparedValue()
+                        ).isNull()
+                )
                 ||
                 (highestPreparedPair
                         .map(highestPrepared ->
