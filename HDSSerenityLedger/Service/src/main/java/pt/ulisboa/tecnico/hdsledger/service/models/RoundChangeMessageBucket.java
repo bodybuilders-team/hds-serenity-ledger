@@ -3,7 +3,6 @@ package pt.ulisboa.tecnico.hdsledger.service.models;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -32,22 +31,21 @@ public class RoundChangeMessageBucket extends MessageBucket {
         return bucket.get(instance).get(round).values().size() >= quorumSize;
     }
 
-    public List<ConsensusMessage> getValidRoundChangeQuorumMessages(int instance, int round) {
+    public Optional<List<ConsensusMessage>> getValidRoundChangeQuorumMessages(int instance, int round) {
         if (!hasValidRoundChangeQuorum(instance, round))
-            return Collections.emptyList();
+            return Optional.empty();
 
-        return new ArrayList<>(bucket.get(instance).get(round).values());
+        return Optional.of(new ArrayList<>(bucket.get(instance).get(round).values()));
     }
 
     /**
      * Get the highest prepared pair from the existing round change quorum.
      *
-     * @param instance The consensus instance
-     * @param round    The round
+     * @param roundChanceQuorumMessages The messages in the round change quorum messages
      * @return The highest prepared pair (value, round) of the existing round change quorum
      */
-    public Optional<PreparedRoundValuePair> getHighestPrepared(int instance, int round) {
-        return getValidRoundChangeQuorumMessages(instance, round).stream()
+    public static Optional<PreparedRoundValuePair> getHighestPrepared(List<ConsensusMessage> roundChanceQuorumMessages) {
+        return roundChanceQuorumMessages.stream()
                 .max(Comparator.comparingInt(ConsensusMessage::getPreparedRound))
                 .map(m -> new PreparedRoundValuePair(m.getPreparedRound(), m.getPreparedValue()));
     }

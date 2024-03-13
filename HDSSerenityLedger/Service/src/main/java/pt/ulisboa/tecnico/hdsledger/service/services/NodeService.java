@@ -186,7 +186,7 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node \u001B[33m{1}\u001B[37m", message.getConsensusMessageRepresentation(), senderId));
 
-        if (!isNodeLeader(consensusInstance, round, senderId) || !justifyPrePrepare(consensusInstance, round)) {
+        if (!isNodeLeader(consensusInstance, round, senderId) || !justifyPrePrepare(consensusInstance, round, prePrepareMessage.getValue())) {
             logger.info(MessageFormat.format("Received \u001B[32mPRE-PREPARE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, _) from node \u001B[33m{2}\u001B[37m, but not justified. Replying to acknowledge reception", consensusInstance, round, senderId));
 
             // TODO Improve mechanism. Do not send ACK, keep receiving the same pre-prepare message without treating it as duplicate to eventually make the condition true
@@ -329,9 +329,9 @@ public class NodeService implements UDPService {
 
                 appendToLedger(consensusInstance, commitValue.get());
 
-                Object waitObject = waitForConsensusObjects.computeIfAbsent(lastDecidedConsensusInstance.get() + 1, k -> new Object());
+                int decidedConsensusInstance = lastDecidedConsensusInstance.incrementAndGet();
+                Object waitObject = waitForConsensusObjects.computeIfAbsent(decidedConsensusInstance, k -> new Object());
                 synchronized (waitObject) {
-                    lastDecidedConsensusInstance.getAndIncrement();
                     waitObject.notifyAll();
                 }
             }
@@ -427,11 +427,15 @@ public class NodeService implements UDPService {
                 return;
             }
 
-            Optional<PreparedRoundValuePair> highestPrepared = roundChangeMessages.getHighestPrepared(consensusInstance, round);
+            var roundChangeQuorumMessages = roundChangeMessages.getValidRoundChangeQuorumMessages(consensusInstance, round).orElse(null);
+            if (roundChangeQuorumMessages == null)
+                return;
+
+            Optional<PreparedRoundValuePair> highestPrepared = RoundChangeMessageBucket.getHighestPrepared(roundChangeQuorumMessages);
 
             var nodeIsLeader = isNodeLeader(consensusInstance, round, this.config.getId());
 
-            if (nodeIsLeader && justifyRoundChange(consensusInstance, round) && highestPrepared.isPresent()) {
+            if (nodeIsLeader && justifyRoundChange(consensusInstance, roundChangeQuorumMessages) && highestPrepared.isPresent()) {
                 receivedRoundChangeQuorum.get(consensusInstance).putIfAbsent(round, true);
 
                 String valueToBroadcast = !highestPrepared.get().isNull()
@@ -507,14 +511,11 @@ public class NodeService implements UDPService {
      * 2. There is a valid quorum of prepare messages such that their prepared pair is the same as the highest prepared pair
      *
      * @param consensusInstance Consensus instance
-     * @param round             Consensus round
+     * @param roundChangeQuorumMessages List of round change messages
      * @return True if the round change is justified
      */
-    private boolean justifyRoundChange(int consensusInstance, int round) {
-        if (!roundChangeMessages.hasValidRoundChangeQuorum(consensusInstance, round))
-            return false;
-
-        return roundChangeMessages.getValidRoundChangeQuorumMessages(consensusInstance, round).stream()
+    private boolean justifyRoundChange(int consensusInstance, List<ConsensusMessage> roundChangeQuorumMessages) {
+        return roundChangeQuorumMessages.stream()
                 .allMatch(roundChangeMessage ->
                         new PreparedRoundValuePair(
                                 roundChangeMessage.getPreparedRound(),
@@ -522,7 +523,7 @@ public class NodeService implements UDPService {
                         ).isNull()
                 )
                 ||
-                roundChangeMessages.getHighestPrepared(consensusInstance, round)
+                RoundChangeMessageBucket.getHighestPrepared(roundChangeQuorumMessages)
                         .map(highestPrepared ->
                                 prepareMessages
                                         .hasValidPrepareQuorum(consensusInstance, highestPrepared.getRound())
@@ -540,16 +541,37 @@ public class NodeService implements UDPService {
      * 2. There is a valid quorum of round change messages such that their prepared round and prepared value are null
      * <p>
      * 3. There is a valid quorum of prepare messages such that their prepared pair is the same as the highest prepared pair
-     * <p>
-     * Points 2 and 3 are simplified to a call to justifyRoundChange,
-     * as they are the same condition to justify the round change.
+     * AND the value of the pre-prepare message is the same as the highest prepared value
      *
      * @param consensusInstance Consensus instance
      * @param round             Consensus round
+     * @param value             Value in pre-prepare message
      * @return True if the pre-prepare message is justified
      */
-    private boolean justifyPrePrepare(int consensusInstance, int round) {
-        return round == STARTING_ROUND || justifyRoundChange(consensusInstance, round);
+    private boolean justifyPrePrepare(int consensusInstance, int round, String value) {
+        var roundChangeQuorumMessages = roundChangeMessages.getValidRoundChangeQuorumMessages(consensusInstance, round).orElse(null);
+        if (roundChangeQuorumMessages == null)
+            return false;
+
+        Optional<PreparedRoundValuePair> highestPreparedPair = RoundChangeMessageBucket.getHighestPrepared(roundChangeQuorumMessages);
+
+        return round == STARTING_ROUND ||
+                roundChangeQuorumMessages.stream()
+                        .allMatch(roundChangeMessage ->
+                                new PreparedRoundValuePair(
+                                        roundChangeMessage.getPreparedRound(),
+                                        roundChangeMessage.getPreparedValue()
+                                ).isNull()
+                        )
+                ||
+                (highestPreparedPair
+                        .map(highestPrepared ->
+                                prepareMessages
+                                        .hasValidPrepareQuorum(consensusInstance, highestPrepared.getRound())
+                                        .map(prepareMessageValue -> highestPrepared.getValue().equals(prepareMessageValue))
+                                        .orElse(false)
+                        ).orElse(false) &&
+                        value.equals(highestPreparedPair.get().getValue()));
     }
 
     /**
@@ -602,9 +624,10 @@ public class NodeService implements UDPService {
      * @param localConsensusInstance current consensus instance waiting to start
      */
     private void waitForPreviousConsensus(int localConsensusInstance) {
-        Object waitObject = waitForConsensusObjects.computeIfAbsent(localConsensusInstance - 1, k -> new Object());
+        int previousConsensusInstance = localConsensusInstance - 1;
+        Object waitObject = waitForConsensusObjects.computeIfAbsent(previousConsensusInstance, k -> new Object());
         synchronized (waitObject) {
-            while (lastDecidedConsensusInstance.get() < localConsensusInstance - 1) {
+            while (lastDecidedConsensusInstance.get() < previousConsensusInstance) {
                 try {
                     waitObject.wait();
                 } catch (InterruptedException e) {
