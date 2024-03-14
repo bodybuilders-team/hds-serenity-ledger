@@ -84,8 +84,6 @@ public class Client {
                     break;
 
                 String command = line.trim().substring(1, line.length() - 1); // Remove < and >
-
-                System.out.println("Executing: " + command);
                 executeCommand(command, true);
             }
         } catch (IOException e) {

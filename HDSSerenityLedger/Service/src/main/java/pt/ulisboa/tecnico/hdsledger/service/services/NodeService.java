@@ -61,12 +61,12 @@ public class NodeService implements UDPService {
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
     // Ledger (for now, just a list of strings)
     private final ArrayList<String> ledger = new ArrayList<>();
-    // Timer for the consensus instance, triggering round-change
-    private final MultiThreadTimer timer = new MultiThreadTimer();
+    // Timers for the consensus instances, triggering round-change
+    private final Map<Integer, MultiThreadTimer> timers = new ConcurrentHashMap<>();
     // Lock objects for prepare messages
     private final Map<Integer, Object> prepareLockObjects = new ConcurrentHashMap<>();
-    // Lock objects for commit messages
-    private final Map<Integer, Object> commitLockObjects = new ConcurrentHashMap<>();
+    // Lock objects for decides
+    private final Map<Integer, Object> decideLockObjects = new ConcurrentHashMap<>();
     // Lock objects for round-change messages
     private final Map<Integer, Object> roundChangeLockObjects = new ConcurrentHashMap<>();
     // Wait for consensus object
@@ -135,8 +135,6 @@ public class NodeService implements UDPService {
             logger.info(MessageFormat.format("Node already started consensus for instance \u001B[34m{0}\u001B[37m", localConsensusInstance));
             return;
         }
-
-        waitForPreviousConsensus(localConsensusInstance);
 
         var nodeIsLeader = isNodeLeader(localConsensusInstance, STARTING_ROUND, this.config.getId());
 
@@ -311,7 +309,7 @@ public class NodeService implements UDPService {
             return;
         }
 
-        synchronized (commitLockObjects.computeIfAbsent(consensusInstance, k -> new Object())) {
+        synchronized (decideLockObjects.computeIfAbsent(consensusInstance, k -> new Object())) {
             if (instance.alreadyDecided()) {
                 logger.info(MessageFormat.format("Received {0} from node \u001B[33m{1}\u001B[37m but already decided for Consensus Instance \u001B[34m{2}\u001B[37m, ignoring...", message.getConsensusMessageRepresentation(), message.getSenderId(), consensusInstance));
                 return;
@@ -320,12 +318,15 @@ public class NodeService implements UDPService {
             Optional<String> commitValue = commitMessages.hasValidCommitQuorum(consensusInstance, round);
 
             if (commitValue.isPresent()) {
-                stopTimer();
+                stopTimer(consensusInstance);
 
                 instance.setDecidedRound(round);
                 instance.setDecidedValue(commitValue.get());
 
                 logger.info(MessageFormat.format("Decided on value \u001B[33m\"{0}\"\u001B[37m for Consensus Instance \u001B[34m{1}\u001B[37m, Round \u001B[34m{2}\u001B[37m successfully", commitValue.get(), consensusInstance, round));
+                logger.info(MessageFormat.format("Appending or waiting to append value \u001B[33m\"{0}\"\u001B[37m to ledger...", commitValue.get()));
+
+                waitForPreviousConsensus(consensusInstance); // TODO Optimize to not wait in the thread, store a list of consensus values that are to be appended later
 
                 appendToLedger(consensusInstance, commitValue.get());
 
@@ -345,10 +346,6 @@ public class NodeService implements UDPService {
      * @param value             Value to append
      */
     private void appendToLedger(int consensusInstance, String value) {
-        logger.info(MessageFormat.format("Appending or waiting to append value \u001B[33m\"{0}\"\u001B[37m to ledger...", value));
-
-        waitForPreviousConsensus(consensusInstance); // TODO Optimize to not wait in the thread, store a list of consensus values that are to be appended later
-
         synchronized (ledger) {
             ledger.ensureCapacity(consensusInstance);
             ledger.add(value);
@@ -587,36 +584,47 @@ public class NodeService implements UDPService {
 
         long timeToWait = ROUND_CHANGE_TIMER_EXPIRE_TIME << (instance.getCurrentRound() - 1);
 
-        logger.info(MessageFormat.format("Starting timer of \u001B[34m{0}\u001B[37mms for Consensus Instance \u001B[34m{1}\u001B[37m", timeToWait, consensusInstance));
+        synchronized (decideLockObjects.computeIfAbsent(consensusInstance, k -> new Object())) {
+            if (instance.alreadyDecided())
+                return;
 
-        timer.startTimer(new TimerTask() {
-            @Override
-            public void run() {
-                instance.setCurrentRound(instance.getCurrentRound() + 1);
-                int round = instance.getCurrentRound();
-                int preparedRound = instance.getPreparedRound();
-                String preparedValue = instance.getPreparedValue();
+            logger.info(MessageFormat.format("Starting timer of \u001B[34m{0}\u001B[37mms for Consensus Instance \u001B[34m{1}\u001B[37m", timeToWait, consensusInstance));
 
-                startTimer(consensusInstance);
+            MultiThreadTimer timer = timers.computeIfAbsent(consensusInstance, k -> new MultiThreadTimer());
+            timer.startTimer(new TimerTask() {
+                @Override
+                public void run() {
+                    instance.setCurrentRound(instance.getCurrentRound() + 1);
+                    int round = instance.getCurrentRound();
+                    int preparedRound = instance.getPreparedRound();
+                    String preparedValue = instance.getPreparedValue();
 
-                ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
-                        .setConsensusInstance(consensusInstance)
-                        .setRound(round)
-                        .setPreparedRound(preparedRound)
-                        .setPreparedValue(preparedValue)
-                        .build();
+                    startTimer(consensusInstance);
 
-                logger.info(MessageFormat.format("Timer expired for Consensus Instance \u001B[34m{0}\u001B[37m. Updated round to \u001B[34m{1}\u001B[37m, triggering round-change. Broadcasting {2}", consensusInstance, round, messageToBroadcast.getConsensusMessageRepresentation()));
+                    ConsensusMessage messageToBroadcast = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
+                            .setConsensusInstance(consensusInstance)
+                            .setRound(round)
+                            .setPreparedRound(preparedRound)
+                            .setPreparedValue(preparedValue)
+                            .build();
 
-                authenticatedPerfectLink.broadcast(messageToBroadcast);
-            }
-        }, timeToWait);
+                    logger.info(MessageFormat.format("Timer expired for Consensus Instance \u001B[34m{0}\u001B[37m. Updated round to \u001B[34m{1}\u001B[37m, triggering round-change. Broadcasting {2}", consensusInstance, round, messageToBroadcast.getConsensusMessageRepresentation()));
+
+                    authenticatedPerfectLink.broadcast(messageToBroadcast);
+                }
+            }, timeToWait);
+        }
     }
 
     /**
      * Stop the timer for the consensus instance.
      */
-    private void stopTimer() {
+    private void stopTimer(int consensusInstance) {
+        MultiThreadTimer timer = timers.get(consensusInstance);
+
+        if (timer == null)
+            return;
+
         timer.stopTimer();
     }
 

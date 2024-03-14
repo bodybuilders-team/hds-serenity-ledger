@@ -24,6 +24,7 @@ Summer Semester of 2023/2024
 - [Introduction](#introduction)
 - [Authors](#authors)
 - [Usage Guide](#usage-guide)
+- [Testing Byzantine Scenarios](#testing-byzantine-scenarios)
 - [Acknowledgements](#acknowledgements)
 
 ---
@@ -43,7 +44,7 @@ The following software is required to run the project:
 To run the project, you need to configure files for:
 
 * Node configuration - located in `Service/src/main/resources/`;
-* Client configuration - located in `Client/src/main/resources/client-config.json`.
+* Client configuration - located in `Client/src/main/resources/`.
 
 Each node has a configuration object that contains the following fields:
 
@@ -162,6 +163,29 @@ or run with arguments:
 cd <module>/
 mvn compile exec:java -Dexec.args="..."
 ```
+
+---
+
+## Testing Byzantine Scenarios
+
+To test the Byzantine scenarios, you can use the `puppet-master.py` script to run the nodes and clients with different
+configurations.
+
+Each client/node has a `behavior` field that can be used to define the behavior of the client/node.
+
+The possible behaviors for both clients and nodes are:
+
+* `REGULAR` - The client/node behaves normally;
+* `CORRUPT_BROADCAST` - The client/node sends different messages to different nodes;
+
+The possible behaviors just for nodes are:
+
+* `NON_LEADER_CONSENSUS_INITIATION` - The client/node initiates consensus without being the leader;
+* `LEADER_IMPERSONATION` - The client/node sends messages with the leader ID;
+* `CRASH_AFTER_FIXED_TIME` - The client/node crashes after a fixed time; (requires `crashTimeout` field)
+* `CORRUPT_LEADER` - The leader sends different messages to different nodes.
+
+Some sample configurations that use these behaviors are already defined in the `puppet-master.py` script.
 
 ---
 

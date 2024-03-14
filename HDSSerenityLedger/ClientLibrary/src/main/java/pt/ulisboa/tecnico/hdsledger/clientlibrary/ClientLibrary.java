@@ -10,6 +10,8 @@ import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
 
 import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * API for the HDSLedger client.
@@ -19,6 +21,12 @@ public class ClientLibrary implements UDPService {
     private final ClientProcessConfig clientConfig;
     private final ProcessLogger logger;
     private AuthenticatedPerfectLink authenticatedPerfectLink;
+
+    private static final boolean LOGS_ENABLED = false;
+
+    // Read response -> sender ID -> Message
+    private final Map<String, Map<String, HDSLedgerMessage>> readResponses = new HashMap<>();
+    private int quorumSize;
 
     public ClientLibrary(ClientProcessConfig clientConfig, ServerProcessConfig[] nodesConfig) {
         this.clientConfig = clientConfig;
@@ -30,8 +38,11 @@ public class ClientLibrary implements UDPService {
                     clientConfig.getPort(),
                     nodesConfig,
                     HDSLedgerMessage.class,
-                    true
+                    LOGS_ENABLED
             );
+
+            int f = Math.floorDiv(nodesConfig.length - 1, 3);
+            this.quorumSize = Math.floorDiv(nodesConfig.length + f, 2) + 1;
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error creating link: {0}", e.getMessage()));
         }
@@ -71,6 +82,25 @@ public class ClientLibrary implements UDPService {
         }
     }
 
+    /**
+     * Handles a read response.
+     */
+    private void handleReadResponse(HDSLedgerMessage ledgerMessage) {
+        if (ledgerMessage.getType() != Message.Type.READ_RESPONSE)
+            return;
+
+        synchronized (readResponses) {
+            // TODO: does order of read responses matter? (sending two reads and receiving the responses in different order)
+            readResponses.putIfAbsent(ledgerMessage.getValue(), new HashMap<>());
+            readResponses.get(ledgerMessage.getValue()).putIfAbsent(ledgerMessage.getSenderId(), ledgerMessage);
+
+            if (readResponses.get(ledgerMessage.getValue()).size() != quorumSize)
+                return;
+        }
+
+        logger.info(MessageFormat.format("Received read response: \u001B[33m\"{0}\"\u001B[37m", ledgerMessage.getValue()));
+    }
+
     @Override
     public void listen() {
         logger.info("Listening for messages...");
@@ -86,8 +116,7 @@ public class ClientLibrary implements UDPService {
                     switch (ledgerMessage.getType()) {
                         case APPEND_RESPONSE ->
                                 logger.info(MessageFormat.format("Received append response: \u001B[33m\"{0}\"\u001B[37m", ledgerMessage.getValue()));
-                        case READ_RESPONSE ->
-                                logger.info(MessageFormat.format("Received read response: \u001B[33m\"{0}\"\u001B[37m", ledgerMessage.getValue()));
+                        case READ_RESPONSE -> handleReadResponse(ledgerMessage);
                         case IGNORE -> { /* Do nothing */ }
                         default ->
                                 logger.warn(MessageFormat.format("Received unknown message type: \u001B[32m{0}\u001B[37m", ledgerMessage.getType()));
