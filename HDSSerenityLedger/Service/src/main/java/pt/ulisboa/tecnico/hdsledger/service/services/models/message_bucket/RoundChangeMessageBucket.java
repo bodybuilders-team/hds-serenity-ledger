@@ -1,6 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket;
 
-import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 import pt.ulisboa.tecnico.hdsledger.shared.models.PreparedRoundValuePair;
 
@@ -25,10 +25,10 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * @param roundChanceQuorumMessages The messages in the round change quorum messages
      * @return The highest prepared pair (value, round) of the existing round change quorum
      */
-    public static Optional<PreparedRoundValuePair> getHighestPrepared(List<ConsensusMessageDto> roundChanceQuorumMessages) {
+    public static Optional<PreparedRoundValuePair> getHighestPrepared(List<ConsensusMessage> roundChanceQuorumMessages) {
         return roundChanceQuorumMessages.stream()
-                .max(Comparator.comparingInt(ConsensusMessageDto::getPreparedRound))
-                .map(m -> new PreparedRoundValuePair(m.getPreparedRound(), Block.fromJson(m.getPreparedValue())));
+                .max(Comparator.comparingInt(ConsensusMessage::getPreparedRound))
+                .map(m -> new PreparedRoundValuePair(m.getPreparedRound(), (Block) m.getPreparedValue()));
     }
 
     /**
@@ -45,7 +45,7 @@ public class RoundChangeMessageBucket extends MessageBucket {
         return bucket.get(instance).get(round).values().size() >= quorumSize;
     }
 
-    public Optional<List<ConsensusMessageDto>> getValidRoundChangeQuorumMessages(int instance, int round) {
+    public Optional<List<ConsensusMessage>> getValidRoundChangeQuorumMessages(int instance, int round) {
         if (!hasValidRoundChangeQuorum(instance, round))
             return Optional.empty();
 
@@ -58,10 +58,10 @@ public class RoundChangeMessageBucket extends MessageBucket {
      * @param round The round
      * @return The messages
      */
-    public List<ConsensusMessageDto> getMessagesFromRoundGreaterThan(int consensusInstance, int round) {
-        List<ConsensusMessageDto> messages = new ArrayList<>();
+    public List<ConsensusMessage> getMessagesFromRoundGreaterThan(int consensusInstance, int round) {
+        List<ConsensusMessage> messages = new ArrayList<>();
 
-        for (Map.Entry<Integer, Map<String, ConsensusMessageDto>> roundEntry : bucket.get(consensusInstance).entrySet()) {
+        for (Map.Entry<Integer, Map<String, ConsensusMessage>> roundEntry : bucket.get(consensusInstance).entrySet()) {
             if (roundEntry.getKey() > round)
                 messages.addAll(roundEntry.getValue().values());
         }

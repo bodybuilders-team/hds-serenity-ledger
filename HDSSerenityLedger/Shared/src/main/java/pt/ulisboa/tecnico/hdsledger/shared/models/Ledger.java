@@ -6,8 +6,6 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.Ledge
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,7 +13,6 @@ public class Ledger {
 
     // PublicKey -> Account
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();
-    private final List<Block> blockchain = new ArrayList<>();
     private final ClientProcessConfig[] clientsConfig; // All clients configuration
 
     public Ledger(ClientProcessConfig[] clientsConfig) {

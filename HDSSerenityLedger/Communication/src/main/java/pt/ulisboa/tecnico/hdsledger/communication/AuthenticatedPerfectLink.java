@@ -1,20 +1,20 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
-import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
-import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 import pt.ulisboa.tecnico.hdsledger.shared.CollapsingSet;
 import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -116,15 +116,15 @@ public class AuthenticatedPerfectLink {
                 send(destId, message);
             });
         } else if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_LEADER
-                && data.getType() == Type.PRE_PREPARE && (((ConsensusMessageDto) data).getRound() == 1)) {
-            ConsensusMessageDto prePrepareMessage = (ConsensusMessageDto) data;
+                && data.getType() == Type.PRE_PREPARE && (((ConsensusMessage) data).getRound() == 1)) {
+            ConsensusMessage prePrepareMessage = (ConsensusMessage) data;
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
-                final var block = gson.fromJson(prePrepareMessage.getValue(), Block.class);
+                final var block = (Block) prePrepareMessage.getValue();
 
                 block.setConsensusInstance((int) (Math.random() * nodes.size()));
 
-                prePrepareMessage.setValue(gson.toJson(block));
+                prePrepareMessage.setValue(block);
 
                 send(destId, prePrepareMessage);
             });
@@ -308,14 +308,14 @@ public class AuthenticatedPerfectLink {
                 }
             }
             case PREPARE -> {
-                ConsensusMessageDto consensusMessageDto = (ConsensusMessageDto) message;
-                if (consensusMessageDto.getReplyTo() != null && consensusMessageDto.getReplyTo().equals(config.getId()))
-                    receivedAcks.add(consensusMessageDto.getReplyToMessageId());
+                ConsensusMessage consensusMessage = (ConsensusMessage) message;
+                if (consensusMessage.getReplyTo() != null && consensusMessage.getReplyTo().equals(config.getId()))
+                    receivedAcks.add(consensusMessage.getReplyToMessageId());
 
                 return message;
             }
             case COMMIT -> {
-                ConsensusMessageDto consensusMessageDto = (ConsensusMessageDto) message;
+                ConsensusMessage consensusMessageDto = (ConsensusMessage) message;
                 if (consensusMessageDto.getReplyTo() != null && consensusMessageDto.getReplyTo().equals(config.getId()))
                     receivedAcks.add(consensusMessageDto.getReplyToMessageId());
             }

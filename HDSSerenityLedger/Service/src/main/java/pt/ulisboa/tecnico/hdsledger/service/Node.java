@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.service;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;

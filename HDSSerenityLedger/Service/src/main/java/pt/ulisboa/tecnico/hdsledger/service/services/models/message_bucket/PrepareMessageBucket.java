@@ -30,8 +30,8 @@ public class PrepareMessageBucket extends MessageBucket {
 
         HashMap<Block, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach(message -> {
-            Block value = message.getValue();
-            frequency.put(value, frequency.getOrDefault(value, 0) + 1);
+            Block block = (Block) message.getValue();
+            frequency.put(block, frequency.getOrDefault(block, 0) + 1);
         });
 
         return frequency.entrySet().stream()

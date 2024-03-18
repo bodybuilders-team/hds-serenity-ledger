@@ -1,6 +1,5 @@
 package pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket;
 
-import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.util.HashMap;
@@ -29,16 +28,15 @@ public class CommitMessageBucket extends MessageBucket {
         if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
             return Optional.empty();
 
-        HashMap<String, Integer> frequency = new HashMap<>();
+        HashMap<Block, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach(message -> {
-            CommitMessage commitMessage = message.deserializeCommitMessage();
-            String value = commitMessage.getValue();
+            Block value = (Block) message.getValue();
             frequency.put(value, frequency.getOrDefault(value, 0) + 1);
         });
 
         return frequency.entrySet().stream()
                 .filter(entry -> entry.getValue() >= quorumSize)
                 .map(Map.Entry::getKey)
-                .findFirst().map(Block::fromJson);
+                .findFirst();
     }
 }

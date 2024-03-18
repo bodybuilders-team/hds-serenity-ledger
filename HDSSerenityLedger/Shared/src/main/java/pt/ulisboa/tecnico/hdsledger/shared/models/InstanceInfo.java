@@ -1,9 +1,14 @@
 package pt.ulisboa.tecnico.hdsledger.shared.models;
 
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Information about a specific consensus instance.
  */
+@Setter
+@Getter
 public class InstanceInfo {
 
     private Block inputValue;
@@ -26,51 +31,4 @@ public class InstanceInfo {
         return decidedRound != -1;
     }
 
-    public Block getInputValue() {
-        return inputValue;
-    }
-
-    public void setInputValue(Block inputValue) {
-        this.inputValue = inputValue;
-    }
-
-    public int getCurrentRound() {
-        return currentRound;
-    }
-
-    public void setCurrentRound(int currentRound) {
-        this.currentRound = currentRound;
-    }
-
-    public int getPreparedRound() {
-        return preparedRound;
-    }
-
-    public void setPreparedRound(int preparedRound) {
-        this.preparedRound = preparedRound;
-    }
-
-    public Block getPreparedValue() {
-        return preparedValue;
-    }
-
-    public void setPreparedValue(Block preparedValue) {
-        this.preparedValue = preparedValue;
-    }
-
-    public int getDecidedRound() {
-        return decidedRound;
-    }
-
-    public void setDecidedRound(int committedRound) {
-        this.decidedRound = committedRound;
-    }
-
-    public Block getDecidedValue() {
-        return decidedValue;
-    }
-
-    public void setDecidedValue(Block decidedValue) {
-        this.decidedValue = decidedValue;
-    }
 }

@@ -140,11 +140,11 @@ public class ClientLibrary implements UDPService {
 
         synchronized (balanceResponses) {
             // TODO: does order of read responses matter? (sending two reads and receiving the responses in different order)
-            balanceResponses.putIfAbsent(ledgerMessage.getValue(), new HashMap<>());
+            /*balanceResponses.putIfAbsent(ledgerMessage.getValue(), new HashMap<>());
             balanceResponses.get(ledgerMessage.getValue()).putIfAbsent(ledgerMessage.getSenderId(), ledgerMessage);
 
             if (balanceResponses.get(ledgerMessage.getValue()).size() != quorumSize)
-                return;
+                return;*/
         }
 
         logger.info(MessageFormat.format("Received balance response: \"{0}\"", ledgerMessage.getValue()));
@@ -163,10 +163,10 @@ public class ClientLibrary implements UDPService {
                         case BALANCE_RESPONSE ->
                                 handleBalanceResponse(ledgerMessage);
                         case TRANSFER_RESPONSE ->
-                                logger.info(MessageFormat.format("Received transfer response: \"{0}\"", ledgerMessageDto.getValue()));
+                                logger.info(MessageFormat.format("Received transfer response: \"{0}\"", ledgerMessage.getValue()));
                         case IGNORE -> { /* Do nothing */ }
                         default ->
-                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessageDto.getType()));
+                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessage.getType()));
                     }
 
                 } catch (Exception e) {
