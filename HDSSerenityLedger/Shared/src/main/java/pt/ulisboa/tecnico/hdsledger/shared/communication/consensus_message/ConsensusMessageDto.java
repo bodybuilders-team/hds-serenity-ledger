@@ -1,9 +1,12 @@
 package pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message;
 
+import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 
 import java.text.MessageFormat;
 
+@SuperBuilder
 public class ConsensusMessageDto extends Message {
 
     // Consensus instance

@@ -1,8 +1,9 @@
 package pt.ulisboa.tecnico.hdsledger.shared.models;
 
+import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
 import java.util.ArrayList;
@@ -35,12 +36,12 @@ public class Ledger {
 
     public boolean addBlock(Block block) {
         for (var request : block.getRequests()) {
-            if (request.verifySignature(clientsConfig)) {
+            if (LedgerTransferMessage.verifySignature(request, clientsConfig)) {
                 return false;
             }
 
-            if (request.getType() == LedgerMessageDto.Type.TRANSFER) {
-                var transferMessage = SerializationUtils.deserialize(request.getValue(), LedgerTransferMessage.class);
+            if (request.getType() == Type.TRANSFER) {
+                var transferMessage = (LedgerTransferMessage) request.getValue();
 
                 Account sender = accounts.get(transferMessage.getDestinationAccountId());
                 Account receiver = accounts.get(transferMessage.getSourceAccountId());
@@ -57,8 +58,9 @@ public class Ledger {
         }
 
         for (var request : block.getRequests()) {
-            if (request.getType() == LedgerMessageDto.Type.TRANSFER) {
-                var transferMessage = SerializationUtils.deserialize(request.getValue(), LedgerTransferMessage.class);
+            if (request.getType() == Type.TRANSFER) {
+                var transferMessage = (LedgerTransferMessage) request.getValue();
+
                 Account sender = accounts.get(transferMessage.getDestinationAccountId());
                 Account receiver = accounts.get(transferMessage.getSourceAccountId());
                 sender.setBalance(sender.getBalance() - transferMessage.getAmount());

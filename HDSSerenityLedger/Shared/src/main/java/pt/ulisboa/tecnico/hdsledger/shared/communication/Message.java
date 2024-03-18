@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.shared.communication;
 
+import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 
@@ -8,6 +9,7 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
 
+@SuperBuilder
 public class Message implements Serializable {
 
     // Sender identifier

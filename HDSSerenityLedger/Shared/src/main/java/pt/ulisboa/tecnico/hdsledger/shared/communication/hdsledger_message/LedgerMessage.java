@@ -2,21 +2,24 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
 
 import lombok.Getter;
 import lombok.Setter;
+import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.models.LedgerMessageValue;
 
 import java.text.MessageFormat;
+import java.util.Arrays;
 
-public class LedgerMessageDto extends Message {
-
+public class LedgerMessage extends Message {
     @Getter
     @Setter
-    private String value;
-
+    private LedgerMessageValue value;
     @Getter
     @Setter
     private byte[] signature;
 
-    public LedgerMessageDto(String senderId, Type type) {
+    public LedgerMessage(String senderId, Type type) {
         super(senderId, type);
     }
 

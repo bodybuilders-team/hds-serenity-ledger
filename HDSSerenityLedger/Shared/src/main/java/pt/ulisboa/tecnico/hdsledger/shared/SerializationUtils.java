@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 
 public class SerializationUtils {
 
-    private static final Gson gson = SerializationUtils.getGson();
+    private static final Gson gson = new Gson();
 
     private SerializationUtils() {
     }

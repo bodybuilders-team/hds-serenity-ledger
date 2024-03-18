@@ -1,16 +1,17 @@
 package pt.ulisboa.tecnico.hdsledger.clientlibrary;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.HDSLedgerMessageBuilder;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.service.services.UDPService;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.HDSLedgerMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -30,7 +31,7 @@ public class ClientLibrary implements UDPService {
     private static final boolean LOGS_ENABLED = false;
 
     // Balance response -> sender ID -> Message
-    private final Map<String, Map<String, HDSLedgerMessage>> balanceResponses = new HashMap<>();
+    private final Map<String, Map<String, LedgerMessage>> balanceResponses = new HashMap<>();
     private int quorumSize;
 
     public ClientLibrary(ClientProcessConfig clientConfig, ServerProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
@@ -133,7 +134,7 @@ public class ClientLibrary implements UDPService {
     /**
      * Handles a balance response.
      */
-    private void handleBalanceResponse(HDSLedgerMessage ledgerMessage) {
+    private void handleBalanceResponse(LedgerMessage ledgerMessage) {
         if (ledgerMessage.getType() != Message.Type.BALANCE_RESPONSE)
             return;
 
@@ -156,12 +157,9 @@ public class ClientLibrary implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    var message = authenticatedPerfectLink.receive();
+                    final var ledgerMessage = (LedgerMessage) authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof LedgerMessageDto ledgerMessageDto))
-                        continue;
-
-                    switch (ledgerMessageDto.getType()) {
+                    switch (ledgerMessage.getType()) {
                         case BALANCE_RESPONSE ->
                                 handleBalanceResponse(ledgerMessage);
                         case TRANSFER_RESPONSE ->

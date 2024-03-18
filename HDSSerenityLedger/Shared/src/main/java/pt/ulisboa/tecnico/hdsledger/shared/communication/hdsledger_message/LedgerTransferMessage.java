@@ -1,9 +1,18 @@
 package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
 
-public class LedgerTransferMessage {
-    private String sourceAccountId;
-    private String destinationAccountId;
-    private int amount;
+import lombok.Getter;
+import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.models.LedgerMessageValue;
+
+import java.util.Arrays;
+
+@Getter
+public class LedgerTransferMessage implements LedgerMessageValue {
+    private final String sourceAccountId;
+    private final String destinationAccountId;
+    private final int amount;
 
     public LedgerTransferMessage(String sourceAccountId, String destinationAccountId, int amount) {
         this.sourceAccountId = sourceAccountId;
@@ -11,15 +20,15 @@ public class LedgerTransferMessage {
         this.amount = amount;
     }
 
-    public String getSourceAccountId() {
-        return sourceAccountId;
-    }
+    public static boolean verifySignature(LedgerMessage message, ClientProcessConfig[] clientsConfig) {
+        final var transferMessage = (LedgerTransferMessage) message.getValue();
+        final var clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(transferMessage.getSourceAccountId())).findAny().orElse(null);
+        if (clientConfig == null)
+            return false;
 
-    public String getDestinationAccountId() {
-        return destinationAccountId;
-    }
+        var publicKey = CryptoUtils.getPublicKey(clientConfig.getPublicKeyPath());
+        final var serializedTransferMessage = SerializationUtils.serialize(transferMessage);
 
-    public int getAmount() {
-        return amount;
+        return CryptoUtils.verify(serializedTransferMessage.getBytes(), message.getSignature(), publicKey);
     }
 }

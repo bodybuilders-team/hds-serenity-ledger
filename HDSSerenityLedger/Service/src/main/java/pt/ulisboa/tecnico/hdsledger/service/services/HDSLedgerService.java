@@ -1,16 +1,17 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
+import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.HDSLedgerMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerCheckBalanceMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Account;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
-import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
-import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
-import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
 import java.security.PublicKey;
 import java.text.MessageFormat;
@@ -30,7 +31,7 @@ public class HDSLedgerService implements UDPService {
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
 
-    private List<LedgerMessageDto> accumulatedMessages = new ArrayList<>();
+    private List<LedgerMessage> accumulatedMessages = new ArrayList<>();
     private final int accumulationThreshold = 3;
 
     public HDSLedgerService(
@@ -44,45 +45,21 @@ public class HDSLedgerService implements UDPService {
         this.clientsConfig = clientsConfig;
     }
 
-//    /**
-//     * Handles a register message.
-//     *
-//     * @param message the register message
-//     */
-//    public void uponRegister(HDSLedgerMessage message) {
-//        logger.info(MessageFormat.format("Received register request: {0}", message.getValue()));
-//
-//        try {
-//            String ownerId = message.getValue();
-//            String publicKey = CryptoUtils.getPublicKey(ownerId).toString();
-//
-//            nodeService.getLedger().addAccount(publicKey, new Account(ownerId, publicKey));
-//
-//            // Send the response
-//            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.REGISTER_RESPONSE)
-//                    .setValue("Account created successfully")
-//                    .build();
-//
-//            authenticatedPerfectLink.send(message.getSenderId(), response);
-//        } catch (Exception e) {
-//            logger.error(MessageFormat.format("Error registering account: {0}", e.getMessage()));
-//        }
-//    }
 
     /**
      * Handles a transfer message.
      *
      * @param message the transfer message
      */
-    public void uponTransfer(LedgerMessageDto message) {
+    public void uponTransfer(LedgerMessage message) {
         logger.info(MessageFormat.format("Received transfer request: {0}", message.getValue()));
 
         try {
 
-            if (message.verifySignature(clientsConfig)) return;
+            if (LedgerTransferMessage.verifySignature(message, clientsConfig)) return;
 
             //TODO: remove double deserialization
-            var transferMessage = SerializationUtils.deserialize(message.getValue(), LedgerTransferMessage.class);
+            final var transferMessage = (LedgerTransferMessage) message.getValue();
 
             // Accumulate messages
             accumulateOrPropose(message);
@@ -105,11 +82,11 @@ public class HDSLedgerService implements UDPService {
      *
      * @param message the balance message
      */
-    public void uponBalance(LedgerMessageDto message) {
+    public void uponBalance(LedgerMessage message) {
         logger.info("Received balance request");
 
         try {
-            String accountId = message.getValue();
+            String accountId = ((LedgerCheckBalanceMessage) message.getValue()).getAccountId();
             ClientProcessConfig owner = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(accountId)).findAny().get();
             PublicKey publicKey = CryptoUtils.getPublicKey(owner.getPublicKeyPath());
 
@@ -136,22 +113,17 @@ public class HDSLedgerService implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    Message message = authenticatedPerfectLink.receive();
-
-                    if (!(message instanceof LedgerMessageDto ledgerMessageDto))
-                        continue;
+                    final var ledgerMessage = (LedgerMessage) authenticatedPerfectLink.receive();
 
                     new Thread(() -> {
-                        switch (ledgerMessageDto.getType()) {
-//                            case REGISTER -> uponRegister(ledgerMessage);
+                        switch (ledgerMessage.getType()) {
+                            case BALANCE -> uponBalance(ledgerMessage);
 
-                            case BALANCE -> uponBalance(ledgerMessageDto);
-
-                            case TRANSFER -> uponTransfer(ledgerMessageDto);
+                            case TRANSFER -> uponTransfer(ledgerMessage);
                             case IGNORE -> {/* Do nothing */}
 
                             default ->
-                                    logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessageDto.getType()));
+                                    logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessage.getType()));
                         }
                     }).start();
 
@@ -162,7 +134,7 @@ public class HDSLedgerService implements UDPService {
         }).start();
     }
 
-    private void accumulateOrPropose(LedgerMessageDto ledgerMessageDto) {
+    private void accumulateOrPropose(LedgerMessage ledgerMessageDto) {
         accumulatedMessages.add(ledgerMessageDto);
         if (accumulatedMessages.size() >= accumulationThreshold) {
             var block = new Block();

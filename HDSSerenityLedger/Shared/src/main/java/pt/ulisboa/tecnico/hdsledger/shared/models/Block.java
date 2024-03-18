@@ -1,19 +1,23 @@
 package pt.ulisboa.tecnico.hdsledger.shared.models;
 
+import lombok.Getter;
+import lombok.Setter;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * A block in the blockchain.
  */
-public class Block implements ConsensusValue {
+@Getter
+public class Block implements ConsensusMessageValue {
 
-    private final List<LedgerMessageDto> requests = new ArrayList<>();
+    private final List<LedgerMessage> requests = new ArrayList<>();
+    @Setter
     private int consensusInstance;
 
     public Block() {
@@ -23,19 +27,7 @@ public class Block implements ConsensusValue {
         return SerializationUtils.getGson().fromJson(json, Block.class);
     }
 
-    public int getConsensusInstance() {
-        return consensusInstance;
-    }
-
-    public void setConsensusInstance(int consensusInstance) {
-        this.consensusInstance = consensusInstance;
-    }
-
-    public List<LedgerMessageDto> getRequests() {
-        return requests;
-    }
-
-    public void addRequest(LedgerMessageDto request) {
+    public void addRequest(LedgerMessage request) {
         requests.add(request);
     }
 
