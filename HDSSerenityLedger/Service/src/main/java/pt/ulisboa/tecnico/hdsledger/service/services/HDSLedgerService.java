@@ -1,18 +1,22 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessageBuilder;
-import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.LedgerTransferMessage;
-import pt.ulisboa.tecnico.hdsledger.crypto.CryptoUtils;
-import pt.ulisboa.tecnico.hdsledger.service.models.Account;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.HDSLedgerMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.models.Account;
+import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
+import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
 import java.security.PublicKey;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Service used to interact with the HDSLedger.
@@ -26,6 +30,9 @@ public class HDSLedgerService implements UDPService {
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
 
+    private List<LedgerMessageDto> accumulatedMessages = new ArrayList<>();
+    private final int accumulationThreshold = 3;
+
     public HDSLedgerService(
             AuthenticatedPerfectLink authenticatedPerfectLink,
             NodeService nodeService,
@@ -37,47 +44,51 @@ public class HDSLedgerService implements UDPService {
         this.clientsConfig = clientsConfig;
     }
 
-    /**
-     * Handles a register message.
-     *
-     * @param message the register message
-     */
-    public void uponRegister(HDSLedgerMessage message) {
-        logger.info(MessageFormat.format("Received register request: {0}", message.getValue()));
-
-        try {
-            String ownerId = message.getValue();
-            String publicKey = CryptoUtils.getPublicKey(ownerId).toString();
-
-            nodeService.getLedger().addAccount(publicKey, new Account(ownerId, publicKey));
-
-            // Send the response
-            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.REGISTER_RESPONSE)
-                    .setValue("Account created successfully")
-                    .build();
-
-            authenticatedPerfectLink.send(message.getSenderId(), response);
-        } catch (Exception e) {
-            logger.error(MessageFormat.format("Error registering account: {0}", e.getMessage()));
-        }
-    }
+//    /**
+//     * Handles a register message.
+//     *
+//     * @param message the register message
+//     */
+//    public void uponRegister(HDSLedgerMessage message) {
+//        logger.info(MessageFormat.format("Received register request: {0}", message.getValue()));
+//
+//        try {
+//            String ownerId = message.getValue();
+//            String publicKey = CryptoUtils.getPublicKey(ownerId).toString();
+//
+//            nodeService.getLedger().addAccount(publicKey, new Account(ownerId, publicKey));
+//
+//            // Send the response
+//            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.REGISTER_RESPONSE)
+//                    .setValue("Account created successfully")
+//                    .build();
+//
+//            authenticatedPerfectLink.send(message.getSenderId(), response);
+//        } catch (Exception e) {
+//            logger.error(MessageFormat.format("Error registering account: {0}", e.getMessage()));
+//        }
+//    }
 
     /**
      * Handles a transfer message.
      *
      * @param message the transfer message
      */
-    public void uponTransfer(HDSLedgerMessage message) {
+    public void uponTransfer(LedgerMessageDto message) {
         logger.info(MessageFormat.format("Received transfer request: {0}", message.getValue()));
 
         try {
-            LedgerTransferMessage transferMessage = message.deserializeLedgerTransferMessage();
-            /* TODO: Implement this
-            nodeService.startConsensus(message.getValue());
-            */
+
+            if (message.verifySignature(clientsConfig)) return;
+
+            //TODO: remove double deserialization
+            var transferMessage = SerializationUtils.deserialize(message.getValue(), LedgerTransferMessage.class);
+
+            // Accumulate messages
+            accumulateOrPropose(message);
 
             // Send the response
-            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.TRANSFER_RESPONSE)
+            LedgerMessageDto response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.TRANSFER_RESPONSE)
                     .setValue(MessageFormat.format("Transfer from {0} to {1} of {2} was successful",
                             transferMessage.getSourceAccountId(), transferMessage.getDestinationAccountId(), transferMessage.getAmount()))
                     .build();
@@ -88,12 +99,13 @@ public class HDSLedgerService implements UDPService {
         }
     }
 
+
     /**
      * Handles a balance message.
      *
      * @param message the balance message
      */
-    public void uponBalance(HDSLedgerMessage message) {
+    public void uponBalance(LedgerMessageDto message) {
         logger.info("Received balance request");
 
         try {
@@ -102,11 +114,11 @@ public class HDSLedgerService implements UDPService {
             PublicKey publicKey = CryptoUtils.getPublicKey(owner.getPublicKeyPath());
 
             Account account = nodeService.getLedger().getAccount(publicKey.toString());
-            int balance = account.getBalance();
+            long balance = account.getBalance();
 
             logger.info(MessageFormat.format("Sending balance response: {0}", balance));
 
-            HDSLedgerMessage response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.BALANCE_RESPONSE)
+            LedgerMessageDto response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.BALANCE_RESPONSE)
                     .setValue(String.valueOf(balance))
                     .build();
 
@@ -126,21 +138,20 @@ public class HDSLedgerService implements UDPService {
                 try {
                     Message message = authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof HDSLedgerMessage ledgerMessage))
+                    if (!(message instanceof LedgerMessageDto ledgerMessageDto))
                         continue;
 
                     new Thread(() -> {
-                        switch (ledgerMessage.getType()) {
-                            case REGISTER -> uponRegister(ledgerMessage);
+                        switch (ledgerMessageDto.getType()) {
+//                            case REGISTER -> uponRegister(ledgerMessage);
 
-                            case BALANCE -> uponBalance(ledgerMessage);
+                            case BALANCE -> uponBalance(ledgerMessageDto);
 
-                            case TRANSFER -> uponTransfer(ledgerMessage);
-
+                            case TRANSFER -> uponTransfer(ledgerMessageDto);
                             case IGNORE -> {/* Do nothing */}
 
                             default ->
-                                    logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessage.getType()));
+                                    logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessageDto.getType()));
                         }
                     }).start();
 
@@ -149,5 +160,21 @@ public class HDSLedgerService implements UDPService {
                 }
             }
         }).start();
+    }
+
+    private void accumulateOrPropose(LedgerMessageDto ledgerMessageDto) {
+        accumulatedMessages.add(ledgerMessageDto);
+        if (accumulatedMessages.size() >= accumulationThreshold) {
+            var block = new Block();
+            for (var message : accumulatedMessages) {
+                block.addRequest(message);
+            }
+
+            var proposed = nodeService.startConsensus(block);
+
+            if (proposed) {
+                accumulatedMessages.clear();
+            }
+        }
     }
 }

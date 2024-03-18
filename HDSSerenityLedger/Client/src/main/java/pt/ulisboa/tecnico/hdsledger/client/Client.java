@@ -1,10 +1,10 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.ClientLibrary;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -104,7 +104,7 @@ public class Client {
 
         switch (command) {
             case "exit" -> running = false;
-            case "register" -> clientLibrary.register();
+//            case "register" -> clientLibrary.register();
             case "balance" -> {
                 if (tokens.length < 2) {
                     System.out.println("Invalid command: balance <account_id>");
@@ -159,9 +159,10 @@ public class Client {
      * Prints the menu.
      */
     private static void printMenu() {
+//                    \u001B[32mregister\u001B[0m                Create a new account
+
         System.out.println("""
                 \u001B[33m\u001B[1mAvailable commands:\u001B[21m\u001B[24m
-                    \u001B[32mregister\u001B[0m                Create a new account
                     \u001B[32mbalance "<account_id>"\u001B[0m  Check the balance of an account
                     \u001B[32mtransfer "<source_account_id>" "<destination_account_id>" <amount>\u001B[0m
                                             Transfer an amount from one account to another

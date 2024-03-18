@@ -1,15 +1,15 @@
 package pt.ulisboa.tecnico.hdsledger.service;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfigBuilder;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -54,8 +54,8 @@ public class Node {
             logger.info(MessageFormat.format("Running at \u001B[34m{0}:{1}\u001B[37m", nodeConfig.getHostname(), String.valueOf(nodeConfig.getPort())));
 
             // Abstraction to send and receive messages
-            AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessage.class, ACTIVATE_AUTHENTICATED_LINK_NODE_LOGGING);
-            AuthenticatedPerfectLink authenticatedPerfectLinkToClients = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getClientPort(), clientConfigs, HDSLedgerMessage.class, ACTIVATE_AUTHENTICATED_LINK_CLIENT_LOGGING);
+            AuthenticatedPerfectLink authenticatedPerfectLinkToNodes = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getPort(), nodeConfigs, ConsensusMessageDto.class, ACTIVATE_AUTHENTICATED_LINK_NODE_LOGGING);
+            AuthenticatedPerfectLink authenticatedPerfectLinkToClients = new AuthenticatedPerfectLink(nodeConfig, nodeConfig.getClientPort(), clientConfigs, LedgerMessageDto.class, ACTIVATE_AUTHENTICATED_LINK_CLIENT_LOGGING);
 
             if (nodeConfig.getBehavior().equals(ProcessConfig.ProcessBehavior.CRASH_AFTER_FIXED_TIME)) {
                 var crashTimeout = nodeConfig.getCrashTimeout();
@@ -67,7 +67,7 @@ public class Node {
             }
 
             // Service to handle the node's logic - consensus
-            NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs);
+            NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs, clientConfigs);
 
             // Service to handle the node's logic - ledger
             HDSLedgerService hdsLedgerService = new HDSLedgerService(authenticatedPerfectLinkToClients, nodeService, clientConfigs);

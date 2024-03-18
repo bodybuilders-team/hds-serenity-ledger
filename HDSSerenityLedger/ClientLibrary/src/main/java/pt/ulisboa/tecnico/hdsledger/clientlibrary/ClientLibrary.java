@@ -1,15 +1,16 @@
 package pt.ulisboa.tecnico.hdsledger.clientlibrary;
 
-import com.google.gson.Gson;
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.HDSLedgerMessageBuilder;
-import pt.ulisboa.tecnico.hdsledger.communication.hdsledger_message.LedgerTransferMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.HDSLedgerMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.service.services.UDPService;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -42,7 +43,7 @@ public class ClientLibrary implements UDPService {
                     clientConfig,
                     clientConfig.getPort(),
                     nodesConfig,
-                    HDSLedgerMessage.class,
+                    LedgerMessageDto.class,
                     LOGS_ENABLED
             );
 
@@ -53,22 +54,30 @@ public class ClientLibrary implements UDPService {
         }
     }
 
-    /**
-     * Creates an account for the client.
-     */
-    public void register() {
-        logger.info("Creating account...");
-
-        try {
-            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.REGISTER)
-                    .setValue(clientConfig.getId())
-                    .build();
-
-            authenticatedPerfectLink.broadcast(message);
-        } catch (Exception e) {
-            logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
-        }
-    }
+//    /**
+//     * Creates an account for the client.
+//     */
+//    public void register() {
+//        logger.info("Creating account...");
+//
+//        try {
+//            LedgerRegisterMessage transferMessage = new LedgerRegisterMessage(clientConfig.getId(), );
+//            var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());
+//            var signedMessage = CryptoUtils.signMessage(transferMessage, privateKey);
+//
+//            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.TRANSFER)
+//                    .setValue(SerializationUtils.getGson().toJson(signedMessage))
+//                    .build();
+//
+//            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.REGISTER)
+//                    .setValue(clientConfig.getId())
+//                    .build();
+//
+//            authenticatedPerfectLink.broadcast(message);
+//        } catch (Exception e) {
+//            logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
+//        }
+//    }
 
     /**
      * Checks the balance of an account.
@@ -85,7 +94,8 @@ public class ClientLibrary implements UDPService {
         }
 
         try {
-            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.BALANCE)
+            // Need to sign the message (stage 2 request)
+            LedgerMessageDto message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.BALANCE)
                     .setValue(accountId)
                     .build();
 
@@ -106,10 +116,12 @@ public class ClientLibrary implements UDPService {
         logger.info(MessageFormat.format("Transferring \u001B[33m{0}\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
 
         try {
-            LedgerTransferMessage transferMessage = new LedgerTransferMessage(sourceAccountId, destinationAccountId, amount);
+            var transferMessage = new LedgerTransferMessage(sourceAccountId, destinationAccountId, amount);
+            var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());
+            var signedPacket = CryptoUtils.signPacket(transferMessage, privateKey);
 
-            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.TRANSFER)
-                    .setValue(new Gson().toJson(transferMessage))
+            var message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.TRANSFER)
+                    .setValue(SerializationUtils.getGson().toJson(signedPacket))
                     .build();
 
             authenticatedPerfectLink.broadcast(message);
@@ -144,19 +156,19 @@ public class ClientLibrary implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    Message message = authenticatedPerfectLink.receive();
+                    var message = authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof HDSLedgerMessage ledgerMessage))
+                    if (!(message instanceof LedgerMessageDto ledgerMessageDto))
                         continue;
 
-                    switch (ledgerMessage.getType()) {
+                    switch (ledgerMessageDto.getType()) {
                         case BALANCE_RESPONSE ->
                                 handleBalanceResponse(ledgerMessage);
                         case TRANSFER_RESPONSE ->
-                                logger.info(MessageFormat.format("Received transfer response: \"{0}\"", ledgerMessage.getValue()));
+                                logger.info(MessageFormat.format("Received transfer response: \"{0}\"", ledgerMessageDto.getValue()));
                         case IGNORE -> { /* Do nothing */ }
                         default ->
-                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessage.getType()));
+                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessageDto.getType()));
                     }
 
                 } catch (Exception e) {

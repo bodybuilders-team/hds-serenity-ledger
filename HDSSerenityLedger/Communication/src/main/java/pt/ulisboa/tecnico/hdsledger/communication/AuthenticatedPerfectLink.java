@@ -1,17 +1,20 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
-import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
-import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.consensus_message.PrePrepareMessage;
-import pt.ulisboa.tecnico.hdsledger.crypto.CryptoUtils;
-import pt.ulisboa.tecnico.hdsledger.utilities.CollapsingSet;
-import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
-import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
+import pt.ulisboa.tecnico.hdsledger.shared.CollapsingSet;
+import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
+import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -101,7 +104,7 @@ public class AuthenticatedPerfectLink {
      * @param data The message to be broadcast
      */
     public void broadcast(Message data) {
-        Gson gson = new Gson();
+        Gson gson = SerializationUtils.getGson();
 
         logger.info(MessageFormat.format("Broadcasting {0}", data.getMessageRepresentation()));
 
@@ -113,11 +116,15 @@ public class AuthenticatedPerfectLink {
                 send(destId, message);
             });
         } else if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_LEADER
-                && data.getType() == Type.PRE_PREPARE && (((ConsensusMessage) data).getRound() == 1)) {
-            ConsensusMessage prePrepareMessage = (ConsensusMessage) data;
+                && data.getType() == Type.PRE_PREPARE && (((ConsensusMessageDto) data).getRound() == 1)) {
+            ConsensusMessageDto prePrepareMessage = (ConsensusMessageDto) data;
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
-                prePrepareMessage.setMessage(new PrePrepareMessage(String.format("Corrupted Value, ci: %d destId: %s", prePrepareMessage.getConsensusInstance(), destId)).toJson());
+                final var block = gson.fromJson(prePrepareMessage.getValue(), Block.class);
+
+                block.setConsensusInstance((int) (Math.random() * nodes.size()));
+
+                prePrepareMessage.setValue(gson.toJson(block));
 
                 send(destId, prePrepareMessage);
             });
@@ -203,7 +210,7 @@ public class AuthenticatedPerfectLink {
      */
     public void unreliableSend(InetAddress hostname, int port, Message message) {
         new Thread(() -> {
-            Gson gson = new Gson();
+            Gson gson = SerializationUtils.getGson();
             try {
                 byte[] messageBuf = gson.toJson(message).getBytes();
                 byte[] signature = CryptoUtils.sign(messageBuf, keyPair.getPrivate());
@@ -228,7 +235,7 @@ public class AuthenticatedPerfectLink {
         String serializedMessage = "";
         boolean local = false;
         DatagramPacket response = null;
-        Gson gson = new Gson();
+        Gson gson = SerializationUtils.getGson();
 
         if (!this.localhostQueue.isEmpty()) {
             message = this.localhostQueue.poll();
@@ -240,9 +247,8 @@ public class AuthenticatedPerfectLink {
             socket.receive(response);
 
             byte[] buffer = Arrays.copyOfRange(response.getData(), 0, response.getLength());
-            String serializedSignedPacket = new String(buffer);
-            signedPacket = gson.fromJson(serializedSignedPacket, SignedPacket.class);
-            serializedMessage = new String(signedPacket.getMessage());
+            signedPacket = SerializationUtils.deserialize(buffer, SignedPacket.class);
+            serializedMessage = new String(signedPacket.getData());
             message = gson.fromJson(serializedMessage, Message.class);
         }
 
@@ -266,7 +272,7 @@ public class AuthenticatedPerfectLink {
         if (signedPacket != null) {
             PublicKey publicKey = CryptoUtils.getPublicKey(nodes.get(senderId).getPublicKeyPath());
 
-            boolean validSignature = CryptoUtils.verify(signedPacket.getMessage(), signedPacket.getSignature(), publicKey);
+            boolean validSignature = CryptoUtils.verify(signedPacket.getData(), signedPacket.getSignature(), publicKey);
             if (!validSignature) {
                 throw new HDSSException(ErrorMessage.InvalidSignatureError);
             }
@@ -278,8 +284,9 @@ public class AuthenticatedPerfectLink {
             return message;
         }
         // It's not an ACK -> Deserialize for the correct type
-        if (!local)
+        if (!local) {
             message = gson.fromJson(serializedMessage, this.messageClass);
+        }
 
         Type originalType = message.getType();
 
@@ -301,16 +308,16 @@ public class AuthenticatedPerfectLink {
                 }
             }
             case PREPARE -> {
-                ConsensusMessage consensusMessage = (ConsensusMessage) message;
-                if (consensusMessage.getReplyTo() != null && consensusMessage.getReplyTo().equals(config.getId()))
-                    receivedAcks.add(consensusMessage.getReplyToMessageId());
+                ConsensusMessageDto consensusMessageDto = (ConsensusMessageDto) message;
+                if (consensusMessageDto.getReplyTo() != null && consensusMessageDto.getReplyTo().equals(config.getId()))
+                    receivedAcks.add(consensusMessageDto.getReplyToMessageId());
 
                 return message;
             }
             case COMMIT -> {
-                ConsensusMessage consensusMessage = (ConsensusMessage) message;
-                if (consensusMessage.getReplyTo() != null && consensusMessage.getReplyTo().equals(config.getId()))
-                    receivedAcks.add(consensusMessage.getReplyToMessageId());
+                ConsensusMessageDto consensusMessageDto = (ConsensusMessageDto) message;
+                if (consensusMessageDto.getReplyTo() != null && consensusMessageDto.getReplyTo().equals(config.getId()))
+                    receivedAcks.add(consensusMessageDto.getReplyToMessageId());
             }
             default -> {
             }

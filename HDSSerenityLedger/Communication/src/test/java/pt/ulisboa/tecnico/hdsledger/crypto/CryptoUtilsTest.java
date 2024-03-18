@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.crypto;
 
 import org.junit.jupiter.api.Test;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
