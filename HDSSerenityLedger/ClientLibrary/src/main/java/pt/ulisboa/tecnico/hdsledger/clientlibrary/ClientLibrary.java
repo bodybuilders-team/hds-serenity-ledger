@@ -54,7 +54,7 @@ public class ClientLibrary implements UDPService {
      * @param value value to append
      */
     public void append(String value) {
-        logger.info(MessageFormat.format("Appending: \u001B[33m\"{0}\"\u001B[37m", value));
+        logger.info(MessageFormat.format("Appending: \"{0}\"", value));
 
         try {
             HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.APPEND)
@@ -98,7 +98,7 @@ public class ClientLibrary implements UDPService {
                 return;
         }
 
-        logger.info(MessageFormat.format("Received read response: \u001B[33m\"{0}\"\u001B[37m", ledgerMessage.getValue()));
+        logger.info(MessageFormat.format("Received read response: \"{0}\"", ledgerMessage.getValue()));
     }
 
     @Override
@@ -115,11 +115,11 @@ public class ClientLibrary implements UDPService {
 
                     switch (ledgerMessage.getType()) {
                         case APPEND_RESPONSE ->
-                                logger.info(MessageFormat.format("Received append response: \u001B[33m\"{0}\"\u001B[37m", ledgerMessage.getValue()));
+                                logger.info(MessageFormat.format("Received append response: \"{0}\"", ledgerMessage.getValue()));
                         case READ_RESPONSE -> handleReadResponse(ledgerMessage);
                         case IGNORE -> { /* Do nothing */ }
                         default ->
-                                logger.warn(MessageFormat.format("Received unknown message type: \u001B[32m{0}\u001B[37m", ledgerMessage.getType()));
+                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessage.getType()));
                     }
 
                 } catch (Exception e) {

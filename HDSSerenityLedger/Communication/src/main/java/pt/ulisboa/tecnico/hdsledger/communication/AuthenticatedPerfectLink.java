@@ -158,7 +158,7 @@ public class AuthenticatedPerfectLink {
                     this.localhostQueue.add(data);
 
                     logger.info(
-                            MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m with message ID \u001B[34m{1}\u001B[37m successfully",
+                            MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m with message ID {1} successfully",
                                     data.getMessageRepresentation(), messageId));
 
                     return;
@@ -166,7 +166,7 @@ public class AuthenticatedPerfectLink {
 
                 for (; ; ) {
                     logger.info(MessageFormat.format(
-                            "Sending {0} to \u001B[34m{1}:{2}\u001B[37m with message ID \u001B[34m{3}\u001B[37m - \u001B[36mAttempt #{4}\u001B[37m",
+                            "Sending {0} to {1}:{2} with message ID {3} - \u001B[36mAttempt #{4}\u001B[37m",
                             data.getMessageRepresentation(), destAddress, String.valueOf(destPort), messageId, count++));
 
                     unreliableSend(destAddress, destPort, data);
@@ -181,7 +181,7 @@ public class AuthenticatedPerfectLink {
                     sleepTime <<= 1;
                 }
 
-                logger.info(MessageFormat.format("Message {0} received by \u001B[34m{1}:{2}\u001B[37m successfully",
+                logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully",
                         data.getMessageRepresentation(), destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
@@ -249,10 +249,10 @@ public class AuthenticatedPerfectLink {
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
         if (response == null)
-            logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID \u001B[34m{1}\u001B[37m",
+            logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID {1}",
                     (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), messageId));
         else
-            logger.info(MessageFormat.format("Received {0} from \u001B[34m{1}:{2}\u001B[37m with message ID \u001B[34m{3}\u001B[37m",
+            logger.info(MessageFormat.format("Received {0} from {1}:{2} with message ID {3}",
                     (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), response.getAddress(), String.valueOf(response.getPort()), messageId));
 
         // Validate signature
@@ -287,8 +287,8 @@ public class AuthenticatedPerfectLink {
                 return message;
             }
             case IGNORE -> {
-                if (!originalType.equals(Type.COMMIT)) {
-                    logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID \u001B[34m{0}\u001B[37m from node \u001B[33m{1}\u001B[37m",
+                if (!originalType.equals(Type.COMMIT) && !originalType.equals(Type.ROUND_CHANGE)) {
+                    logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID {0} from node {1}",
                             message.getMessageId(), message.getSenderId()));
                     return message;
                 }
@@ -324,7 +324,7 @@ public class AuthenticatedPerfectLink {
             // it will discard duplicates
 
             logger.info(MessageFormat.format(
-                    "Sending {0} to \u001B[34m{1}:{2}\u001B[37m with message ID \u001B[34m{3}\u001B[37m",
+                    "Sending {0} to {1}:{2} with message ID {3}",
                     responseMessage.getMessageRepresentation(), address, String.valueOf(port), messageId));
 
             unreliableSend(address, port, responseMessage);

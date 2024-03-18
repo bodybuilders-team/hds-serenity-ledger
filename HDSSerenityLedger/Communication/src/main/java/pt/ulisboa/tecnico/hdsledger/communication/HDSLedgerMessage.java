@@ -21,16 +21,16 @@ public class HDSLedgerMessage extends Message {
     public String getHDSLedgerMessageRepresentation() {
         switch (this.getType()) {
             case APPEND -> {
-                return MessageFormat.format("\u001B[32mAPPEND\u001B[37m(\u001B[33m\"{0}\"\u001B[37m)", this.getValue());
+                return MessageFormat.format("APPEND(\"{0}\")", this.getValue());
             }
             case APPEND_RESPONSE -> {
-                return MessageFormat.format("\u001B[32mAPPEND_RESPONSE\u001B[37m(\u001B[33m\"{0}\"\u001B[37m)", this.getValue());
+                return MessageFormat.format("APPEND_RESPONSE(\"{0}\")", this.getValue());
             }
             case READ -> {
-                return "\u001B[32mREAD\u001B[37m";
+                return "READ";
             }
             case READ_RESPONSE -> {
-                return MessageFormat.format("\u001B[32mREAD_RESPONSE\u001B[37m(\u001B[33m\"{0}\"\u001B[37m)", this.getValue());
+                return MessageFormat.format("READ_RESPONSE(\"{0}\")", this.getValue());
             }
             default -> {
                 return "NO REPRESENTATION";

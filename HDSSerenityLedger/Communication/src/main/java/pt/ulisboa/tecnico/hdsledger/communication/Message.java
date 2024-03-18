@@ -49,9 +49,9 @@ public class Message implements Serializable {
         } else if (Type.clientLibraryTypes().contains(this.getType())) {
             return ((HDSLedgerMessage) this).getHDSLedgerMessageRepresentation();
         } else if (this.getType() == Type.ACK) {
-            return MessageFormat.format("\u001B[32mACK\u001B[37m(\u001B[34m{0}\u001B[37m)", this.getMessageId());
+            return MessageFormat.format("ACK({0})", this.getMessageId());
         } else if (this.getType() == Type.IGNORE) {
-            return MessageFormat.format("\u001B[32mIGNORE\u001B[37m(\u001B[34m{0}\u001B[37m)", this.getMessageId());
+            return MessageFormat.format("IGNORE({0})", this.getMessageId());
         } else return "NO REPRESENTATION";
     }
 
