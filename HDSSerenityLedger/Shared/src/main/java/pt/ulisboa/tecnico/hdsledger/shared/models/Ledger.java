@@ -1,7 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.shared.models;
 
+import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
 import java.util.Map;
@@ -48,12 +49,12 @@ public class Ledger {
 
     public boolean validateBlock(Block block) {
         for (var request : block.getRequests()) {
-            if (LedgerTransferMessage.verifySignature(request, clientsConfig)) {
+            if (LedgerTransferRequest.verifySignature(request, clientsConfig)) {
                 return false;
             }
 
             if (request.getType() == Type.TRANSFER) {
-                var transferMessage = (LedgerTransferMessage) request.getValue();
+                var transferMessage = (LedgerTransferRequest) request.getValue();
 
                 Account sender = accounts.get(transferMessage.getDestinationAccountId());
                 Account receiver = accounts.get(transferMessage.getSourceAccountId());
@@ -68,6 +69,18 @@ public class Ledger {
 
             }
         }
+
+        for (var request : block.getRequests()) {
+            if (request.getType() == Type.TRANSFER) {
+                var transferMessage = (LedgerTransferRequest) request.getValue();
+
+                Account sender = accounts.get(transferMessage.getDestinationAccountId());
+                Account receiver = accounts.get(transferMessage.getSourceAccountId());
+                sender.setBalance(sender.getBalance() - transferMessage.getAmount());
+                receiver.setBalance(receiver.getBalance() + transferMessage.getAmount());
+            }
+        }
+
         return true;
     }
 }

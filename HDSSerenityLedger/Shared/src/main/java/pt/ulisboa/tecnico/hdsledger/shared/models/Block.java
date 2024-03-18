@@ -2,8 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.shared.models;
 
 import lombok.Getter;
 import lombok.Setter;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +15,7 @@ import java.util.Objects;
 @Getter
 public class Block {
 
-    private final List<LedgerMessage> requests = new ArrayList<>();
+    private final List<SignedLedgerRequest> requests = new ArrayList<>();
     @Setter
     private int consensusInstance;
 
@@ -26,7 +26,7 @@ public class Block {
         return SerializationUtils.getGson().fromJson(json, Block.class);
     }
 
-    public void addRequest(LedgerMessage request) {
+    public void addRequest(SignedLedgerRequest request) {
         requests.add(request);
     }
 

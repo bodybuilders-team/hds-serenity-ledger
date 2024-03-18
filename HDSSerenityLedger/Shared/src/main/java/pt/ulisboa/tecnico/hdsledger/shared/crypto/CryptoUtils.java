@@ -4,6 +4,7 @@ import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
 /**
  * The {@code CryptoUtils} class provides utility methods for cryptographic operations.
@@ -35,6 +37,18 @@ public class CryptoUtils {
      */
     private CryptoUtils() {
         // Empty constructor
+    }
+
+    public static boolean verifySignature(Object object, String id, byte[] signature, ClientProcessConfig[] clientsConfig){
+            final var clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(id)).findAny().orElse(null);
+            if (clientConfig == null)
+                return false;
+
+            var publicKey = CryptoUtils.getPublicKey(clientConfig.getPublicKeyPath());
+            final var serializedTransferRequest = SerializationUtils.serialize(object);
+
+            return CryptoUtils.verify(serializedTransferRequest.getBytes(), signature, publicKey);
+
     }
 
     /**

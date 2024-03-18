@@ -3,6 +3,8 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerRequestDto;
 
 import java.io.Serializable;
 import java.text.MessageFormat;

@@ -8,17 +8,18 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import java.text.MessageFormat;
 
 @SuperBuilder
-public class LedgerMessageDto extends Message {
-
+public class LedgerRequestDto extends Message {
     @Getter
     @Setter
     private String value;
-
+    @Getter
+    @Setter
+    private long requestId;
     @Getter
     @Setter
     private byte[] signature;
 
-    public LedgerMessageDto(String senderId, Type type) {
+    public LedgerRequestDto(String senderId, Type type) {
         super(senderId, type);
     }
 

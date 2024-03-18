@@ -4,30 +4,30 @@ import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 
 public class LedgerMessageDtoConverter {
 
-    public static LedgerMessageDto convert(LedgerMessage ledgerMessage) {
-        return LedgerMessageDto.builder()
-                .senderId(ledgerMessage.getSenderId())
-                .type(ledgerMessage.getType())
-                .value(SerializationUtils.serialize(ledgerMessage.getValue()))
-                .signature(ledgerMessage.getSignature())
+    public static LedgerRequestDto convert(SignedLedgerRequest signedLedgerRequest) {
+        return LedgerRequestDto.builder()
+                .senderId(signedLedgerRequest.getSenderId())
+                .type(signedLedgerRequest.getType())
+                .value(SerializationUtils.serialize(signedLedgerRequest.getValue()))
+                .signature(signedLedgerRequest.getSignature())
                 .build();
     }
 
-    public static LedgerMessage convert(LedgerMessageDto ledgerMessageDto) {
-        final var value = switch (ledgerMessageDto.getType()) {
-            case TRANSFER -> SerializationUtils.deserialize(ledgerMessageDto.getValue(), LedgerTransferMessage.class);
+    public static SignedLedgerRequest convert(LedgerRequestDto ledgerRequestDto) {
+        final var value = switch (ledgerRequestDto.getType()) {
+            case TRANSFER -> SerializationUtils.deserialize(ledgerRequestDto.getValue(), LedgerTransferRequest.class);
             case BALANCE ->
-                    SerializationUtils.deserialize(ledgerMessageDto.getValue(), LedgerCheckBalanceMessage.class);
-            case BALANCE_RESPONSE, TRANSFER_RESPONSE -> ledgerMessageDto.getValue();
+                    SerializationUtils.deserialize(ledgerRequestDto.getValue(), LedgerCheckBalanceRequest.class);
+            case BALANCE_RESPONSE, TRANSFER_RESPONSE -> ledgerRequestDto.getValue();
             default ->
-                    throw new IllegalArgumentException(String.format("Invalid ledger message type %s", ledgerMessageDto.getType()));
+                    throw new IllegalArgumentException(String.format("Invalid ledger message type %s", ledgerRequestDto.getType()));
         };
 
-        return LedgerMessage.builder()
-                .senderId(ledgerMessageDto.getSenderId())
-                .type(ledgerMessageDto.getType())
+        return SignedLedgerRequest.builder()
+                .senderId(ledgerRequestDto.getSenderId())
+                .type(ledgerRequestDto.getType())
                 .value(value)
-                .signature(ledgerMessageDto.getSignature())
+                .signature(ledgerRequestDto.getSignature())
                 .build();
     }
 }
