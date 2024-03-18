@@ -2,19 +2,16 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
 
 import lombok.Getter;
 import lombok.Setter;
-import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
-import pt.ulisboa.tecnico.hdsledger.shared.models.LedgerMessageValue;
 
 import java.text.MessageFormat;
-import java.util.Arrays;
 
+@SuperBuilder
 public class LedgerMessage extends Message {
     @Getter
     @Setter
-    private LedgerMessageValue value;
+    private Object value;
     @Getter
     @Setter
     private byte[] signature;
@@ -25,12 +22,6 @@ public class LedgerMessage extends Message {
 
     public String getHDSLedgerMessageRepresentation() {
         switch (this.getType()) {
-            case Type.REGISTER -> {
-                return "\u001B[REGISTER\u001B[37m";
-            }
-            case Type.REGISTER_RESPONSE -> {
-                return MessageFormat.format("\u001B[32mREGISTER_RESPONSE\u001B[37m(\u001B[33m\"{0}\"\u001B[37m)", this.getValue());
-            }
             case Type.BALANCE -> {
                 return MessageFormat.format("\u001B[32mBALANCE\u001B[37m(\u001B[33m\"{0}\"\u001B[37m)", this.getValue());
             }

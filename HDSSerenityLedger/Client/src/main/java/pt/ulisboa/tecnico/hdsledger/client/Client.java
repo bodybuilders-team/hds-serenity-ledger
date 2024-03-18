@@ -104,7 +104,6 @@ public class Client {
 
         switch (command) {
             case "exit" -> running = false;
-//            case "register" -> clientLibrary.register();
             case "balance" -> {
                 if (tokens.length < 2) {
                     System.out.println("Invalid command: balance <account_id>");
@@ -159,8 +158,6 @@ public class Client {
      * Prints the menu.
      */
     private static void printMenu() {
-//                    \u001B[32mregister\u001B[0m                Create a new account
-
         System.out.println("""
                 \u001B[33m\u001B[1mAvailable commands:\u001B[21m\u001B[24m
                     \u001B[32mbalance "<account_id>"\u001B[0m  Check the balance of an account

@@ -1,87 +1,40 @@
 package pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message;
 
-import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 
 import java.text.MessageFormat;
 
 @SuperBuilder
+@Getter
 public class ConsensusMessageDto extends Message {
 
     // Consensus instance
+    @Setter
     private int consensusInstance;
     // Round
+    @Setter
     private int round;
     // Prepared round
+    @Setter
     private int preparedRound;
     // Prepared value
+    @Setter
     private String preparedValue;
     // Who sent the previous message
+    @Setter
     private String replyTo;
     // Id of the previous message
+    @Setter
     private int replyToMessageId;
     // Value
+    @Setter
     private String value;
 
     public ConsensusMessageDto(String senderId, Type type) {
         super(senderId, type);
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
-    }
-
-    public int getConsensusInstance() {
-        return consensusInstance;
-    }
-
-    public void setConsensusInstance(int consensusInstance) {
-        this.consensusInstance = consensusInstance;
-    }
-
-    public int getRound() {
-        return round;
-    }
-
-    public void setRound(int round) {
-        this.round = round;
-    }
-
-    public int getPreparedRound() {
-        return preparedRound;
-    }
-
-    public void setPreparedRound(int preparedRound) {
-        this.preparedRound = preparedRound;
-    }
-
-    public String getPreparedValue() {
-        return preparedValue;
-    }
-
-    public void setPreparedValue(String preparedValue) {
-        this.preparedValue = preparedValue;
-    }
-
-    public String getReplyTo() {
-        return replyTo;
-    }
-
-    public void setReplyTo(String replyTo) {
-        this.replyTo = replyTo;
-    }
-
-    public int getReplyToMessageId() {
-        return replyToMessageId;
-    }
-
-    public void setReplyToMessageId(int replyToMessageId) {
-        this.replyToMessageId = replyToMessageId;
     }
 
     public String getConsensusMessageRepresentation() {

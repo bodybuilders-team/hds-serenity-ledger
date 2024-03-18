@@ -4,13 +4,11 @@ import lombok.Getter;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
-import pt.ulisboa.tecnico.hdsledger.shared.models.LedgerMessageValue;
 
 import java.util.Arrays;
 
 @Getter
-public class LedgerTransferMessage implements LedgerMessageValue {
-    private final String sourceAccountId;
+public class LedgerTransferMessage {    private final String sourceAccountId;
     private final String destinationAccountId;
     private final int amount;
 

@@ -55,30 +55,6 @@ public class ClientLibrary implements UDPService {
         }
     }
 
-//    /**
-//     * Creates an account for the client.
-//     */
-//    public void register() {
-//        logger.info("Creating account...");
-//
-//        try {
-//            LedgerRegisterMessage transferMessage = new LedgerRegisterMessage(clientConfig.getId(), );
-//            var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());
-//            var signedMessage = CryptoUtils.signMessage(transferMessage, privateKey);
-//
-//            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.TRANSFER)
-//                    .setValue(SerializationUtils.getGson().toJson(signedMessage))
-//                    .build();
-//
-//            HDSLedgerMessage message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.REGISTER)
-//                    .setValue(clientConfig.getId())
-//                    .build();
-//
-//            authenticatedPerfectLink.broadcast(message);
-//        } catch (Exception e) {
-//            logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
-//        }
-//    }
 
     /**
      * Checks the balance of an account.
@@ -157,7 +133,11 @@ public class ClientLibrary implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    final var ledgerMessage = (LedgerMessage) authenticatedPerfectLink.receive();
+                    final var message = authenticatedPerfectLink.receive();
+
+                    if (!(message instanceof LedgerMessage ledgerMessage)) {
+                        continue;
+                    }
 
                     switch (ledgerMessage.getType()) {
                         case BALANCE_RESPONSE ->

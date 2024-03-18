@@ -1,5 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.shared.communication;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
@@ -13,38 +15,20 @@ import java.util.List;
 public class Message implements Serializable {
 
     // Sender identifier
+    @Getter
+    @Setter
     private String senderId;
     // Message identifier
+    @Getter
+    @Setter
     private int messageId;
     // Message type
+    @Getter
+    @Setter
     private Type type;
 
     public Message(String senderId, Type type) {
         this.senderId = senderId;
-        this.type = type;
-    }
-
-    public String getSenderId() {
-        return senderId;
-    }
-
-    public void setSenderId(String senderId) {
-        this.senderId = senderId;
-    }
-
-    public int getMessageId() {
-        return messageId;
-    }
-
-    public void setMessageId(int messageId) {
-        this.messageId = messageId;
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public void setType(Type type) {
         this.type = type;
     }
 
@@ -65,7 +49,7 @@ public class Message implements Serializable {
         PRE_PREPARE, PREPARE, COMMIT, ROUND_CHANGE,
 
         // Messages for the library (client to node)
-        BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE, REGISTER, REGISTER_RESPONSE,
+        BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE,
 
         // Others
         ACK, IGNORE;
@@ -75,7 +59,7 @@ public class Message implements Serializable {
         }
 
         public static List<Type> clientLibraryTypes() {
-            return Arrays.asList(BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE, REGISTER, REGISTER_RESPONSE);
+            return Arrays.asList(BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE);
         }
     }
 }

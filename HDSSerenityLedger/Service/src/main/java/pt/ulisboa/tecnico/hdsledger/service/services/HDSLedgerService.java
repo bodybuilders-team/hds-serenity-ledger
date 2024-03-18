@@ -113,7 +113,11 @@ public class HDSLedgerService implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    final var ledgerMessage = (LedgerMessage) authenticatedPerfectLink.receive();
+                    final var message = authenticatedPerfectLink.receive();
+
+                    if (!(message instanceof LedgerMessage ledgerMessage)) {
+                        continue;
+                    }
 
                     new Thread(() -> {
                         switch (ledgerMessage.getType()) {

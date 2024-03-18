@@ -3,7 +3,6 @@ package pt.ulisboa.tecnico.hdsledger.shared.models;
 import lombok.Getter;
 import lombok.Setter;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 
 import java.util.ArrayList;
@@ -14,7 +13,7 @@ import java.util.Objects;
  * A block in the blockchain.
  */
 @Getter
-public class Block implements ConsensusMessageValue {
+public class Block {
 
     private final List<LedgerMessage> requests = new ArrayList<>();
     @Setter
@@ -32,7 +31,7 @@ public class Block implements ConsensusMessageValue {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(java.lang.Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Block block = (Block) o;

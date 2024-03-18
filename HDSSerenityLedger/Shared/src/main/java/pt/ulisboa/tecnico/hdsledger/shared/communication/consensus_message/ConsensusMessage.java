@@ -2,12 +2,13 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.models.ConsensusMessageValue;
 
 import java.text.MessageFormat;
 
 @Getter
+@SuperBuilder
 public class ConsensusMessage extends Message {
 
     // Consensus instance
@@ -21,7 +22,7 @@ public class ConsensusMessage extends Message {
     private int preparedRound;
     // Prepared value
     @Setter
-    private ConsensusMessageValue preparedValue;
+    private Object preparedValue;
     // Who sent the previous message
     @Setter
     private String replyTo;
@@ -30,7 +31,7 @@ public class ConsensusMessage extends Message {
     private int replyToMessageId;
     // Value
     @Setter
-    private ConsensusMessageValue value;
+    private Object value;
 
     public ConsensusMessage(String senderId, Type type) {
         super(senderId, type);

@@ -234,7 +234,7 @@ public class NodeService implements UDPService {
         logger.info(MessageFormat.format("Received {0} from node {1}", message.getConsensusMessageRepresentation(), senderId));
 
         if (!validate(message)) {
-
+            //TODO:
         }
 
         prepareMessages.addMessage(message);
@@ -493,7 +493,10 @@ public class NodeService implements UDPService {
             new Thread(() -> {
                 while (true) {
                     try {
-                        final var consensusMessage = (ConsensusMessage) this.authenticatedPerfectLink.receive();
+                        final var message = this.authenticatedPerfectLink.receive();
+
+                        if (!(message instanceof ConsensusMessage consensusMessage))
+                            continue;
 
                         // Separate thread to handle each message
                         new Thread(() -> {

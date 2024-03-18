@@ -1,6 +1,1 @@
-<register>
 <balance, 101>
-<transfer, 101, 102, 100>
-<sleep, 1000>
-<balance, 101>
-<balance, 102>

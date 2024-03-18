@@ -1,9 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
 
 import lombok.Getter;
-import pt.ulisboa.tecnico.hdsledger.shared.models.LedgerMessageValue;
 
-public class LedgerCheckBalanceMessage implements LedgerMessageValue {
+public class LedgerCheckBalanceMessage {
     @Getter
     private final String accountId;
 

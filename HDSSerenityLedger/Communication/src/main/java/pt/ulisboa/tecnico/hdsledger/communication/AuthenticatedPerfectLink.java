@@ -10,6 +10,10 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDtoConverter;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDtoConverter;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
@@ -279,13 +283,18 @@ public class AuthenticatedPerfectLink {
         }
 
         // Handle ACKS, since it's possible to receive multiple acks from the same message
-        if (message.getType().equals(Message.Type.ACK)) {
+        if (message.getType().equals(Type.ACK)) {
             receivedAcks.add(messageId);
             return message;
         }
         // It's not an ACK -> Deserialize for the correct type
         if (!local) {
             message = gson.fromJson(serializedMessage, this.messageClass);
+            message = switch (message) {
+                case ConsensusMessageDto consensusMessage -> ConsensusMessageDtoConverter.convert(consensusMessage);
+                case LedgerMessageDto ledgerMessage -> LedgerMessageDtoConverter.convert(ledgerMessage);
+                default -> throw new IllegalStateException("Unexpected message: " + message);
+            };
         }
 
         Type originalType = message.getType();
@@ -293,7 +302,7 @@ public class AuthenticatedPerfectLink {
         // Message already received (add returns false if already exists) => Discard
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
         if (isRepeated) {
-            message.setType(Message.Type.IGNORE);
+            message.setType(Type.IGNORE);
         }
 
         switch (message.getType()) {
@@ -329,7 +338,7 @@ public class AuthenticatedPerfectLink {
             InetAddress address = InetAddress.getByName(response.getAddress().getHostAddress());
             int port = response.getPort();
 
-            Message responseMessage = new Message(this.config.getId(), Message.Type.ACK);
+            Message responseMessage = new Message(this.config.getId(), Type.ACK);
             responseMessage.setMessageId(messageId);
 
             // ACK is sent without needing for another ACK because
