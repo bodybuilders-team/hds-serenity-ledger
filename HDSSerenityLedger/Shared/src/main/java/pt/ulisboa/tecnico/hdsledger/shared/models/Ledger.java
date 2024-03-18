@@ -1,8 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.shared.models;
 
-import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
@@ -32,6 +30,23 @@ public class Ledger {
     }
 
     public boolean addBlock(Block block) {
+        validateBlock(block);
+
+        for (var request : block.getRequests()) {
+            if (request.getType() == Type.TRANSFER) {
+                var transferMessage = (LedgerTransferMessage) request.getValue();
+
+                Account sender = accounts.get(transferMessage.getDestinationAccountId());
+                Account receiver = accounts.get(transferMessage.getSourceAccountId());
+                sender.setBalance(sender.getBalance() - transferMessage.getAmount());
+                receiver.setBalance(receiver.getBalance() + transferMessage.getAmount());
+            }
+        }
+
+        return true;
+    }
+
+    public boolean validateBlock(Block block) {
         for (var request : block.getRequests()) {
             if (LedgerTransferMessage.verifySignature(request, clientsConfig)) {
                 return false;
@@ -53,18 +68,6 @@ public class Ledger {
 
             }
         }
-
-        for (var request : block.getRequests()) {
-            if (request.getType() == Type.TRANSFER) {
-                var transferMessage = (LedgerTransferMessage) request.getValue();
-
-                Account sender = accounts.get(transferMessage.getDestinationAccountId());
-                Account receiver = accounts.get(transferMessage.getSourceAccountId());
-                sender.setBalance(sender.getBalance() - transferMessage.getAmount());
-                receiver.setBalance(receiver.getBalance() + transferMessage.getAmount());
-            }
-        }
-
         return true;
     }
 }

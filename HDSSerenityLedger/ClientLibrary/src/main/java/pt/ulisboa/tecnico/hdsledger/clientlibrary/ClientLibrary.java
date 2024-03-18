@@ -23,15 +23,13 @@ import java.util.Map;
  */
 public class ClientLibrary implements UDPService {
 
+    private static final boolean LOGS_ENABLED = false;
     private final ClientProcessConfig clientConfig;
     private final ClientProcessConfig[] clientsConfig;
     private final ProcessLogger logger;
-    private AuthenticatedPerfectLink authenticatedPerfectLink;
-
-    private static final boolean LOGS_ENABLED = false;
-
     // Balance response -> sender ID -> Message
     private final Map<String, Map<String, LedgerMessage>> balanceResponses = new HashMap<>();
+    private AuthenticatedPerfectLink authenticatedPerfectLink;
     private int quorumSize;
 
     public ClientLibrary(ClientProcessConfig clientConfig, ServerProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
@@ -140,8 +138,7 @@ public class ClientLibrary implements UDPService {
                     }
 
                     switch (ledgerMessage.getType()) {
-                        case BALANCE_RESPONSE ->
-                                handleBalanceResponse(ledgerMessage);
+                        case BALANCE_RESPONSE -> handleBalanceResponse(ledgerMessage);
                         case TRANSFER_RESPONSE ->
                                 logger.info(MessageFormat.format("Received transfer response: \"{0}\"", ledgerMessage.getValue()));
                         case IGNORE -> { /* Do nothing */ }

@@ -1,12 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.service;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
-import pt.ulisboa.tecnico.hdsledger.service.services.HDSLedgerService;
+import pt.ulisboa.tecnico.hdsledger.service.services.LedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfigBuilder;
@@ -71,10 +70,10 @@ public class Node {
             NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs, clientConfigs);
 
             // Service to handle the node's logic - ledger
-            HDSLedgerService hdsLedgerService = new HDSLedgerService(authenticatedPerfectLinkToClients, nodeService, clientConfigs);
+            LedgerService ledgerService = new LedgerService(authenticatedPerfectLinkToClients, nodeService, clientConfigs);
 
             nodeService.listen();
-            hdsLedgerService.listen();
+            ledgerService.listen();
         } catch (Exception e) {
             e.printStackTrace();
         }

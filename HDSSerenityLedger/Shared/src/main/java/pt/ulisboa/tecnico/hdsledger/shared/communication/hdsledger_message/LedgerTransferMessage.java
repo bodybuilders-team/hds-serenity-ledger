@@ -8,7 +8,8 @@ import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 import java.util.Arrays;
 
 @Getter
-public class LedgerTransferMessage {    private final String sourceAccountId;
+public class LedgerTransferMessage {
+    private final String sourceAccountId;
     private final String destinationAccountId;
     private final int amount;
 

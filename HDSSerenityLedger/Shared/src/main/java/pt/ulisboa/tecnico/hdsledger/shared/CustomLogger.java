@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
 public class CustomLogger {
 
     private static Logger logger;
-    private boolean enabled = true;
     private static boolean ENABLE_COLOR_PARSING = false;
+    private boolean enabled = true;
 
     /**
      * Constructs a {@code CustomLogger} with the specified name.
@@ -87,17 +87,16 @@ public class CustomLogger {
  */
 class CustomLog extends Formatter {
 
-    private final boolean enableColorParsing;
-
-    CustomLog(boolean enableColorParsing) {
-        this.enableColorParsing = enableColorParsing;
-    }
-
     static Set<String> greenWords = Set.of(
             "PREPARE", "COMMIT", "PRE-PREPARE", "ROUND-CHANGE",
             "APPEND", "APPEND_RESPONSE", "READ", "READ_RESPONSE",
             "ACK"
     );
+    private final boolean enableColorParsing;
+
+    CustomLog(boolean enableColorParsing) {
+        this.enableColorParsing = enableColorParsing;
+    }
 
     /**
      * Formats the given log record.

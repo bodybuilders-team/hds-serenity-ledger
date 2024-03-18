@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Service used to interact with the HDSLedger.
  */
-public class HDSLedgerService implements UDPService {
+public class LedgerService implements UDPService {
 
     private final NodeService nodeService;
     private final ProcessLogger logger;
@@ -30,18 +30,17 @@ public class HDSLedgerService implements UDPService {
 
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
-
+    private final int accumulationThreshold = 1;
     private List<LedgerMessage> accumulatedMessages = new ArrayList<>();
-    private final int accumulationThreshold = 3;
 
-    public HDSLedgerService(
+    public LedgerService(
             AuthenticatedPerfectLink authenticatedPerfectLink,
             NodeService nodeService,
             ClientProcessConfig[] clientsConfig
     ) {
         this.nodeService = nodeService;
         this.authenticatedPerfectLink = authenticatedPerfectLink;
-        this.logger = new ProcessLogger(HDSLedgerService.class.getName(), nodeService.getConfig().getId());
+        this.logger = new ProcessLogger(LedgerService.class.getName(), nodeService.getConfig().getId());
         this.clientsConfig = clientsConfig;
     }
 
@@ -58,7 +57,6 @@ public class HDSLedgerService implements UDPService {
 
             if (LedgerTransferMessage.verifySignature(message, clientsConfig)) return;
 
-            //TODO: remove double deserialization
             final var transferMessage = (LedgerTransferMessage) message.getValue();
 
             // Accumulate messages

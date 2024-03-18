@@ -2,8 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.shared.models;
 
 import lombok.Getter;
 import lombok.Setter;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessage;
 
 import java.util.ArrayList;
 import java.util.List;

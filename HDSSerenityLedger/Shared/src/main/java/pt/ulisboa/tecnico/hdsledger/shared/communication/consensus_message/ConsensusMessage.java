@@ -5,8 +5,6 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 
-import java.text.MessageFormat;
-
 @Getter
 @SuperBuilder
 public class ConsensusMessage extends Message {
@@ -37,22 +35,10 @@ public class ConsensusMessage extends Message {
         super(senderId, type);
     }
 
-
-    public String getConsensusMessageRepresentation() {
-        switch (this.getType()) {
-            case Type.PRE_PREPARE -> {
-                return MessageFormat.format("PRE-PREPARE({0}, {1}, \"{2}\")",
-                        this.getConsensusInstance(), this.getRound(),
-                        this.getValue());
-            }
-            case Type.ROUND_CHANGE -> {
-                return MessageFormat.format("ROUND-CHANGE({0}, {1}, {2}, \"{3}\")",
-                        this.getConsensusInstance(), this.getRound(), this.getPreparedRound(), this.getPreparedValue());
-            }
-            default -> {
-                return "NO REPRESENTATION";
-            }
-        }
+    @Override
+    public String toString() {
+        final var dto = ConsensusMessageDtoConverter.convert(this);
+        return dto.toString();
     }
 }
 

@@ -22,19 +22,20 @@ public class LedgerMessageDto extends Message {
         super(senderId, type);
     }
 
-    public String getHDSLedgerMessageRepresentation() {
+
+    public String toString() {
         switch (this.getType()) {
             case Type.BALANCE -> {
-                return MessageFormat.format("\u001B[32mBALANCE\u001B[37m(\u001B[33m\"{0}\"\u001B[37m)", this.getValue());
+                return MessageFormat.format("BALANCE(\"{0}\")", this.getValue());
             }
             case Type.BALANCE_RESPONSE -> {
-                return MessageFormat.format("\u001B[32mBALANCE_RESPONSE\u001B[37m(\u001B[33m\"{0}\"\u001B[37m)", this.getValue());
+                return MessageFormat.format("BALANCE_RESPONSE(\"{0}\")", this.getValue());
             }
             case Type.TRANSFER -> {
-                return "\u001B[32mTRANSFER\u001B[37m";
+                return "TRANSFER";
             }
             case Type.TRANSFER_RESPONSE -> {
-                return MessageFormat.format("\u001B[32mTRANSFER_RESPONSE\u001B[37m(\u001B[33m\"{0}\"\u001B[37m)", this.getValue());
+                return MessageFormat.format("TRANSFER_RESPONSE(\"{0}\")", this.getValue());
             }
             default -> {
                 return "NO REPRESENTATION";

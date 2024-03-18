@@ -37,15 +37,16 @@ public class ConsensusMessageDto extends Message {
         super(senderId, type);
     }
 
-    public String getConsensusMessageRepresentation() {
+    @Override
+    public String toString() {
         switch (this.getType()) {
             case Type.PRE_PREPARE -> {
-                return MessageFormat.format("\u001B[32mPRE-PREPARE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, \u001B[33m\"{2}\"\u001B[37m)",
+                return MessageFormat.format("{0}({1}, {2}, \"{3}\")", this.getType(),
                         this.getConsensusInstance(), this.getRound(),
                         this.getValue());
             }
             case Type.ROUND_CHANGE -> {
-                return MessageFormat.format("\u001B[32mROUND-CHANGE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, \u001B[34m{2}\u001B[37m, \u001B[33m\"{3}\"\u001B[37m)",
+                return MessageFormat.format("ROUND-CHANGE({0}, {1}, {2}, \"{3}\")",
                         this.getConsensusInstance(), this.getRound(), this.getPreparedRound(), this.getPreparedValue());
             }
             default -> {

@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class AuthenticatedPerfectLink {
 
+    private static final boolean ENABLE_ACK_LOGGING = false;
     // Time to wait for an ACK before resending the message
     private final long BASE_SLEEP_TIME;
     // UDP Socket
@@ -63,8 +64,6 @@ public class AuthenticatedPerfectLink {
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
     private final KeyPair keyPair;
     private final ProcessLogger logger;
-
-    private static final boolean ENABLE_ACK_LOGGING = false;
 
     public AuthenticatedPerfectLink(
             ProcessConfig self, int port, ProcessConfig[] nodes,
@@ -110,7 +109,7 @@ public class AuthenticatedPerfectLink {
     public void broadcast(Message data) {
         Gson gson = SerializationUtils.getGson();
 
-        logger.info(MessageFormat.format("Broadcasting {0}", data.getMessageRepresentation()));
+        logger.info(MessageFormat.format("Broadcasting {0}", data));
 
         if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_BROADCAST) {
             // Send different messages to different nodes (Alter the message)
@@ -174,7 +173,7 @@ public class AuthenticatedPerfectLink {
 
                     logger.info(
                             MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m with message ID {1} successfully",
-                                    data.getMessageRepresentation(), messageId));
+                                    data, messageId));
 
                     return;
                 }
@@ -182,7 +181,7 @@ public class AuthenticatedPerfectLink {
                 for (; ; ) {
                     logger.info(MessageFormat.format(
                             "Sending {0} to {1}:{2} with message ID {3} - \u001B[36mAttempt #{4}\u001B[37m",
-                            data.getMessageRepresentation(), destAddress, String.valueOf(destPort), messageId, count++));
+                            data, destAddress, String.valueOf(destPort), messageId, count++));
 
                     unreliableSend(destAddress, destPort, data);
 
@@ -197,7 +196,7 @@ public class AuthenticatedPerfectLink {
                 }
 
                 logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully",
-                        data.getMessageRepresentation(), destAddress, String.valueOf(destPort)));
+                        data, destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
             }
@@ -265,11 +264,11 @@ public class AuthenticatedPerfectLink {
         if (message.getType() != Type.ACK || ENABLE_ACK_LOGGING) {
             if (response == null)
                 logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID {1}",
-                        (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), messageId));
+                        (!local ? gson.fromJson(serializedMessage, this.messageClass) : message), messageId));
 
             else
                 logger.info(MessageFormat.format("Received {0} from {1}:{2} with message ID {3}",
-                        (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), response.getAddress(), String.valueOf(response.getPort()), messageId));
+                        (!local ? gson.fromJson(serializedMessage, this.messageClass) : message), response.getAddress(), String.valueOf(response.getPort()), messageId));
         }
 
         // Validate signature
@@ -349,7 +348,7 @@ public class AuthenticatedPerfectLink {
             if (ENABLE_ACK_LOGGING)
                 logger.info(MessageFormat.format(
                         "Sending {0} to {1}:{2} with message ID {3}",
-                        responseMessage.getMessageRepresentation(), address, String.valueOf(port), messageId));
+                        responseMessage, address, String.valueOf(port), messageId));
 
             unreliableSend(address, port, responseMessage);
         }
