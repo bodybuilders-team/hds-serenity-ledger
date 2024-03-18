@@ -55,6 +55,8 @@ public class AuthenticatedPerfectLink {
     private final KeyPair keyPair;
     private final ProcessLogger logger;
 
+    private static final boolean ENABLE_ACK_LOGGING = false;
+
     public AuthenticatedPerfectLink(
             ProcessConfig self, int port, ProcessConfig[] nodes,
             Class<? extends Message> messageClass, boolean activateLogs
@@ -231,7 +233,7 @@ public class AuthenticatedPerfectLink {
             local = true;
             this.receivedAcks.add(message.getMessageId());
         } else {
-            byte[] buf = new byte[65535];
+            byte[] buf = new byte[65536];
             response = new DatagramPacket(buf, buf.length);
             socket.receive(response);
 
@@ -248,12 +250,15 @@ public class AuthenticatedPerfectLink {
         if (!nodes.containsKey(senderId))
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
-        if (response == null)
-            logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID {1}",
-                    (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), messageId));
-        else
-            logger.info(MessageFormat.format("Received {0} from {1}:{2} with message ID {3}",
-                    (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), response.getAddress(), String.valueOf(response.getPort()), messageId));
+        if (message.getType() != Type.ACK || ENABLE_ACK_LOGGING) {
+            if (response == null)
+                logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID {1}",
+                        (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), messageId));
+
+            else
+                logger.info(MessageFormat.format("Received {0} from {1}:{2} with message ID {3}",
+                        (!local ? gson.fromJson(serializedMessage, this.messageClass) : message).getMessageRepresentation(), response.getAddress(), String.valueOf(response.getPort()), messageId));
+        }
 
         // Validate signature
         if (signedPacket != null) {
@@ -323,9 +328,10 @@ public class AuthenticatedPerfectLink {
             // Even if a node receives the message multiple times,
             // it will discard duplicates
 
-            logger.info(MessageFormat.format(
-                    "Sending {0} to {1}:{2} with message ID {3}",
-                    responseMessage.getMessageRepresentation(), address, String.valueOf(port), messageId));
+            if (ENABLE_ACK_LOGGING)
+                logger.info(MessageFormat.format(
+                        "Sending {0} to {1}:{2} with message ID {3}",
+                        responseMessage.getMessageRepresentation(), address, String.valueOf(port), messageId));
 
             unreliableSend(address, port, responseMessage);
         }
