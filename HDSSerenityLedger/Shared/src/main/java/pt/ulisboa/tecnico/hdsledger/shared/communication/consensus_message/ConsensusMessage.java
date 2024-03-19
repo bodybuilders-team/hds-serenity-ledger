@@ -8,7 +8,7 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 
 @Getter
 @SuperBuilder
-@ToString
+@ToString(callSuper = true)
 public class ConsensusMessage extends Message {
 
     // Consensus instance

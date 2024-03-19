@@ -30,7 +30,9 @@ public class Ledger {
     }
 
     public boolean addBlock(Block block) {
-        validateBlock(block);
+        if (!validateBlock(block)) {
+            return false;
+        }
 
         for (var request : block.getRequests()) {
             if (request.getType() == Type.TRANSFER) {
@@ -48,7 +50,7 @@ public class Ledger {
 
     public boolean validateBlock(Block block) {
         for (var request : block.getRequests()) {
-            if (request.verifySignature(clientsConfig)) {
+            if (!request.verifySignature(clientsConfig)) {
                 return false;
             }
 

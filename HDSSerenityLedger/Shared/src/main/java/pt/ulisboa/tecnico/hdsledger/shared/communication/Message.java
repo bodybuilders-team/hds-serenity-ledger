@@ -4,14 +4,16 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerResponse;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
 
 import java.io.Serializable;
-import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
 
 @SuperBuilder
-@ToString
+@ToString(callSuper = true)
 public class Message implements Serializable {
 
     // Sender identifier
@@ -59,8 +61,30 @@ public class Message implements Serializable {
             return Arrays.asList(PRE_PREPARE, PREPARE, COMMIT, ROUND_CHANGE);
         }
 
-        public static List<Type> clientLibraryTypes() {
-            return Arrays.asList(BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE);
+        public static List<Type> clientRequestTypes() {
+            return Arrays.asList(BALANCE, TRANSFER);
+        }
+
+        public static List<Type> clientResponseTypes() {
+            return Arrays.asList(BALANCE_RESPONSE, TRANSFER_RESPONSE);
+        }
+
+        public Class<? extends Message> getClassType() {
+            final Class<? extends Message> clazz;
+
+            if (consensusTypes().contains(this))
+                clazz = ConsensusMessage.class;
+            else if (clientRequestTypes().contains(this))
+                clazz = SignedLedgerRequest.class;
+            else if (clientResponseTypes().contains(this))
+                clazz = LedgerResponse.class;
+            else if (this == ACK || this == IGNORE)
+                clazz = Message.class;
+            else
+                throw new IllegalStateException("Unexpected value: " + this);
+
+            return clazz;
         }
     }
 }
+

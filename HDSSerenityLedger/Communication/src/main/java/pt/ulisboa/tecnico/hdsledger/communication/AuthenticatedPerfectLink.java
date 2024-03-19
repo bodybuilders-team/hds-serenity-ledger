@@ -48,8 +48,6 @@ public class AuthenticatedPerfectLink {
     private final Map<String, ProcessConfig> nodes = new ConcurrentHashMap<>();
     // Reference to the node itself
     private final ProcessConfig config;
-    // Class to deserialize messages to
-    private final Class<? extends Message> messageClass;
     // Set of received messages from specific node (prevent duplicates)
     private final Map<String, CollapsingSet> receivedMessages = new ConcurrentHashMap<>();
     // Set of received ACKs from specific node
@@ -62,18 +60,16 @@ public class AuthenticatedPerfectLink {
     private final ProcessLogger logger;
 
     public AuthenticatedPerfectLink(
-            ProcessConfig self, int port, ProcessConfig[] nodes,
-            Class<? extends Message> messageClass, boolean activateLogs
+            ProcessConfig self, int port, ProcessConfig[] nodes, boolean activateLogs
     ) {
-        this(self, port, nodes, messageClass, activateLogs, 200);
+        this(self, port, nodes, activateLogs, 200);
     }
 
-    public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass,
+    public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes,
                                     boolean activateLogs, int baseSleepTime) {
 
         this.keyPair = CryptoUtils.readKeyPair(self.getPrivateKeyPath(), self.getPublicKeyPath());
         this.config = self;
-        this.messageClass = messageClass;
         this.BASE_SLEEP_TIME = baseSleepTime;
         this.logger = new ProcessLogger(AuthenticatedPerfectLink.class.getName(), self.getId());
         if (!activateLogs) {
@@ -257,14 +253,18 @@ public class AuthenticatedPerfectLink {
         if (!nodes.containsKey(senderId))
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
+        // Check if the message is a client request using the type.isClientResponse()...
+
+        final var messageClass = message.getType().getClassType();
+
         if (message.getType() != Type.ACK || ENABLE_ACK_LOGGING) {
             if (response == null)
                 logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID {1}",
-                        (!local ? gson.fromJson(serializedMessage, this.messageClass) : message), messageId));
+                        (!local ? gson.fromJson(serializedMessage, messageClass) : message), messageId));
 
             else
                 logger.info(MessageFormat.format("Received {0} from {1}:{2} with message ID {3}",
-                        (!local ? gson.fromJson(serializedMessage, this.messageClass) : message), response.getAddress(), String.valueOf(response.getPort()), messageId));
+                        (!local ? gson.fromJson(serializedMessage, messageClass) : message), response.getAddress(), String.valueOf(response.getPort()), messageId));
         }
 
         // Validate signature
@@ -284,7 +284,7 @@ public class AuthenticatedPerfectLink {
         }
         // It's not an ACK -> Deserialize for the correct type
         if (!local) {
-            message = gson.fromJson(serializedMessage, this.messageClass);
+            message = gson.fromJson(serializedMessage, messageClass);
         }
 
         Type originalType = message.getType();

@@ -45,7 +45,6 @@ public class ClientLibrary implements UDPService {
                     clientConfig,
                     clientConfig.getPort(),
                     nodesConfig,
-                    SignedLedgerRequest.class,
                     LOGS_ENABLED
             );
 
@@ -184,6 +183,6 @@ public class ClientLibrary implements UDPService {
         if (ledgerResponseMap.size() < quorumSize)
             return;
 
-        logger.info("Received response, original request id: " + ledgerResponse.getOriginalRequestId());
+        logger.info("Received transfer response: " + ledgerResponse);
     }
 }

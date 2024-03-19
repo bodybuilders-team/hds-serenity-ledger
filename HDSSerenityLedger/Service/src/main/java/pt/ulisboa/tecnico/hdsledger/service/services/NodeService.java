@@ -187,6 +187,7 @@ public class NodeService implements UDPService {
         logger.info(MessageFormat.format("Received {0} from node \u001B[33m{1}\u001B[37m", message, senderId));
 
         if (!validate(message)) {
+            logger.info("Received invalid pre-prepare message. Ignoring... " + message);
             return;
         }
 
@@ -370,8 +371,6 @@ public class NodeService implements UDPService {
      */
     private void appendToLedger(int consensusInstance, Block block) {
         logger.info(MessageFormat.format("Appending or waiting to append value \u001B[33m\"{0}\"\u001B[37m to ledger...", block));
-
-        waitForPreviousConsensus(consensusInstance); // TODO Optimize to not wait in the thread, store a list of consensus values that are to be appended later
 
         synchronized (ledger) {
             var added = ledger.addBlock(block);
