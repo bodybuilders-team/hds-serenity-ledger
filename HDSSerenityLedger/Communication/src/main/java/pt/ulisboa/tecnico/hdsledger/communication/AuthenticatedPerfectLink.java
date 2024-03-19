@@ -12,8 +12,8 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDtoConverter;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerRequestDto;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDtoConverter;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.dtos.SignedLedgerRequestDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.dtos.SignedLedgerRequestDtoConverter;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
@@ -132,7 +132,7 @@ public class AuthenticatedPerfectLink {
                 send(destId, prePrepareMessage);
             });
         } else
-            nodes.forEach((destId, dest) -> send(destId, gson.fromJson(gson.toJson(data), data.getClass())));
+            nodes.forEach((destId, dest) -> send(destId, data));
     }
 
     /**
@@ -291,7 +291,7 @@ public class AuthenticatedPerfectLink {
             message = gson.fromJson(serializedMessage, this.messageClass);
             message = switch (message) {
                 case ConsensusMessageDto consensusMessage -> ConsensusMessageDtoConverter.convert(consensusMessage);
-                case LedgerRequestDto ledgerMessage -> LedgerMessageDtoConverter.convert(ledgerMessage);
+                case SignedLedgerRequestDto ledgerMessage -> SignedLedgerRequestDtoConverter.convert(ledgerMessage);
                 default -> throw new IllegalStateException("Unexpected message: " + message);
             };
         }

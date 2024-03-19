@@ -1,6 +1,5 @@
 package pt.ulisboa.tecnico.hdsledger.shared.models;
 
-import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
@@ -35,12 +34,12 @@ public class Ledger {
 
         for (var request : block.getRequests()) {
             if (request.getType() == Type.TRANSFER) {
-                var transferMessage = (LedgerTransferMessage) request.getValue();
+                var transferRequest = (LedgerTransferRequest) request.getLedgerRequest();
 
-                Account sender = accounts.get(transferMessage.getDestinationAccountId());
-                Account receiver = accounts.get(transferMessage.getSourceAccountId());
-                sender.setBalance(sender.getBalance() - transferMessage.getAmount());
-                receiver.setBalance(receiver.getBalance() + transferMessage.getAmount());
+                Account sender = accounts.get(transferRequest.getDestinationAccountId());
+                Account receiver = accounts.get(transferRequest.getSourceAccountId());
+                sender.setBalance(sender.getBalance() - transferRequest.getAmount());
+                receiver.setBalance(receiver.getBalance() + transferRequest.getAmount());
             }
         }
 
@@ -49,12 +48,12 @@ public class Ledger {
 
     public boolean validateBlock(Block block) {
         for (var request : block.getRequests()) {
-            if (LedgerTransferRequest.verifySignature(request, clientsConfig)) {
+            if (request.verifySignature(clientsConfig)) {
                 return false;
             }
 
             if (request.getType() == Type.TRANSFER) {
-                var transferMessage = (LedgerTransferRequest) request.getValue();
+                var transferMessage = (LedgerTransferRequest) request.getLedgerRequest();
 
                 Account sender = accounts.get(transferMessage.getDestinationAccountId());
                 Account receiver = accounts.get(transferMessage.getSourceAccountId());
@@ -70,16 +69,6 @@ public class Ledger {
             }
         }
 
-        for (var request : block.getRequests()) {
-            if (request.getType() == Type.TRANSFER) {
-                var transferMessage = (LedgerTransferRequest) request.getValue();
-
-                Account sender = accounts.get(transferMessage.getDestinationAccountId());
-                Account receiver = accounts.get(transferMessage.getSourceAccountId());
-                sender.setBalance(sender.getBalance() - transferMessage.getAmount());
-                receiver.setBalance(receiver.getBalance() + transferMessage.getAmount());
-            }
-        }
 
         return true;
     }

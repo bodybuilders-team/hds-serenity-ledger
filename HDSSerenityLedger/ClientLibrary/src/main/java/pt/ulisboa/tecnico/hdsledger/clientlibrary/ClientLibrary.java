@@ -3,11 +3,12 @@ package pt.ulisboa.tecnico.hdsledger.clientlibrary;
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.service.services.UDPService;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
-import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerRequestDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerCheckBalanceRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerResponse;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.dtos.SignedLedgerRequestDtoConverter;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
@@ -16,6 +17,7 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -31,7 +33,7 @@ public class ClientLibrary implements UDPService {
 
     private final AtomicLong requestIdCounter = new AtomicLong(0);
     // Response ID -> Sender ID -> Message
-    private final Map<Long, Map<String, LedgerCheckBalanceResponse>> balanceResponses = new HashMap<>();
+    private final Map<Long, Map<String, LedgerResponse>> ledgerResponses = new ConcurrentHashMap<>();
     private int quorumSize;
 
     public ClientLibrary(ClientProcessConfig clientConfig, ServerProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
@@ -44,7 +46,7 @@ public class ClientLibrary implements UDPService {
                     clientConfig,
                     clientConfig.getPort(),
                     nodesConfig,
-                    LedgerRequestDto.class,
+                    SignedLedgerRequest.class,
                     LOGS_ENABLED
             );
 
@@ -71,15 +73,23 @@ public class ClientLibrary implements UDPService {
         }
 
         try {
-            // Need to sign the message (stage 2 request)
-            LedgerRequestDto message = LedgerRequestDto.builder()
-                    .senderId(clientConfig.getId())
-                    .type(Message.Type.BALANCE)
-                    .value(accountId)
+            final var ledgerRequest = LedgerCheckBalanceRequest.builder()
                     .requestId(requestIdCounter.getAndIncrement())
+                    .accountId(accountId)
                     .build();
 
-            authenticatedPerfectLink.broadcast(message);
+            var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());
+            var signature = CryptoUtils.sign(ledgerRequest, privateKey);
+
+            // Need to sign the message (stage 2 request)
+            final var request = SignedLedgerRequest.builder()
+                    .senderId(clientConfig.getId())
+                    .type(Message.Type.BALANCE)
+                    .ledgerRequest(ledgerRequest)
+                    .signature(signature)
+                    .build();
+
+            authenticatedPerfectLink.broadcast(SignedLedgerRequestDtoConverter.convert(request));
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
         }
@@ -96,22 +106,24 @@ public class ClientLibrary implements UDPService {
         logger.info(MessageFormat.format("Transferring \u001B[33m{0}\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
 
         try {
-            var transferMessage = new LedgerTransferRequest(sourceAccountId, destinationAccountId, amount);
-            var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());
-            var signedPacket = CryptoUtils.signPacket(transferMessage, privateKey);
-
-            var message = new HDSLedgerMessageBuilder(clientConfig.getId(), Message.Type.TRANSFER)
-                    .setValue(SerializationUtils.getGson().toJson(signedPacket))
+            final var transferRequest = LedgerTransferRequest.builder()
+                    .requestId(requestIdCounter.getAndIncrement())
+                    .sourceAccountId(sourceAccountId)
+                    .destinationAccountId(destinationAccountId)
+                    .amount(amount)
                     .build();
 
-            LedgerRequestDto message = LedgerRequestDto.builder()
+            final var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());
+            final var signature = CryptoUtils.sign(transferRequest, privateKey);
+
+            final var signedLedgerRequest = SignedLedgerRequest.builder()
                     .senderId(clientConfig.getId())
                     .type(Message.Type.TRANSFER)
-                    .value(transferMessage)
-                    .requestId(requestIdCounter.getAndIncrement())
+                    .ledgerRequest(transferRequest)
+                    .signature(signature)
                     .build();
 
-            authenticatedPerfectLink.broadcast(message);
+            authenticatedPerfectLink.broadcast(SignedLedgerRequestDtoConverter.convert(signedLedgerRequest));
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error sending read: {0}", e.getMessage()));
         }
@@ -120,20 +132,15 @@ public class ClientLibrary implements UDPService {
     /**
      * Handles a balance response.
      */
-    private void handleBalanceResponse( ledgerMessage) {
-        if (ledgerMessage.getType() != Message.Type.BALANCE_RESPONSE)
+    private void handleBalanceResponse(LedgerResponse ledgerResponse) {
+        // TODO: does order of read responses matter? (sending two reads and receiving the responses in different order)
+        final var requestIdBalanceResponses = ledgerResponses.computeIfAbsent(ledgerResponse.getOriginalRequestId(), k -> new HashMap<>());
+        requestIdBalanceResponses.putIfAbsent(ledgerResponse.getSenderId(), ledgerResponse);
+
+        if (requestIdBalanceResponses.size() != quorumSize)
             return;
 
-        synchronized (balanceResponses) {
-            // TODO: does order of read responses matter? (sending two reads and receiving the responses in different order)
-            final var requestIdBalanceResponses = balanceResponses.computeIfAbsent(ledgerMessage.getRequestId(), k -> new HashMap<>());
-            requestIdBalanceResponses.putIfAbsent(ledgerMessage.getSenderId(), ledgerMessage);
-
-            if (requestIdBalanceResponses.size() != quorumSize)
-                return;
-        }
-
-        logger.info(MessageFormat.format("Received balance response: \"{0}\"", ledgerMessage.getValue()));
+        logger.info(MessageFormat.format("Received balance response: \"{0}\"", ledgerResponse.getOriginalRequestId()));
     }
 
     @Override
@@ -145,17 +152,16 @@ public class ClientLibrary implements UDPService {
                 try {
                     final var message = authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof SignedLedgerRequest signedLedgerRequest)) {
+                    if (!(message instanceof LedgerResponse ledgerResponse)) {
                         continue;
                     }
 
-                    switch (signedLedgerRequest.getType()) {
-                        case BALANCE_RESPONSE -> handleBalanceResponse(signedLedgerRequest);
-                        case TRANSFER_RESPONSE ->
-                                logger.info(MessageFormat.format("Received transfer response: \"{0}\"", signedLedgerRequest.getValue()));
+                    switch (ledgerResponse.getType()) {
+                        case BALANCE_RESPONSE -> handleBalanceResponse(ledgerResponse);
+                        case TRANSFER_RESPONSE -> handleTransferResponse(ledgerResponse);
                         case IGNORE -> { /* Do nothing */ }
                         default ->
-                                logger.warn(MessageFormat.format("Received unknown message type: {0}", signedLedgerRequest.getType()));
+                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerResponse.getType()));
                     }
 
                 } catch (Exception e) {
@@ -163,5 +169,18 @@ public class ClientLibrary implements UDPService {
                 }
             }
         }).start();
+    }
+
+    private void handleTransferResponse(LedgerResponse ledgerResponse) {
+        final var originalRequestId = ledgerResponse.getOriginalRequestId();
+
+
+        final var ledgerResponseMap = ledgerResponses.computeIfAbsent(originalRequestId, f -> new ConcurrentHashMap<>());
+        ledgerResponses.get(originalRequestId).putIfAbsent(ledgerResponse.getSenderId(), ledgerResponse);
+
+        if (ledgerResponseMap.size() < quorumSize)
+            return;
+
+        logger.info("Received response, original request id: " + ledgerResponse.getOriginalRequestId());
     }
 }

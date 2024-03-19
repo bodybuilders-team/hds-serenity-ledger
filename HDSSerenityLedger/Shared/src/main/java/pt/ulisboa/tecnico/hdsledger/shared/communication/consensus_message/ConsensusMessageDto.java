@@ -40,7 +40,7 @@ public class ConsensusMessageDto extends Message {
     @Override
     public String toString() {
         switch (this.getType()) {
-            case Type.PRE_PREPARE -> {
+            case Type.PRE_PREPARE, Type.PREPARE, Type.COMMIT -> {
                 return MessageFormat.format("{0}({1}, {2}, \"{3}\")", this.getType(),
                         this.getConsensusInstance(), this.getRound(),
                         this.getValue());

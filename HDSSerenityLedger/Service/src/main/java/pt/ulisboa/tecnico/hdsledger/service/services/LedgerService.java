@@ -3,20 +3,16 @@ package pt.ulisboa.tecnico.hdsledger.service.services;
 import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.HDSLedgerMessageBuilder;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerCheckBalanceMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerMessageDto;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerCheckBalanceRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerResponse;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Account;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
-import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -31,7 +27,7 @@ public class LedgerService implements UDPService {
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
     private final int accumulationThreshold = 1;
-    private List<LedgerMessage> accumulatedMessages = new ArrayList<>();
+    private List<SignedLedgerRequest> accumulatedMessages = new ArrayList<>();
 
     public LedgerService(
             AuthenticatedPerfectLink authenticatedPerfectLink,
@@ -46,29 +42,31 @@ public class LedgerService implements UDPService {
 
 
     /**
-     * Handles a transfer message.
+     * Handles a transfer request.
      *
-     * @param message the transfer message
+     * @param request the transfer request
      */
-    public void uponTransfer(LedgerMessage message) {
-        logger.info(MessageFormat.format("Received transfer request: {0}", message.getValue()));
+    public void uponTransfer(SignedLedgerRequest request) {
+        logger.info(MessageFormat.format("Received transfer request: {0}", request));
 
         try {
+            if (!request.verifySignature(clientsConfig)) return;
 
-            if (LedgerTransferMessage.verifySignature(message, clientsConfig)) return;
-
-            final var transferMessage = (LedgerTransferMessage) message.getValue();
+            LedgerTransferRequest transferRequest = (LedgerTransferRequest) request.getLedgerRequest();
 
             // Accumulate messages
-            accumulateOrPropose(message);
+            accumulateOrPropose(request);
 
             // Send the response
-            LedgerMessageDto response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.TRANSFER_RESPONSE)
-                    .setValue(MessageFormat.format("Transfer from {0} to {1} of {2} was successful",
-                            transferMessage.getSourceAccountId(), transferMessage.getDestinationAccountId(), transferMessage.getAmount()))
+            LedgerResponse response = LedgerResponse.builder()
+                    .senderId(nodeService.getConfig().getId())
+                    .type(Message.Type.TRANSFER_RESPONSE)
+                    .originalRequestId(request.getLedgerRequest().getRequestId())
+                    .message(MessageFormat.format("Transfer from {0} to {1} of {2} was successful",
+                            transferRequest.getSourceAccountId(), transferRequest.getDestinationAccountId(), transferRequest.getAmount()))
                     .build();
 
-            authenticatedPerfectLink.send(message.getSenderId(), response);
+            authenticatedPerfectLink.send(request.getSenderId(), response);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error transferring: {0}", e.getMessage()));
         }
@@ -76,28 +74,30 @@ public class LedgerService implements UDPService {
 
 
     /**
-     * Handles a balance message.
+     * Handles a balance request.
      *
-     * @param message the balance message
+     * @param request the balance request
      */
-    public void uponBalance(LedgerMessage message) {
+    public void uponBalance(SignedLedgerRequest request) {
         logger.info("Received balance request");
 
         try {
-            String accountId = ((LedgerCheckBalanceMessage) message.getValue()).getAccountId();
-            ClientProcessConfig owner = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(accountId)).findAny().get();
-            PublicKey publicKey = CryptoUtils.getPublicKey(owner.getPublicKeyPath());
+            if (!request.verifySignature(clientsConfig)) return;
 
-            Account account = nodeService.getLedger().getAccount(publicKey.toString());
+            String accountId = ((LedgerCheckBalanceRequest) request.getLedgerRequest()).getAccountId();
+
+            Account account = nodeService.getLedger().getAccount(accountId);
             long balance = account.getBalance();
 
             logger.info(MessageFormat.format("Sending balance response: {0}", balance));
 
-            LedgerMessageDto response = new HDSLedgerMessageBuilder(nodeService.getConfig().getId(), Message.Type.BALANCE_RESPONSE)
-                    .setValue(String.valueOf(balance))
+            final LedgerResponse response = LedgerResponse.builder()
+                    .senderId(nodeService.getConfig().getId())
+                    .type(Message.Type.BALANCE_RESPONSE)
+                    .message(String.valueOf(balance))
                     .build();
 
-            authenticatedPerfectLink.send(message.getSenderId(), response);
+            authenticatedPerfectLink.send(request.getSenderId(), response);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error retrieving balance: {0}", e.getMessage()));
         }
@@ -113,19 +113,23 @@ public class LedgerService implements UDPService {
                 try {
                     final var message = authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof LedgerMessage ledgerMessage)) {
+                    if (!(message instanceof SignedLedgerRequest ledgerRequest)) {
                         continue;
                     }
 
                     new Thread(() -> {
-                        switch (ledgerMessage.getType()) {
-                            case BALANCE -> uponBalance(ledgerMessage);
+                        try {
+                            switch (ledgerRequest.getType()) {
+                                case BALANCE -> uponBalance(ledgerRequest);
 
-                            case TRANSFER -> uponTransfer(ledgerMessage);
-                            case IGNORE -> {/* Do nothing */}
+                                case TRANSFER -> uponTransfer(ledgerRequest);
+                                case IGNORE -> {/* Do nothing */}
 
-                            default ->
-                                    logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerMessage.getType()));
+                                default ->
+                                        logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerRequest.getType()));
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }).start();
 
@@ -136,8 +140,8 @@ public class LedgerService implements UDPService {
         }).start();
     }
 
-    private void accumulateOrPropose(LedgerMessage ledgerMessageDto) {
-        accumulatedMessages.add(ledgerMessageDto);
+    private void accumulateOrPropose(SignedLedgerRequest signedLedgerRequest) {
+        accumulatedMessages.add(signedLedgerRequest);
         if (accumulatedMessages.size() >= accumulationThreshold) {
             var block = new Block();
             for (var message : accumulatedMessages) {

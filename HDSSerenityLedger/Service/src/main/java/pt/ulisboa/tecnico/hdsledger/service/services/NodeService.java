@@ -7,7 +7,7 @@ import pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket.Round
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDtoConverter;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
@@ -147,12 +147,12 @@ public class NodeService implements UDPService {
                     ? this.config.getId()
                     : getLeaderId(localConsensusInstance, STARTING_ROUND); // Impersonate leader
 
-            final var messageToBroadcast = ConsensusMessageDto.builder()
+            final var messageToBroadcast = ConsensusMessage.builder()
                     .senderId(senderId)
                     .type(Message.Type.PRE_PREPARE)
                     .consensusInstance(localConsensusInstance)
                     .round(STARTING_ROUND)
-                    .value(inputValue.toJson())
+                    .value(inputValue)
                     .build();
 
             if (nodeIsLeader)
@@ -162,7 +162,7 @@ public class NodeService implements UDPService {
             else
                 logger.info(MessageFormat.format("Broadcasting {0} - Node is not leader, but is impersonating leader", messageToBroadcast));
 
-            this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+            this.authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
         } else {
             logger.info("Node is not leader, waiting for PRE-PREPARE message...");
         }
@@ -187,6 +187,10 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node \u001B[33m{1}\u001B[37m", message, senderId));
 
+        if (!validate(message)) {
+            return;
+        }
+
         if (!isNodeLeader(consensusInstance, round, senderId) || !justifyPrePrepare(consensusInstance, round, value)) {
             logger.info(MessageFormat.format("Received \u001B[32mPRE-PREPARE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, _) from node \u001B[33m{2}\u001B[37m, but not justified. Replying to acknowledge reception", consensusInstance, round, senderId));
 
@@ -206,19 +210,19 @@ public class NodeService implements UDPService {
         else
             startTimer(consensusInstance);
 
-        ConsensusMessageDto messageToBroadcast = ConsensusMessageDto.builder()
+        ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
                 .senderId(config.getId())
                 .type(Message.Type.PREPARE)
                 .consensusInstance(consensusInstance)
                 .round(round)
-                .value(value.toJson())
+                .value(value)
                 .replyTo(senderId)
                 .replyToMessageId(senderMessageId)
                 .build();
 
         logger.info(MessageFormat.format("PRE-PREPARE is justified. Broadcasting {0}", messageToBroadcast));
 
-        this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+        this.authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
     }
 
     /**
@@ -234,9 +238,9 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, senderId));
 
-//        if (!validate(message)) {
-//            //TODO:
-//        }
+        if (!validate(message)) {
+            return;
+        }
 
         prepareMessages.addMessage(message);
 
@@ -251,14 +255,14 @@ public class NodeService implements UDPService {
                 prepareMessages.getMessages(consensusInstance, round).values().forEach(senderMessage ->
                         this.authenticatedPerfectLink.send(
                                 senderMessage.getSenderId(),
-                                ConsensusMessageDto.builder()
+                                ConsensusMessage.builder()
                                         .senderId(config.getId())
                                         .type(Message.Type.COMMIT)
                                         .consensusInstance(consensusInstance)
                                         .round(instance.getPreparedRound())
                                         .replyTo(senderMessage.getSenderId())
                                         .replyToMessageId(senderMessage.getMessageId())
-                                        .value(instance.getPreparedValue().toJson())
+                                        .value(instance.getPreparedValue())
                                         .build()
                         )
                 );
@@ -273,26 +277,20 @@ public class NodeService implements UDPService {
                 instance.setPreparedValue(preparedValue.get());
 
                 // TODO Change to normal broadcast instead of sending only to those who sent prepare messages (needs ACK to be sent in all messages, though)
-                /*this.authenticatedPerfectLink.broadcast(
-                    new ConsensusMessageBuilder(config.getId(), Message.Type.COMMIT)
-                            .setConsensusInstance(consensusInstance)
-                            .setRound(round)
-                            .setMessage(c.toJson())
-                            .build());*/
 
                 logger.info(MessageFormat.format("Received quorum of PREPARE({0}, {1}, \"{2}\"). Broadcasting COMMIT({0}, {1}, \"{2}\")", consensusInstance, round, preparedValue.get()));
 
                 prepareMessages.getMessages(consensusInstance, round).values().forEach(senderMessage ->
                         this.authenticatedPerfectLink.send(
                                 senderMessage.getSenderId(),
-                                ConsensusMessageDto.builder()
+                                ConsensusMessage.builder()
                                         .senderId(config.getId())
                                         .type(Message.Type.COMMIT)
                                         .consensusInstance(consensusInstance)
                                         .round(round)
                                         .replyTo(senderMessage.getSenderId())
                                         .replyToMessageId(senderMessage.getMessageId())
-                                        .value(preparedValue.get().toJson())
+                                        .value(preparedValue.get())
                                         .build()
                         )
                 );
@@ -304,9 +302,7 @@ public class NodeService implements UDPService {
         waitForPreviousConsensus(message.getConsensusInstance());
         final var block = (Block) message.getValue();
 
-        ledger.validateBlock(block);
-
-        return true;
+        return ledger.validateBlock(block);
     }
 
 
@@ -320,6 +316,10 @@ public class NodeService implements UDPService {
         int round = message.getRound();
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, message.getSenderId()));
+
+        if (!validate(message)) {
+            return;
+        }
 
         commitMessages.addMessage(message);
 
@@ -396,8 +396,11 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, message.getSenderId()));
 
-        if (message.getPreparedRound() < message.getRound())
-            roundChangeMessages.addMessage(message);
+        if (!validateRoundChangeMessage(message)) {
+            return;
+        }
+
+        roundChangeMessages.addMessage(message);
 
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
@@ -413,14 +416,14 @@ public class NodeService implements UDPService {
             // TODO Maybe send the commits to the guy, and then he will communicate with the others to verify
             this.authenticatedPerfectLink.send(
                     message.getSenderId(),
-                    ConsensusMessageDto.builder()
+                    ConsensusMessage.builder()
                             .senderId(config.getId())
                             .type(Message.Type.COMMIT)
                             .consensusInstance(consensusInstance)
                             .round(instance.getDecidedRound())
                             .replyTo(message.getSenderId())
                             .replyToMessageId(message.getMessageId())
-                            .value(instance.getDecidedValue().toJson())
+                            .value(instance.getDecidedValue())
                             .build()
             );
             return;
@@ -441,18 +444,18 @@ public class NodeService implements UDPService {
 
                     startTimer(consensusInstance);
 
-                    ConsensusMessageDto messageToBroadcast = ConsensusMessageDto.builder()
+                    ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
                             .senderId(config.getId())
                             .type(Message.Type.ROUND_CHANGE)
                             .consensusInstance(consensusInstance)
                             .round(newRound)
                             .preparedRound(instance.getPreparedRound())
-                            .preparedValue(instance.getPreparedValue().toJson())
+                            .preparedValue(instance.getPreparedValue())
                             .build();
 
                     logger.info(MessageFormat.format("Updated round to {0} for Consensus Instance {1}. Broadcasting {2}", newRound, consensusInstance, messageToBroadcast));
 
-                    this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+                    this.authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
                 }
             }
 
@@ -476,19 +479,26 @@ public class NodeService implements UDPService {
                         ? highestPrepared.get().getValue()
                         : instance.getInputValue();
 
-                ConsensusMessageDto messageToBroadcast = ConsensusMessageDto.builder()
+                ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
                         .senderId(config.getId())
                         .type(Message.Type.PRE_PREPARE)
                         .consensusInstance(consensusInstance)
                         .round(round)
-                        .value(valueToBroadcast.toJson())
+                        .value(valueToBroadcast)
                         .build();
 
                 logger.info(MessageFormat.format("Received quorum of ROUND_CHANGE({0}, {1}, _, _). Broadcasting {2}", consensusInstance, round, messageToBroadcast));
 
-                this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+                this.authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
             }
         }
+    }
+
+    private boolean validateRoundChangeMessage(ConsensusMessage message) {
+        if (message.getPreparedRound() < message.getRound())
+            return false;
+
+        return validate(message);
     }
 
     @Override
@@ -505,28 +515,32 @@ public class NodeService implements UDPService {
 
                         // Separate thread to handle each message
                         new Thread(() -> {
-                            switch (consensusMessage.getType()) {
-                                case PRE_PREPARE -> uponPrePrepare(consensusMessage);
+                            try {
+                                switch (consensusMessage.getType()) {
+                                    case PRE_PREPARE -> uponPrePrepare(consensusMessage);
 
-                                case PREPARE -> uponPrepare(consensusMessage);
+                                    case PREPARE -> uponPrepare(consensusMessage);
 
-                                case COMMIT -> uponCommit(consensusMessage);
+                                    case COMMIT -> uponCommit(consensusMessage);
 
-                                case ROUND_CHANGE -> uponRoundChange(consensusMessage);
+                                    case ROUND_CHANGE -> uponRoundChange(consensusMessage);
 
-                                case ACK -> {
+                                    case ACK -> {
                                     /*logger.info(MessageFormat.format("Received ACK({0}) from node {1}",
                                             message.getMessageId(), message.getSenderId()));*/
-                                }
+                                    }
 
-                                case IGNORE -> {
+                                    case IGNORE -> {
                                     /*logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID {0} from node {1}",
                                     message.getMessageId(), message.getSenderId()));
                                     * */
-                                }
+                                    }
 
-                                default ->
-                                        logger.info(MessageFormat.format("Received unknown message from {0}", consensusMessage.getSenderId()));
+                                    default ->
+                                            logger.info(MessageFormat.format("Received unknown message from {0}", consensusMessage.getSenderId()));
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
                         }).start();
                     } catch (Exception e) {
@@ -643,18 +657,18 @@ public class NodeService implements UDPService {
 
                     startTimer(consensusInstance);
 
-                    ConsensusMessageDto messageToBroadcast = ConsensusMessageDto.builder()
+                    ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
                             .senderId(config.getId())
                             .type(Message.Type.ROUND_CHANGE)
                             .consensusInstance(consensusInstance)
                             .round(round)
                             .preparedRound(preparedRound)
-                            .preparedValue(preparedValue.toJson())
+                            .preparedValue(preparedValue)
                             .build();
 
                     logger.info(MessageFormat.format("Timer expired for Consensus Instance {0}. Updated round to {1}, triggering round-change. Broadcasting {2}", consensusInstance, round, messageToBroadcast));
 
-                    authenticatedPerfectLink.broadcast(messageToBroadcast);
+                    authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
                 }
             }, timeToWait);
         }
