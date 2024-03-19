@@ -8,7 +8,6 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.Ledge
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerResponse;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.dtos.SignedLedgerRequestDtoConverter;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
@@ -54,6 +53,7 @@ public class ClientLibrary implements UDPService {
             this.quorumSize = Math.floorDiv(nodesConfig.length + f, 2) + 1;
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error creating link: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -89,9 +89,10 @@ public class ClientLibrary implements UDPService {
                     .signature(signature)
                     .build();
 
-            authenticatedPerfectLink.broadcast(SignedLedgerRequestDtoConverter.convert(request));
+            authenticatedPerfectLink.broadcast(request);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -123,9 +124,10 @@ public class ClientLibrary implements UDPService {
                     .signature(signature)
                     .build();
 
-            authenticatedPerfectLink.broadcast(SignedLedgerRequestDtoConverter.convert(signedLedgerRequest));
+            authenticatedPerfectLink.broadcast(signedLedgerRequest);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error sending read: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -166,6 +168,7 @@ public class ClientLibrary implements UDPService {
 
                 } catch (Exception e) {
                     logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
+                    e.printStackTrace();
                 }
             }
         }).start();

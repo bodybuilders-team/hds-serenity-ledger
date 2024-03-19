@@ -69,6 +69,7 @@ public class LedgerService implements UDPService {
             authenticatedPerfectLink.send(request.getSenderId(), response);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error transferring: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -100,6 +101,7 @@ public class LedgerService implements UDPService {
             authenticatedPerfectLink.send(request.getSenderId(), response);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error retrieving balance: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -135,6 +137,7 @@ public class LedgerService implements UDPService {
 
                 } catch (Exception e) {
                     logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
+                    e.printStackTrace();
                 }
             }
         }).start();

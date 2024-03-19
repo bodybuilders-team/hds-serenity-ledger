@@ -9,10 +9,13 @@ import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
 @Getter
 @SuperBuilder
+@ToString
 public class SignedLedgerRequest extends Message {
     @Setter
     private LedgerRequest ledgerRequest;
+
     @Setter
+    @ToString.Exclude
     private byte[] signature;
 
     public SignedLedgerRequest(String senderId, Type type) {

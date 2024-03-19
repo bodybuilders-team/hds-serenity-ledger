@@ -2,6 +2,7 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.io.Serializable;
@@ -10,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @SuperBuilder
+@ToString
 public class Message implements Serializable {
 
     // Sender identifier
@@ -34,14 +36,14 @@ public class Message implements Serializable {
         this.type = type;
     }
 
-    @Override
-    public String toString() {
-        if (this.getType() == Type.ACK) {
-            return MessageFormat.format("ACK({0})", this.getMessageId());
-        } else if (this.getType() == Type.IGNORE) {
-            return MessageFormat.format("IGNORE({0})", this.getMessageId());
-        } else return "NO REPRESENTATION";
-    }
+//    @Override
+//    public String toString() {
+//        if (this.getType() == Type.ACK) {
+//            return MessageFormat.format("ACK({0})", this.getMessageId());
+//        } else if (this.getType() == Type.IGNORE) {
+//            return MessageFormat.format("IGNORE({0})", this.getMessageId());
+//        } else return "NO REPRESENTATION";
+//    }
 
     public enum Type {
         // Messages for consensus (node to node)

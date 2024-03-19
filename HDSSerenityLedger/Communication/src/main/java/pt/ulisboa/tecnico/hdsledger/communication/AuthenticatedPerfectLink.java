@@ -10,10 +10,6 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDto;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDtoConverter;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.dtos.SignedLedgerRequestDto;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.dtos.SignedLedgerRequestDtoConverter;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
@@ -114,7 +110,7 @@ public class AuthenticatedPerfectLink {
         if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_BROADCAST) {
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
-                Message message = gson.fromJson(gson.toJson(data), data.getClass());
+                Message message = data;
                 message.setMessageId((int) (Math.random() * nodes.size()));
                 send(destId, message);
             });
@@ -289,11 +285,6 @@ public class AuthenticatedPerfectLink {
         // It's not an ACK -> Deserialize for the correct type
         if (!local) {
             message = gson.fromJson(serializedMessage, this.messageClass);
-            message = switch (message) {
-                case ConsensusMessageDto consensusMessage -> ConsensusMessageDtoConverter.convert(consensusMessage);
-                case SignedLedgerRequestDto ledgerMessage -> SignedLedgerRequestDtoConverter.convert(ledgerMessage);
-                default -> throw new IllegalStateException("Unexpected message: " + message);
-            };
         }
 
         Type originalType = message.getType();

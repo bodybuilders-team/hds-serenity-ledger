@@ -7,7 +7,6 @@ import pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket.Round
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDtoConverter;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
@@ -162,7 +161,7 @@ public class NodeService implements UDPService {
             else
                 logger.info(MessageFormat.format("Broadcasting {0} - Node is not leader, but is impersonating leader", messageToBroadcast));
 
-            this.authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
+            this.authenticatedPerfectLink.broadcast(messageToBroadcast);
         } else {
             logger.info("Node is not leader, waiting for PRE-PREPARE message...");
         }
@@ -222,7 +221,7 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("PRE-PREPARE is justified. Broadcasting {0}", messageToBroadcast));
 
-        this.authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
+        this.authenticatedPerfectLink.broadcast(messageToBroadcast);
     }
 
     /**
@@ -455,7 +454,7 @@ public class NodeService implements UDPService {
 
                     logger.info(MessageFormat.format("Updated round to {0} for Consensus Instance {1}. Broadcasting {2}", newRound, consensusInstance, messageToBroadcast));
 
-                    this.authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
+                    this.authenticatedPerfectLink.broadcast(messageToBroadcast);
                 }
             }
 
@@ -489,7 +488,7 @@ public class NodeService implements UDPService {
 
                 logger.info(MessageFormat.format("Received quorum of ROUND_CHANGE({0}, {1}, _, _). Broadcasting {2}", consensusInstance, round, messageToBroadcast));
 
-                this.authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
+                this.authenticatedPerfectLink.broadcast(messageToBroadcast);
             }
         }
     }
@@ -668,7 +667,7 @@ public class NodeService implements UDPService {
 
                     logger.info(MessageFormat.format("Timer expired for Consensus Instance {0}. Updated round to {1}, triggering round-change. Broadcasting {2}", consensusInstance, round, messageToBroadcast));
 
-                    authenticatedPerfectLink.broadcast(ConsensusMessageDtoConverter.convert(messageToBroadcast));
+                    authenticatedPerfectLink.broadcast(messageToBroadcast);
                 }
             }, timeToWait);
         }

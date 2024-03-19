@@ -15,5 +15,4 @@ public class SignedPacket {
         this.data = data;
         this.signature = signature;
     }
-
 }
