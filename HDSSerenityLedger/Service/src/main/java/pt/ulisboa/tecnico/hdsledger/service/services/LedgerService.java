@@ -113,9 +113,9 @@ public class LedgerService implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    final var message = authenticatedPerfectLink.receive();
+                    final var signedMessage = authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof SignedLedgerRequest ledgerRequest)) {
+                    if (!(signedMessage.getMessage() instanceof SignedLedgerRequest ledgerRequest)) {
                         continue;
                     }
 

@@ -130,20 +130,6 @@ public class ClientLibrary implements UDPService {
         }
     }
 
-    /**
-     * Handles a balance response.
-     */
-    private void handleBalanceResponse(LedgerResponse ledgerResponse) {
-        // TODO: does order of read responses matter? (sending two reads and receiving the responses in different order)
-        final var requestIdBalanceResponses = ledgerResponses.computeIfAbsent(ledgerResponse.getOriginalRequestId(), k -> new HashMap<>());
-        requestIdBalanceResponses.putIfAbsent(ledgerResponse.getSenderId(), ledgerResponse);
-
-        if (requestIdBalanceResponses.size() != quorumSize)
-            return;
-
-        logger.info(MessageFormat.format("Received balance response: \"{0}\"", ledgerResponse.getOriginalRequestId()));
-    }
-
     @Override
     public void listen() {
         logger.info("Listening for messages...");
@@ -151,15 +137,15 @@ public class ClientLibrary implements UDPService {
         new Thread(() -> {
             while (true) {
                 try {
-                    final var message = authenticatedPerfectLink.receive();
+                    final var signedMessage = authenticatedPerfectLink.receive();
 
-                    if (!(message instanceof LedgerResponse ledgerResponse)) {
+                    if (!(signedMessage.getMessage() instanceof LedgerResponse ledgerResponse)) {
                         continue;
                     }
 
                     switch (ledgerResponse.getType()) {
-                        case BALANCE_RESPONSE -> handleBalanceResponse(ledgerResponse);
-                        case TRANSFER_RESPONSE -> handleTransferResponse(ledgerResponse);
+                        case BALANCE_RESPONSE -> handleLedgerResponse(ledgerResponse);
+                        case TRANSFER_RESPONSE -> handleLedgerResponse(ledgerResponse);
                         case IGNORE -> { /* Do nothing */ }
                         default ->
                                 logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerResponse.getType()));
@@ -173,16 +159,21 @@ public class ClientLibrary implements UDPService {
         }).start();
     }
 
-    private void handleTransferResponse(LedgerResponse ledgerResponse) {
-        final var originalRequestId = ledgerResponse.getOriginalRequestId();
+    /**
+     * Handles a ledger response, BALANCE or TRANSFER.
+     *
+     * @param ledgerResponse the ledger response
+     */
+    private void handleLedgerResponse(LedgerResponse ledgerResponse) {
+        final var requestIdBalanceResponses = ledgerResponses.computeIfAbsent(ledgerResponse.getOriginalRequestId(), k -> new HashMap<>());
+        requestIdBalanceResponses.putIfAbsent(ledgerResponse.getSenderId(), ledgerResponse);
 
-
-        final var ledgerResponseMap = ledgerResponses.computeIfAbsent(originalRequestId, f -> new ConcurrentHashMap<>());
-        ledgerResponses.get(originalRequestId).putIfAbsent(ledgerResponse.getSenderId(), ledgerResponse);
-
-        if (ledgerResponseMap.size() < quorumSize)
+        if (requestIdBalanceResponses.size() != quorumSize)
             return;
 
-        logger.info("Received transfer response: " + ledgerResponse);
+        logger.info(MessageFormat.format("Received {0} response: \"{1}\" for request ID \"{2}\"",
+                ledgerResponse.getType(),
+                ledgerResponse.getMessage(),
+                ledgerResponse.getOriginalRequestId()));
     }
 }

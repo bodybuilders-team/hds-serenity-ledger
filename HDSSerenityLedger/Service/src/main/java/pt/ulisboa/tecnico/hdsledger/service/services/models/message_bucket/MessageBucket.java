@@ -1,6 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket;
 
-import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 
 import java.util.Map;
@@ -14,7 +14,7 @@ public abstract class MessageBucket {
     protected final int quorumSize;
 
     // Instance -> Round -> Sender ID -> Consensus message
-    protected final Map<Integer, Map<Integer, Map<String, SignedPacket>>> bucket = new ConcurrentHashMap<>();
+    protected final Map<Integer, Map<Integer, Map<String, SignedMessage>>> bucket = new ConcurrentHashMap<>();
 
     protected MessageBucket(int nodeCount) {
         int f = Math.floorDiv(nodeCount - 1, 3);
@@ -24,15 +24,16 @@ public abstract class MessageBucket {
     /**
      * Add a message to the bucket.
      *
-     * @param message The message to add
+     * @param signedMessage The message to add
      */
-    public void addMessage(ConsensusMessage message) {
+    public void addMessage(SignedMessage signedMessage) {
+        ConsensusMessage message = (ConsensusMessage) signedMessage.getMessage();
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
 
         bucket.putIfAbsent(consensusInstance, new ConcurrentHashMap<>());
         bucket.get(consensusInstance).putIfAbsent(round, new ConcurrentHashMap<>());
-        bucket.get(consensusInstance).get(round).put(message.getSenderId(), message); // TODO putIfAbsent?
+        bucket.get(consensusInstance).get(round).put(message.getSenderId(), signedMessage); // TODO putIfAbsent?
     }
 
     /**
@@ -42,7 +43,7 @@ public abstract class MessageBucket {
      * @param round    The round
      * @return The messages
      */
-    public Map<String, ConsensusMessage> getMessages(int instance, int round) {
+    public Map<String, SignedMessage> getMessages(int instance, int round) {
         return bucket.get(instance).get(round);
     }
 }

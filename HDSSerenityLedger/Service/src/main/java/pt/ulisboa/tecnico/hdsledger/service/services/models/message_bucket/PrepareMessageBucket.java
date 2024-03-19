@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket;
 
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.util.HashMap;
@@ -29,7 +30,8 @@ public class PrepareMessageBucket extends MessageBucket {
             return Optional.empty();
 
         HashMap<Block, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach(message -> {
+        bucket.get(instance).get(round).values().forEach(signedMessage -> {
+            ConsensusMessage message = (ConsensusMessage) signedMessage.getMessage();
             Block block = (Block) message.getValue();
             frequency.put(block, frequency.getOrDefault(block, 0) + 1);
         });

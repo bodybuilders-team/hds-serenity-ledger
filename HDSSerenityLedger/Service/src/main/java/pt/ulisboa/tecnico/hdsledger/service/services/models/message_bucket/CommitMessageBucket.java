@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket;
 
+import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
@@ -32,7 +33,8 @@ public class CommitMessageBucket extends MessageBucket {
             return Optional.empty();
 
         HashMap<Block, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach(message -> {
+        bucket.get(instance).get(round).values().forEach(signedMessage -> {
+            ConsensusMessage message = (ConsensusMessage) signedMessage.getMessage();
             Block value = (Block) message.getValue();
             frequency.put(value, frequency.getOrDefault(value, 0) + 1);
         });
@@ -43,16 +45,22 @@ public class CommitMessageBucket extends MessageBucket {
                 .findFirst();
     }
 
-    public Optional<List<ConsensusMessage>> getValidCommitQuorumMessages(int instance, int round) {
+    public Optional<List<SignedMessage>> getValidCommitQuorumMessages(int instance, int round) {
         if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
             return Optional.empty();
 
-        HashMap<Block, Integer> frequency = new HashMap<>();
-        bucket.get(instance).get(round).values().forEach(message -> {
+        HashMap<Block, List<SignedMessage>> messageList = new HashMap<>();
+
+        bucket.get(instance).get(round).values().forEach(signedMessage -> {
+            ConsensusMessage message = (ConsensusMessage) signedMessage.getMessage();
             Block value = (Block) message.getValue();
-            frequency.put(value, frequency.getOrDefault(value, 0) + 1);
+            List<SignedMessage> previousList = messageList.getOrDefault(value, new ArrayList<>());
+            previousList.add(signedMessage);
+            messageList.put(value, previousList);
         });
 
-        frequency
+        return messageList.values().stream()
+                .filter(list -> list.size() >= quorumSize)
+                .findFirst();
     }
 }

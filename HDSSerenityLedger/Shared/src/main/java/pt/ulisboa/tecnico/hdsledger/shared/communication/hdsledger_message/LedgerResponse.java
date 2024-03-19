@@ -11,5 +11,6 @@ public class LedgerResponse extends Message {
     @Setter
     private long originalRequestId;
 
+    @Getter
     private String message;
 }

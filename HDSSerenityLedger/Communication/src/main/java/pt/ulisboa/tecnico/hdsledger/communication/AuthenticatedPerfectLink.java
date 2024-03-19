@@ -8,6 +8,7 @@ import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
@@ -55,7 +56,7 @@ public class AuthenticatedPerfectLink {
     // Message counter
     private final AtomicInteger messageCounter = new AtomicInteger(0);
     // Send messages to self by pushing to queue instead of through the network
-    private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
+    private final Queue<SignedMessage> localhostQueue = new ConcurrentLinkedQueue<>();
     private final KeyPair keyPair;
     private final ProcessLogger logger;
 
@@ -106,9 +107,8 @@ public class AuthenticatedPerfectLink {
         if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_BROADCAST) {
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
-                Message message = data;
-                message.setMessageId((int) (Math.random() * nodes.size()));
-                send(destId, message);
+                data.setMessageId((int) (Math.random() * nodes.size()));
+                send(destId, data);
             });
         } else if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_LEADER
                 && data.getType() == Type.PRE_PREPARE && (((ConsensusMessage) data).getRound() == 1)) {
@@ -130,11 +130,10 @@ public class AuthenticatedPerfectLink {
     /**
      * Sends a message to a specific node with guarantee of delivery
      *
-     * @param nodeId The node identifier
-     * @param data   The message to be sent
+     * @param nodeId  The node identifier
+     * @param message The message to be sent
      */
-    public void send(String nodeId, Message data) {
-
+    public void send(String nodeId, Message message) {
         // Spawn a new thread to send the message
         // To avoid blocking while waiting for ACK
         new Thread(() -> {
@@ -143,8 +142,8 @@ public class AuthenticatedPerfectLink {
                 if (node == null)
                     throw new HDSSException(ErrorMessage.NoSuchNode);
 
-                if (data.getType() != Type.ACK)
-                    data.setMessageId(messageCounter.getAndIncrement());
+                if (message.getType() != Type.ACK)
+                    message.setMessageId(messageCounter.getAndIncrement());
 
                 // If the message is not ACK, it will be resent
                 InetAddress destAddress = InetAddress.getByName(node.getHostname());
@@ -156,26 +155,26 @@ public class AuthenticatedPerfectLink {
                         : node.getPort();
 
                 int count = 1;
-                int messageId = data.getMessageId();
+                int messageId = message.getMessageId();
                 long sleepTime = BASE_SLEEP_TIME;
+
+                byte[] signature = CryptoUtils.sign(message, keyPair.getPrivate());
+                SignedMessage signedMessage = new SignedMessage(message, signature);
+                byte[] dataToSend = SerializationUtils.getGson().toJson(signedMessage).getBytes();
 
                 // Send message to local queue instead of using network if destination in self
                 if (nodeId.equals(this.config.getId())) {
-                    this.localhostQueue.add(data);
+                    this.localhostQueue.add(signedMessage);
 
-                    logger.info(
-                            MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m with message ID {1} successfully",
-                                    data, messageId));
+                    logger.info(MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m with message ID {1} successfully", message, messageId));
 
                     return;
                 }
 
                 for (; ; ) {
-                    logger.info(MessageFormat.format(
-                            "Sending {0} to {1}:{2} with message ID {3} - \u001B[36mAttempt #{4}\u001B[37m",
-                            data, destAddress, String.valueOf(destPort), messageId, count++));
+                    logger.info(MessageFormat.format("Sending {0} to {1}:{2} with message ID {3} - \u001B[36mAttempt #{4}\u001B[37m", message, destAddress, String.valueOf(destPort), messageId, count++));
 
-                    unreliableSend(destAddress, destPort, data);
+                    unreliableSend(destAddress, destPort, dataToSend);
 
                     // Wait (using exponential back-off), then look for ACK
                     Thread.sleep(sleepTime);
@@ -187,8 +186,7 @@ public class AuthenticatedPerfectLink {
                     sleepTime <<= 1;
                 }
 
-                logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully",
-                        data, destAddress, String.valueOf(destPort)));
+                logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully", message, destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
             }
@@ -197,22 +195,15 @@ public class AuthenticatedPerfectLink {
 
     /**
      * Sends a message to a specific node without guarantee of delivery.
-     * Mainly used to send ACKs, if they are lost, the original message will be resent.
      *
      * @param hostname The hostname of the destination node
      * @param port     The port of the destination node
-     * @param message  The message to be sent
+     * @param data     The data to be sent
      */
-    public void unreliableSend(InetAddress hostname, int port, Message message) {
+    public void unreliableSend(InetAddress hostname, int port, byte[] data) {
         new Thread(() -> {
-            Gson gson = SerializationUtils.getGson();
             try {
-                byte[] messageBuf = gson.toJson(message).getBytes();
-                byte[] signature = CryptoUtils.sign(messageBuf, keyPair.getPrivate());
-                SignedPacket signedPacket = new SignedPacket(messageBuf, signature);
-                byte[] buf = gson.toJson(signedPacket).getBytes();
-                DatagramPacket packet = new DatagramPacket(buf, buf.length, hostname, port);
-                socket.send(packet);
+                socket.send(new DatagramPacket(data, data.length, hostname, port));
             } catch (IOException e) {
                 throw new HDSSException(ErrorMessage.SocketSendingError);
             }
@@ -224,7 +215,8 @@ public class AuthenticatedPerfectLink {
      *
      * @return The received message
      */
-    public Message receive() throws IOException {
+    public SignedMessage receive() throws IOException {
+        SignedMessage signedMessage = null;
         Message message;
         SignedPacket signedPacket = null;
         String serializedMessage = "";
@@ -233,9 +225,10 @@ public class AuthenticatedPerfectLink {
         Gson gson = SerializationUtils.getGson();
 
         if (!this.localhostQueue.isEmpty()) {
-            message = this.localhostQueue.poll();
+            signedMessage = this.localhostQueue.poll();
+            message = signedMessage.getMessage();
             local = true;
-            this.receivedAcks.add(message.getMessageId());
+            this.receivedAcks.add(signedMessage.getMessage().getMessageId());
         } else {
             byte[] buf = new byte[65536];
             response = new DatagramPacket(buf, buf.length);
@@ -254,18 +247,7 @@ public class AuthenticatedPerfectLink {
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
         // Check if the message is a client request using the type.isClientResponse()...
-
         final var messageClass = message.getType().getClassType();
-
-        if (message.getType() != Type.ACK || ENABLE_ACK_LOGGING) {
-            if (response == null)
-                logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID {1}",
-                        (!local ? gson.fromJson(serializedMessage, messageClass) : message), messageId));
-
-            else
-                logger.info(MessageFormat.format("Received {0} from {1}:{2} with message ID {3}",
-                        (!local ? gson.fromJson(serializedMessage, messageClass) : message), response.getAddress(), String.valueOf(response.getPort()), messageId));
-        }
 
         // Validate signature
         if (signedPacket != null) {
@@ -277,14 +259,25 @@ public class AuthenticatedPerfectLink {
             }
         }
 
+        // It's not an ACK -> Deserialize for the correct type
+        if (!local && message.getType().equals(Type.ACK)) {
+            message = gson.fromJson(serializedMessage, messageClass);
+        }
+
+        if (message.getType() != Type.ACK || ENABLE_ACK_LOGGING) {
+            if (response == null)
+                logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID {1}",
+                        message, messageId));
+
+            else
+                logger.info(MessageFormat.format("Received {0} from {1}:{2} with message ID {3}",
+                        message, response.getAddress(), String.valueOf(response.getPort()), messageId));
+        }
+
         // Handle ACKS, since it's possible to receive multiple acks from the same message
         if (message.getType().equals(Type.ACK)) {
             receivedAcks.add(messageId);
-            return message;
-        }
-        // It's not an ACK -> Deserialize for the correct type
-        if (!local) {
-            message = gson.fromJson(serializedMessage, messageClass);
+            return signedMessage;
         }
 
         Type originalType = message.getType();
@@ -297,13 +290,13 @@ public class AuthenticatedPerfectLink {
 
         switch (message.getType()) {
             case PRE_PREPARE -> {
-                return message;
+                return signedMessage;
             }
             case IGNORE -> {
                 if (!originalType.equals(Type.COMMIT) && !originalType.equals(Type.ROUND_CHANGE)) {
                     logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID {0} from node {1}",
                             message.getMessageId(), message.getSenderId()));
-                    return message;
+                    return signedMessage;
                 }
             }
             case PREPARE -> {
@@ -311,7 +304,7 @@ public class AuthenticatedPerfectLink {
                 if (consensusMessage.getReplyTo() != null && consensusMessage.getReplyTo().equals(config.getId()))
                     receivedAcks.add(consensusMessage.getReplyToMessageId());
 
-                return message;
+                return signedMessage;
             }
             case COMMIT -> {
                 ConsensusMessage consensusMessageDto = (ConsensusMessage) message;
@@ -341,9 +334,13 @@ public class AuthenticatedPerfectLink {
                         "Sending {0} to {1}:{2} with message ID {3}",
                         responseMessage, address, String.valueOf(port), messageId));
 
-            unreliableSend(address, port, responseMessage);
+            byte[] signature = CryptoUtils.sign(responseMessage, keyPair.getPrivate());
+            SignedMessage signedResponseMessage = new SignedMessage(responseMessage, signature);
+            byte[] dataToSend = gson.toJson(signedResponseMessage).getBytes();
+
+            unreliableSend(address, port, dataToSend);
         }
 
-        return message;
+        return signedMessage;
     }
 }
