@@ -408,10 +408,9 @@ public class NodeService implements UDPService {
         }
 
         if (instance.alreadyDecided()) {
-            logger.info(MessageFormat.format("Received {0} from node {1} but already decided for Consensus Instance {2}, sending a COMMIT back to sender", message, message.getSenderId(), consensusInstance));
+            logger.info(MessageFormat.format("Received {0} from node {1} but already decided for Consensus Instance {2}, sending the quorum of COMMIT back to sender", message, message.getSenderId(), consensusInstance));
 
-            // TODO Instead send quorum of commits. How, without passing as an impersonator?
-            // TODO Maybe send the commits to the guy, and then he will communicate with the others to verify
+            commitMessages.getMessages()
             this.authenticatedPerfectLink.send(
                     message.getSenderId(),
                     ConsensusMessage.builder()

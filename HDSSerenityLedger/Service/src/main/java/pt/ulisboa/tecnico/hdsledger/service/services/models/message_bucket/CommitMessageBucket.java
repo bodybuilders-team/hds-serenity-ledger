@@ -1,8 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket;
 
+import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -38,5 +41,18 @@ public class CommitMessageBucket extends MessageBucket {
                 .filter(entry -> entry.getValue() >= quorumSize)
                 .map(Map.Entry::getKey)
                 .findFirst();
+    }
+
+    public Optional<List<ConsensusMessage>> getValidCommitQuorumMessages(int instance, int round) {
+        if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
+            return Optional.empty();
+
+        HashMap<Block, Integer> frequency = new HashMap<>();
+        bucket.get(instance).get(round).values().forEach(message -> {
+            Block value = (Block) message.getValue();
+            frequency.put(value, frequency.getOrDefault(value, 0) + 1);
+        });
+
+        frequency
     }
 }

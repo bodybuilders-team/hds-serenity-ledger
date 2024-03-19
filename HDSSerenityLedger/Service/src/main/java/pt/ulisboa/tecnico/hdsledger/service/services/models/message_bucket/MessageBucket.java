@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket;
 
+import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 
 import java.util.Map;
@@ -13,7 +14,7 @@ public abstract class MessageBucket {
     protected final int quorumSize;
 
     // Instance -> Round -> Sender ID -> Consensus message
-    protected final Map<Integer, Map<Integer, Map<String, ConsensusMessage>>> bucket = new ConcurrentHashMap<>();
+    protected final Map<Integer, Map<Integer, Map<String, SignedPacket>>> bucket = new ConcurrentHashMap<>();
 
     protected MessageBucket(int nodeCount) {
         int f = Math.floorDiv(nodeCount - 1, 3);
