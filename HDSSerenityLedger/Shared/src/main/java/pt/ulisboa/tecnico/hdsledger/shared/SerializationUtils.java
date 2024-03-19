@@ -3,6 +3,8 @@ package pt.ulisboa.tecnico.hdsledger.shared;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.Getter;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.MessageDeserializer;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessageDeserializer;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
@@ -14,6 +16,7 @@ public class SerializationUtils {
     private static final Gson gson = new GsonBuilder()
             .registerTypeAdapter(SignedLedgerRequest.class, new SignedLedgerRequestDeserializer())
             .registerTypeAdapter(ConsensusMessage.class, new ConsensusMessageDeserializer())
+            .registerTypeAdapter(Message.class, new MessageDeserializer())
             .create();
 
     private SerializationUtils() {

@@ -28,11 +28,10 @@ public class ClientLibrary implements UDPService {
     private final ClientProcessConfig clientConfig;
     private final ClientProcessConfig[] clientsConfig;
     private final ProcessLogger logger;
-    private AuthenticatedPerfectLink authenticatedPerfectLink;
-
     private final AtomicLong requestIdCounter = new AtomicLong(0);
     // Response ID -> Sender ID -> Message
     private final Map<Long, Map<String, LedgerResponse>> ledgerResponses = new ConcurrentHashMap<>();
+    private AuthenticatedPerfectLink authenticatedPerfectLink;
     private int quorumSize;
 
     public ClientLibrary(ClientProcessConfig clientConfig, ServerProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {

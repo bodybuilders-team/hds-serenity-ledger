@@ -9,7 +9,6 @@ import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
@@ -160,6 +159,7 @@ public class AuthenticatedPerfectLink {
 
                 byte[] signature = CryptoUtils.sign(message, keyPair.getPrivate());
                 SignedMessage signedMessage = new SignedMessage(message, signature);
+
                 byte[] dataToSend = SerializationUtils.getGson().toJson(signedMessage).getBytes();
 
                 // Send message to local queue instead of using network if destination in self
@@ -218,8 +218,6 @@ public class AuthenticatedPerfectLink {
     public SignedMessage receive() throws IOException {
         SignedMessage signedMessage = null;
         Message message;
-        SignedPacket signedPacket = null;
-        String serializedMessage = "";
         boolean local = false;
         DatagramPacket response = null;
         Gson gson = SerializationUtils.getGson();
@@ -235,9 +233,8 @@ public class AuthenticatedPerfectLink {
             socket.receive(response);
 
             byte[] buffer = Arrays.copyOfRange(response.getData(), 0, response.getLength());
-            signedPacket = SerializationUtils.deserialize(buffer, SignedPacket.class);
-            serializedMessage = new String(signedPacket.getData());
-            message = gson.fromJson(serializedMessage, Message.class);
+            signedMessage = SerializationUtils.deserialize(buffer, SignedMessage.class);
+            message = signedMessage.getMessage();
         }
 
         String senderId = message.getSenderId();
@@ -246,22 +243,16 @@ public class AuthenticatedPerfectLink {
         if (!nodes.containsKey(senderId))
             throw new HDSSException(ErrorMessage.NoSuchNode);
 
-        // Check if the message is a client request using the type.isClientResponse()...
-        final var messageClass = message.getType().getClassType();
-
         // Validate signature
-        if (signedPacket != null) {
+        if (signedMessage != null) {
             PublicKey publicKey = CryptoUtils.getPublicKey(nodes.get(senderId).getPublicKeyPath());
 
-            boolean validSignature = CryptoUtils.verify(signedPacket.getData(), signedPacket.getSignature(), publicKey);
+            var data = SerializationUtils.serializeToBytes(signedMessage.getMessage());
+
+            boolean validSignature = CryptoUtils.verify(data, signedMessage.getSignature(), publicKey);
             if (!validSignature) {
                 throw new HDSSException(ErrorMessage.InvalidSignatureError);
             }
-        }
-
-        // It's not an ACK -> Deserialize for the correct type
-        if (!local && message.getType().equals(Type.ACK)) {
-            message = gson.fromJson(serializedMessage, messageClass);
         }
 
         if (message.getType() != Type.ACK || ENABLE_ACK_LOGGING) {

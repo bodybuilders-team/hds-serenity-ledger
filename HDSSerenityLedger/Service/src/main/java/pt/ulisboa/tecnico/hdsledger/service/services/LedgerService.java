@@ -94,6 +94,7 @@ public class LedgerService implements UDPService {
 
             final LedgerResponse response = LedgerResponse.builder()
                     .senderId(nodeService.getConfig().getId())
+                    .originalRequestId(request.getLedgerRequest().getRequestId())
                     .type(Message.Type.BALANCE_RESPONSE)
                     .message(String.valueOf(balance))
                     .build();

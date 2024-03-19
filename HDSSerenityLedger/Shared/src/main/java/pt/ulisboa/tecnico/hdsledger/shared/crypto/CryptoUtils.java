@@ -39,15 +39,15 @@ public class CryptoUtils {
         // Empty constructor
     }
 
-    public static boolean verifySignature(Object object, String id, byte[] signature, ClientProcessConfig[] clientsConfig){
-            final var clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(id)).findAny().orElse(null);
-            if (clientConfig == null)
-                return false;
+    public static boolean verifySignature(Object object, String id, byte[] signature, ClientProcessConfig[] clientsConfig) {
+        final var clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(id)).findAny().orElse(null);
+        if (clientConfig == null)
+            return false;
 
-            var publicKey = CryptoUtils.getPublicKey(clientConfig.getPublicKeyPath());
-            final var serializedTransferRequest = SerializationUtils.serialize(object);
+        var publicKey = CryptoUtils.getPublicKey(clientConfig.getPublicKeyPath());
+        final var serializedTransferRequest = SerializationUtils.serialize(object);
 
-            return CryptoUtils.verify(serializedTransferRequest.getBytes(), signature, publicKey);
+        return CryptoUtils.verify(serializedTransferRequest.getBytes(), signature, publicKey);
 
     }
 
