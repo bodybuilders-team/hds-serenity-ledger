@@ -27,7 +27,7 @@ public class LedgerService implements UDPService {
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
     private final int accumulationThreshold = 1;
-    private List<SignedLedgerRequest> accumulatedMessages = new ArrayList<>();
+    private final List<SignedLedgerRequest> accumulatedMessages = new ArrayList<>();
 
     public LedgerService(
             AuthenticatedPerfectLink authenticatedPerfectLink,
@@ -62,7 +62,7 @@ public class LedgerService implements UDPService {
                     .senderId(nodeService.getConfig().getId())
                     .type(Message.Type.TRANSFER_RESPONSE)
                     .originalRequestId(request.getLedgerRequest().getRequestId())
-                    .message(MessageFormat.format("Transfer of {0} HDS² from {1} to {2} was successful",
+                    .message(MessageFormat.format("Received transfer request. Will try to transfer the amount of {0} HDS² from {1} to {2}",
                             transferRequest.getAmount(),
                             transferRequest.getSourceAccountId(),
                             transferRequest.getDestinationAccountId()))

@@ -62,7 +62,7 @@ public class AuthenticatedPerfectLink {
     public AuthenticatedPerfectLink(
             ProcessConfig self, int port, ProcessConfig[] nodes, boolean activateLogs
     ) {
-        this(self, port, nodes, activateLogs, 200);
+        this(self, port, nodes, activateLogs, 1000);
     }
 
     public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes,
@@ -99,7 +99,8 @@ public class AuthenticatedPerfectLink {
      * @param data The message to be broadcast
      */
     public void broadcast(Message data) {
-        Gson gson = SerializationUtils.getGson();
+        if (data.getType() != Type.ACK)
+            data.setMessageId(-1);
 
         logger.info(MessageFormat.format("Broadcasting {0}", data));
 
@@ -133,6 +134,7 @@ public class AuthenticatedPerfectLink {
      * @param message The message to be sent
      */
     public void send(String nodeId, Message message) {
+        final Message localMessage = message.deepCopy();
         // Spawn a new thread to send the message
         // To avoid blocking while waiting for ACK
         new Thread(() -> {
@@ -141,8 +143,8 @@ public class AuthenticatedPerfectLink {
                 if (node == null)
                     throw new HDSSException(ErrorMessage.NoSuchNode);
 
-                if (message.getType() != Type.ACK)
-                    message.setMessageId(messageCounter.getAndIncrement());
+                if (localMessage.getType() != Type.ACK)
+                    localMessage.setMessageId(messageCounter.getAndIncrement());
 
                 // If the message is not ACK, it will be resent
                 InetAddress destAddress = InetAddress.getByName(node.getHostname());
@@ -154,11 +156,11 @@ public class AuthenticatedPerfectLink {
                         : node.getPort();
 
                 int count = 1;
-                int messageId = message.getMessageId();
+                int messageId = localMessage.getMessageId();
                 long sleepTime = BASE_SLEEP_TIME;
 
-                byte[] signature = CryptoUtils.sign(message, keyPair.getPrivate());
-                SignedMessage signedMessage = new SignedMessage(message, signature);
+                byte[] signature = CryptoUtils.sign(localMessage, keyPair.getPrivate());
+                SignedMessage signedMessage = new SignedMessage(localMessage, signature);
 
                 byte[] dataToSend = SerializationUtils.getGson().toJson(signedMessage).getBytes();
 
@@ -166,13 +168,13 @@ public class AuthenticatedPerfectLink {
                 if (nodeId.equals(this.config.getId())) {
                     this.localhostQueue.add(signedMessage);
 
-                    logger.info(MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m with message ID {1} successfully", message, messageId));
+                    logger.info(MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m successfully", localMessage));
 
                     return;
                 }
 
                 for (; ; ) {
-                    logger.info(MessageFormat.format("Sending {0} to {1}:{2} with message ID {3} - \u001B[36mAttempt #{4}\u001B[37m", message, destAddress, String.valueOf(destPort), messageId, count++));
+                    logger.info(MessageFormat.format("Sending {0} to {1}:{2} - \u001B[36mAttempt #{3}\u001B[37m", localMessage, destAddress, String.valueOf(destPort), count++));
 
                     unreliableSend(destAddress, destPort, dataToSend);
 
@@ -186,7 +188,7 @@ public class AuthenticatedPerfectLink {
                     sleepTime <<= 1;
                 }
 
-                logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully", message, destAddress, String.valueOf(destPort)));
+                logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully", localMessage, destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 e.printStackTrace();
             }
@@ -251,18 +253,19 @@ public class AuthenticatedPerfectLink {
 
             boolean validSignature = CryptoUtils.verify(data, signedMessage.getSignature(), publicKey);
             if (!validSignature) {
+                logger.error(MessageFormat.format("Invalid signature for message {0}", message));
                 throw new HDSSException(ErrorMessage.InvalidSignatureError);
             }
         }
 
         if (message.getType() != Type.ACK || ENABLE_ACK_LOGGING) {
             if (response == null)
-                logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m with message ID {1}",
-                        message, messageId));
+                logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m",
+                        message));
 
             else
-                logger.info(MessageFormat.format("Received {0} from {1}:{2} with message ID {3}",
-                        message, response.getAddress(), String.valueOf(response.getPort()), messageId));
+                logger.info(MessageFormat.format("Received {0} from {1}:{2}",
+                        message, response.getAddress(), String.valueOf(response.getPort())));
         }
 
         // Handle ACKS, since it's possible to receive multiple acks from the same message
@@ -322,8 +325,8 @@ public class AuthenticatedPerfectLink {
 
             if (ENABLE_ACK_LOGGING)
                 logger.info(MessageFormat.format(
-                        "Sending {0} to {1}:{2} with message ID {3}",
-                        responseMessage, address, String.valueOf(port), messageId));
+                        "Sending {0} to {1}:{2}",
+                        responseMessage, address, String.valueOf(port)));
 
             byte[] signature = CryptoUtils.sign(responseMessage, keyPair.getPrivate());
             SignedMessage signedResponseMessage = new SignedMessage(responseMessage, signature);

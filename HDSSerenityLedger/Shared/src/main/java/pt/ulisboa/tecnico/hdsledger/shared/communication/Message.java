@@ -2,8 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerResponse;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 
 @SuperBuilder
-//@ToString(callSuper = true)
 public class Message implements Serializable {
 
     // Sender identifier
@@ -24,7 +23,7 @@ public class Message implements Serializable {
     // Message identifier
     @Getter
     @Setter
-    private int messageId;
+    private int messageId = -1;
     // Message type
     @Getter
     @Setter
@@ -37,6 +36,18 @@ public class Message implements Serializable {
     public Message(String senderId, Type type) {
         this.senderId = senderId;
         this.type = type;
+    }
+
+    /**
+     * Returns a deep copy of this Message object.
+     * <p>
+     * Useful when broadcasting almost identical messages but that will be slightly changed.
+     * e.g. messageId attributed during AuthenticatedPerfectLink.send() method.
+     *
+     * @return the copy Message object
+     */
+    public Message deepCopy() {
+        return SerializationUtils.deserialize(SerializationUtils.serialize(this), this.getClass());
     }
 
     @Override

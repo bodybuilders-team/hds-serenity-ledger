@@ -13,7 +13,6 @@ import java.util.Objects;
 
 @Getter
 @SuperBuilder
-@ToString(callSuper = true)
 public class SignedLedgerRequest extends Message {
     @Setter
     private LedgerRequest ledgerRequest;
@@ -44,19 +43,24 @@ public class SignedLedgerRequest extends Message {
             case Type.TRANSFER -> {
                 LedgerTransferRequest ledgerTransferRequest = (LedgerTransferRequest) this.getLedgerRequest();
 
-                return MessageFormat.format("{0}({1}, \u001B[33m{2} HDS²\u001B[37m, {3}, {4})", this.getType(),
-                        ledgerTransferRequest.getRequestId(),
+                return MessageFormat.format("<{0}(\u001B[33m{1} HDS²\u001B[37m, {2}, {3}), requestId={4}, messageId={5}>",
+                        this.getType(),
                         ledgerTransferRequest.getAmount(),
                         ledgerTransferRequest.getSourceAccountId(),
-                        ledgerTransferRequest.getDestinationAccountId()
+                        ledgerTransferRequest.getDestinationAccountId(),
+                        ledgerTransferRequest.getRequestId(),
+                        this.getMessageId()
                 );
             }
             case Type.BALANCE -> {
                 LedgerCheckBalanceRequest ledgerCheckBalanceRequest = (LedgerCheckBalanceRequest) this.getLedgerRequest();
 
-                return MessageFormat.format("{0}({1}, {2})", this.getType(),
+                return MessageFormat.format("<{0}({1}), requestId={2}, messageId={3}>",
+                        this.getType(),
+                        ledgerCheckBalanceRequest.getAccountId(),
                         ledgerCheckBalanceRequest.getRequestId(),
-                        ledgerCheckBalanceRequest.getAccountId());
+                        this.getMessageId()
+                );
             }
             default -> {
                 return "NO REPRESENTATION";

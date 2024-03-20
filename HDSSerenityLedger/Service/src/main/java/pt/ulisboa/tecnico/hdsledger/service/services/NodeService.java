@@ -151,6 +151,7 @@ public class NodeService implements UDPService {
                     .consensusInstance(localConsensusInstance)
                     .round(STARTING_ROUND)
                     .value(inputValue)
+                    .messageId(-1)
                     .build();
 
             if (nodeIsLeader)
@@ -184,7 +185,7 @@ public class NodeService implements UDPService {
         String senderId = message.getSenderId();
         int senderMessageId = message.getMessageId();
 
-        logger.info(MessageFormat.format("Received {0} from node \u001B[33m{1}\u001B[37m", message, senderId));
+        logger.info(MessageFormat.format("Received {0} from node {1}", message, senderId));
 
         if (!validate(message)) {
             logger.info("Received invalid pre-prepare message. Ignoring... " + message);
@@ -192,7 +193,7 @@ public class NodeService implements UDPService {
         }
 
         if (!isNodeLeader(consensusInstance, round, senderId) || !justifyPrePrepare(consensusInstance, round, value)) {
-            logger.info(MessageFormat.format("Received \u001B[32mPRE-PREPARE\u001B[37m(\u001B[34m{0}\u001B[37m, \u001B[34m{1}\u001B[37m, _) from node \u001B[33m{2}\u001B[37m, but not justified. Replying to acknowledge reception", consensusInstance, round, senderId));
+            logger.info(MessageFormat.format("Received PRE-PREPARE({0}, {1}, _) from node {2}, but not justified. Replying to acknowledge reception", consensusInstance, round, senderId));
 
             // TODO Improve mechanism. Do not send ACK, keep receiving the same pre-prepare message without treating it as duplicate to eventually make the condition true
 
@@ -218,6 +219,7 @@ public class NodeService implements UDPService {
                 .value(value)
                 .replyTo(senderId)
                 .replyToMessageId(senderMessageId)
+                .messageId(-1)
                 .build();
 
         logger.info(MessageFormat.format("PRE-PREPARE is justified. Broadcasting {0}", messageToBroadcast));
@@ -252,6 +254,8 @@ public class NodeService implements UDPService {
             if (instance.getPreparedRound() != -1) {
                 logger.info(MessageFormat.format("Already received quorum of PREPARE for Consensus Instance {0}. Replying with COMMIT to make sure it reaches the initial senders of {1}", consensusInstance, message));
 
+                // TODO Too many commits being sent? Send just to this one sender who is late?
+
                 // TODO Change to normal broadcast instead of sending only to those who sent prepare messages (needs ACK to be sent in all messages, though)
                 prepareMessages.getMessages(consensusInstance, round).values().forEach(senderSignedMessage -> {
                     ConsensusMessage senderMessage = (ConsensusMessage) senderSignedMessage.getMessage();
@@ -280,7 +284,7 @@ public class NodeService implements UDPService {
 
                 // TODO Change to normal broadcast instead of sending only to those who sent prepare messages (needs ACK to be sent in all messages, though)
 
-                logger.info(MessageFormat.format("Received quorum of PREPARE({0}, {1}, \"{2}\"). Broadcasting COMMIT({0}, {1}, \"{2}\")", consensusInstance, round, preparedValue.get()));
+                logger.info(MessageFormat.format("Received quorum of PREPARE({0}, {1}, \u001B[36m{2}\u001B[37m). Broadcasting COMMIT({0}, {1}, \u001B[36m{2}\u001B[37m)", consensusInstance, round, preparedValue.get()));
 
                 prepareMessages.getMessages(consensusInstance, round).values().forEach(senderSignedMessage -> {
                     ConsensusMessage senderMessage = (ConsensusMessage) senderSignedMessage.getMessage();
@@ -331,7 +335,7 @@ public class NodeService implements UDPService {
 
         if (instance == null) {
             // Should never happen because only receives commit as a response to a prepare message
-            logger.error(MessageFormat.format("\u001B[31mCRITICAL:\u001B[37m Received {0} from node {1} \u001B[31mBUT NO INSTANCE INFO\u001B[37m", message, message.getSenderId()));
+            logger.error(MessageFormat.format("\u001B[31mCRITICAL:\u001B[37m Received {0} from node {1}", message, message.getSenderId()));
             return;
         }
 
@@ -351,8 +355,8 @@ public class NodeService implements UDPService {
                 instance.setDecidedRound(round);
                 instance.setDecidedValue(block);
 
-                logger.info(MessageFormat.format("Decided on value \"{0}\" for Consensus Instance {1}, Round {2} successfully", commitValue.get(), consensusInstance, round));
-                logger.info(MessageFormat.format("Appending or waiting to append value \"{0}\" to ledger...", commitValue.get()));
+                logger.info(MessageFormat.format("Decided on block \u001B[36m{0}\u001B[37m for Consensus Instance {1}, Round {2} successfully", commitValue.get(), consensusInstance, round));
+                logger.info(MessageFormat.format("Starting or waiting to append block \u001B[36m{0}\u001B[37m to ledger...", commitValue.get()));
 
                 waitForPreviousConsensus(consensusInstance); // TODO Optimize to not wait in the thread, store a list of consensus values that are to be appended later
 
@@ -374,15 +378,15 @@ public class NodeService implements UDPService {
      * @param block             Block to append
      */
     private void appendToLedger(int consensusInstance, Block block) {
-        logger.info(MessageFormat.format("Appending or waiting to append value \u001B[33m\"{0}\"\u001B[37m to ledger...", block));
+        logger.info(MessageFormat.format("Started to append block \u001B[36m{0}\u001B[37m to ledger...", block));
 
         synchronized (ledger) {
             var added = ledger.addBlock(block);
 
             if (added)
-                logger.info(MessageFormat.format("Appended block \u001B[33m\"{0}\"\u001B[37m to ledger", block));
+                logger.info(MessageFormat.format("Appended block \u001B[36m{0}\u001B[37m to ledger", block));
             else //TODO: What to do if the block is not added (Should not happen in decide)
-                logger.info(MessageFormat.format("Block \u001B[33m\"{0}\"\u001B[37m not added", block));
+                logger.info(MessageFormat.format("Block \u001B[36m{0}\u001B[37m not added", block));
         }
     }
 
@@ -408,7 +412,7 @@ public class NodeService implements UDPService {
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         if (instance == null) {
-            logger.error(MessageFormat.format("\u001B[31mCRITICAL:\u001B[37m Received {0} from node {1} \u001B[31mBUT NO INSTANCE INFO\u001B[37m", message, message.getSenderId()));
+            logger.error(MessageFormat.format("\u001B[31mCRITICAL:\u001B[37m Received {0} from node {1}", message, message.getSenderId()));
             return;
         }
 
@@ -450,6 +454,7 @@ public class NodeService implements UDPService {
                             .round(newRound)
                             .preparedRound(instance.getPreparedRound())
                             .preparedValue(instance.getPreparedValue())
+                            .messageId(-1)
                             .build();
 
                     logger.info(MessageFormat.format("Updated round to {0} for Consensus Instance {1}. Broadcasting {2}", newRound, consensusInstance, messageToBroadcast));
@@ -484,6 +489,7 @@ public class NodeService implements UDPService {
                         .consensusInstance(consensusInstance)
                         .round(round)
                         .value(valueToBroadcast)
+                        .messageId(-1)
                         .build();
 
                 logger.info(MessageFormat.format("Received quorum of ROUND_CHANGE({0}, {1}, _, _). Broadcasting {2}", consensusInstance, round, messageToBroadcast));
@@ -665,6 +671,7 @@ public class NodeService implements UDPService {
                             .round(round)
                             .preparedRound(preparedRound)
                             .preparedValue(preparedValue)
+                            .messageId(-1)
                             .build();
 
                     logger.info(MessageFormat.format("Timer expired for Consensus Instance {0}. Updated round to {1}, triggering round-change. Broadcasting {2}", consensusInstance, round, messageToBroadcast));

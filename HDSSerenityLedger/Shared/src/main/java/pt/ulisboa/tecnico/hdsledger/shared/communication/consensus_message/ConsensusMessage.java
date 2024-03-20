@@ -9,7 +9,6 @@ import java.text.MessageFormat;
 
 @Getter
 @SuperBuilder
-//@ToString(callSuper = true)
 public class ConsensusMessage extends Message {
 
     // Consensus instance
@@ -42,15 +41,22 @@ public class ConsensusMessage extends Message {
     public String toString() {
         switch (this.getType()) {
             case Type.PRE_PREPARE, Type.PREPARE, Type.COMMIT -> {
-                return MessageFormat.format("{0}({1}, {2}, \u001B[36m{3}\u001B[37m)",
+                return MessageFormat.format("<{0}({1}, {2}, \u001B[36m{3}\u001B[37m), messageId={4}>",
                         this.getType(),
-                        this.getConsensusInstance(), this.getRound(),
-                        this.getValue().hashCode());
+                        this.getConsensusInstance(),
+                        this.getRound(),
+                        this.getValue(),
+                        this.getMessageId()
+                );
             }
             case Type.ROUND_CHANGE -> {
-                return MessageFormat.format("ROUND-CHANGE({0}, {1}, {2}, \u001B[36m{3}\u001B[37m)",
-                        this.getConsensusInstance(), this.getRound(), this.getPreparedRound(),
-                        this.getPreparedValue() != null ? this.getPreparedValue().hashCode() : "null");
+                return MessageFormat.format("<ROUND-CHANGE({0}, {1}, {2}, \u001B[36m{3}\u001B[37m), messageId={4}>",
+                        this.getConsensusInstance(),
+                        this.getRound(),
+                        this.getPreparedRound(),
+                        this.getPreparedValue() != null ? this.getPreparedValue() : "null",
+                        this.getMessageId()
+                );
             }
             default -> {
                 return "NO REPRESENTATION";

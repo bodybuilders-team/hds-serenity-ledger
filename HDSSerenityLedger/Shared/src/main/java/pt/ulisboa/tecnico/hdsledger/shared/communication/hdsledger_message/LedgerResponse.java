@@ -20,10 +20,11 @@ public class LedgerResponse extends Message {
     public String toString() {
         switch (this.getType()) {
             case Type.TRANSFER_RESPONSE, Type.BALANCE_RESPONSE -> {
-                return MessageFormat.format("{0}({1}, \"{2}\")",
+                return MessageFormat.format("<{0}({1}, \"{2}\"), messageId={3}>",
                         this.getType(),
                         this.getOriginalRequestId(),
-                        this.getMessage()
+                        this.getMessage(),
+                        this.getMessageId()
                 );
             }
             default -> {

@@ -112,12 +112,12 @@ class CustomLog extends Formatter {
         }
         String originalMessage = record.getMessage();
 
-        Pattern enclosingEscapeColorPattern = Pattern.compile("(\\u001B\\[[0-9]+(;[0-9]+)?m){1}.*?(\\u001B\\[37m){1}");
-        Pattern escapeColorPattern = Pattern.compile("\\u001B\\[[0-9]+(;[0-9]+)?m");
+        Pattern enclosingEscapeColorPattern = Pattern.compile("((\\u001B\\[[0-9]+(;[0-9]+)?m){1}.*?(\\u001B\\[37m){1})");
+        Pattern escapeColorPattern = Pattern.compile("(\\u001B\\[[0-9]+(;[0-9]+)?m)");
 
         // Define regex pattern to capture words and numbers
         //Pattern pattern = Pattern.compile("([a-zA-Z-]+)|([0-9]+)|(\".*\")|(\\u001B\\[[0-9]+(;[0-9]+)?m)");
-        Pattern pattern = Pattern.compile(MessageFormat.format("([a-zA-Z-]+)|([0-9]+)|(\".*\")|{0}", enclosingEscapeColorPattern.pattern()));
+        Pattern pattern = Pattern.compile(MessageFormat.format("(node [0-9a-zA-Z]+)|([a-zA-Z-]+)|([0-9]+)|(\".*\")|{0}", enclosingEscapeColorPattern.pattern()));
         Matcher matcher = pattern.matcher(originalMessage);
 
         StringBuilder formattedMessage = new StringBuilder();
@@ -141,6 +141,8 @@ class CustomLog extends Formatter {
                 word = "\u001B[34m" + word + "\u001B[37m"; // Blue
             } else if (word.matches("\".*\"")) { // Quoted string
                 word = "\u001B[33m" + word + "\u001B[37m"; // Yellow
+            } else if (word.matches("node [0-9a-zA-Z]+")) {
+                word = "node " + "\u001B[33m" + word.substring(5) + "\u001B[37m"; // Yellow
             }
 
             formattedMessage.append(word);
