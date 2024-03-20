@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ClientLibrary implements UDPService {
 
-    private static final boolean LOGS_ENABLED = false;
+    private static final boolean AUTHENTICATED_PERFECT_LINK_LOGS_ENABLED = true;
     private final ClientProcessConfig clientConfig;
     private final ClientProcessConfig[] clientsConfig;
     private final ProcessLogger logger;
@@ -44,7 +44,7 @@ public class ClientLibrary implements UDPService {
                     clientConfig,
                     clientConfig.getPort(),
                     nodesConfig,
-                    LOGS_ENABLED
+                    AUTHENTICATED_PERFECT_LINK_LOGS_ENABLED
             );
 
             int f = Math.floorDiv(nodesConfig.length - 1, 3);
@@ -62,7 +62,7 @@ public class ClientLibrary implements UDPService {
      * @param accountId the account id
      */
     public void checkBalance(String accountId) {
-        logger.info(MessageFormat.format("Checking balance of account {0}...", accountId));
+        logger.info(MessageFormat.format("Checking balance of account \u001B[33m{0}\u001B[37m...", accountId));
 
         ClientProcessConfig accountConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(accountId)).findAny().orElse(null);
         if (accountConfig == null) {
@@ -102,7 +102,7 @@ public class ClientLibrary implements UDPService {
      * @param amount               the amount to transfer
      */
     public void transfer(String sourceAccountId, String destinationAccountId, int amount) {
-        logger.info(MessageFormat.format("Transferring \u001B[33m{0}\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
+        logger.info(MessageFormat.format("Transferring \u001B[33m{0} HDS²\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
 
         try {
             final var transferRequest = LedgerTransferRequest.builder()
@@ -170,8 +170,12 @@ public class ClientLibrary implements UDPService {
         if (requestIdBalanceResponses.size() != quorumSize)
             return;
 
-        logger.info(MessageFormat.format("Received {0} response: \"{1}\" for request ID \"{2}\"",
-                ledgerResponse.getType(),
+        logger.info(MessageFormat.format("Received {0} response: \"{1}\" for request ID {2}",
+                switch (ledgerResponse.getType()) {
+                    case BALANCE_RESPONSE -> "balance";
+                    case TRANSFER_RESPONSE -> "transfer";
+                    default -> "unknown";
+                },
                 ledgerResponse.getMessage(),
                 ledgerResponse.getOriginalRequestId()));
     }

@@ -70,6 +70,17 @@ public class Message implements Serializable {
             return Arrays.asList(BALANCE_RESPONSE, TRANSFER_RESPONSE);
         }
 
+        @Override
+        public String toString() {
+            return switch (this) {
+                case PRE_PREPARE -> "PRE-PREPARE";
+                case ROUND_CHANGE -> "ROUND-CHANGE";
+                case BALANCE_RESPONSE -> "BALANCE-RESPONSE";
+                case TRANSFER_RESPONSE -> "TRANSFER-RESPONSE";
+                default -> super.toString();
+            };
+        }
+
         public Class<? extends Message> getClassType() {
             final Class<? extends Message> clazz;
 

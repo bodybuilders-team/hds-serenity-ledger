@@ -226,7 +226,7 @@ public class AuthenticatedPerfectLink {
             signedMessage = this.localhostQueue.poll();
             message = signedMessage.getMessage();
             local = true;
-            this.receivedAcks.add(signedMessage.getMessage().getMessageId());
+            this.receivedAcks.add(message.getMessageId());
         } else {
             byte[] buf = new byte[65536];
             response = new DatagramPacket(buf, buf.length);
@@ -285,8 +285,8 @@ public class AuthenticatedPerfectLink {
             }
             case IGNORE -> {
                 if (!originalType.equals(Type.COMMIT) && !originalType.equals(Type.ROUND_CHANGE)) {
-                    logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID {0} from node {1}",
-                            message.getMessageId(), message.getSenderId()));
+                    /*logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID {0} from node {1}",
+                            message.getMessageId(), message.getSenderId()));*/
                     return signedMessage;
                 }
             }

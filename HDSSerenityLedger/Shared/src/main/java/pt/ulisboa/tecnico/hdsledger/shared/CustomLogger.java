@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.shared;
 
+import java.text.MessageFormat;
 import java.util.Set;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
@@ -17,7 +18,7 @@ import java.util.regex.Pattern;
 public class CustomLogger {
 
     private static Logger logger;
-    private static boolean ENABLE_COLOR_PARSING = false;
+    private static boolean ENABLE_COLOR_PARSING = true;
     private boolean enabled = true;
 
     /**
@@ -89,7 +90,7 @@ class CustomLog extends Formatter {
 
     static Set<String> greenWords = Set.of(
             "PREPARE", "COMMIT", "PRE-PREPARE", "ROUND-CHANGE",
-            "APPEND", "APPEND_RESPONSE", "READ", "READ_RESPONSE",
+            "TRANSFER", "TRANSFER-RESPONSE", "BALANCE", "BALANCE-RESPONSE",
             "ACK"
     );
     private final boolean enableColorParsing;
@@ -111,8 +112,12 @@ class CustomLog extends Formatter {
         }
         String originalMessage = record.getMessage();
 
+        Pattern enclosingEscapeColorPattern = Pattern.compile("(\\u001B\\[[0-9]+(;[0-9]+)?m){1}.*?(\\u001B\\[37m){1}");
+        Pattern escapeColorPattern = Pattern.compile("\\u001B\\[[0-9]+(;[0-9]+)?m");
+
         // Define regex pattern to capture words and numbers
-        Pattern pattern = Pattern.compile("([a-zA-Z-]+)|([0-9]+)|(\".*\")|(\\u001B\\[[0-9]+(;[0-9]+)?m)");
+        //Pattern pattern = Pattern.compile("([a-zA-Z-]+)|([0-9]+)|(\".*\")|(\\u001B\\[[0-9]+(;[0-9]+)?m)");
+        Pattern pattern = Pattern.compile(MessageFormat.format("([a-zA-Z-]+)|([0-9]+)|(\".*\")|{0}", enclosingEscapeColorPattern.pattern()));
         Matcher matcher = pattern.matcher(originalMessage);
 
         StringBuilder formattedMessage = new StringBuilder();

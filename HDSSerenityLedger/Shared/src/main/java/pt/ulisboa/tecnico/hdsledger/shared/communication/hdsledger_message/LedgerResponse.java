@@ -2,12 +2,12 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 
+import java.text.MessageFormat;
+
 @SuperBuilder
-@ToString(callSuper = true)
 public class LedgerResponse extends Message {
     @Getter
     @Setter
@@ -15,4 +15,20 @@ public class LedgerResponse extends Message {
 
     @Getter
     private String message;
+
+    @Override
+    public String toString() {
+        switch (this.getType()) {
+            case Type.TRANSFER_RESPONSE, Type.BALANCE_RESPONSE -> {
+                return MessageFormat.format("{0}({1}, \"{2}\")",
+                        this.getType(),
+                        this.getOriginalRequestId(),
+                        this.getMessage()
+                );
+            }
+            default -> {
+                return "NO REPRESENTATION";
+            }
+        }
+    }
 }

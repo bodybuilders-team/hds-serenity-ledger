@@ -7,6 +7,7 @@ import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -34,6 +35,32 @@ public class SignedLedgerRequest extends Message {
                 return ledgerCheckBalanceRequest.verifySignature(this.signature, clientsConfig);
             }
             default -> throw new IllegalStateException("Unexpected value: " + this.ledgerRequest);
+        }
+    }
+
+    @Override
+    public String toString() {
+        switch (this.getType()) {
+            case Type.TRANSFER -> {
+                LedgerTransferRequest ledgerTransferRequest = (LedgerTransferRequest) this.getLedgerRequest();
+
+                return MessageFormat.format("{0}({1}, \u001B[33m{2} HDS²\u001B[37m, {3}, {4})", this.getType(),
+                        ledgerTransferRequest.getRequestId(),
+                        ledgerTransferRequest.getAmount(),
+                        ledgerTransferRequest.getSourceAccountId(),
+                        ledgerTransferRequest.getDestinationAccountId()
+                );
+            }
+            case Type.BALANCE -> {
+                LedgerCheckBalanceRequest ledgerCheckBalanceRequest = (LedgerCheckBalanceRequest) this.getLedgerRequest();
+
+                return MessageFormat.format("{0}({1}, {2})", this.getType(),
+                        ledgerCheckBalanceRequest.getRequestId(),
+                        ledgerCheckBalanceRequest.getAccountId());
+            }
+            default -> {
+                return "NO REPRESENTATION";
+            }
         }
     }
 

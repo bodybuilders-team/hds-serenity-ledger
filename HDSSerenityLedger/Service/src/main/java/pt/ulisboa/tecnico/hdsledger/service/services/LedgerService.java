@@ -62,8 +62,10 @@ public class LedgerService implements UDPService {
                     .senderId(nodeService.getConfig().getId())
                     .type(Message.Type.TRANSFER_RESPONSE)
                     .originalRequestId(request.getLedgerRequest().getRequestId())
-                    .message(MessageFormat.format("Transfer from {0} to {1} of {2} was successful",
-                            transferRequest.getSourceAccountId(), transferRequest.getDestinationAccountId(), transferRequest.getAmount()))
+                    .message(MessageFormat.format("Transfer of {0} HDS² from {1} to {2} was successful",
+                            transferRequest.getAmount(),
+                            transferRequest.getSourceAccountId(),
+                            transferRequest.getDestinationAccountId()))
                     .build();
 
             authenticatedPerfectLink.send(request.getSenderId(), response);
@@ -80,7 +82,7 @@ public class LedgerService implements UDPService {
      * @param request the balance request
      */
     public void uponBalance(SignedLedgerRequest request) {
-        logger.info("Received balance request");
+        logger.info(MessageFormat.format("Received balance request: {0}", request));
 
         try {
             if (!request.verifySignature(clientsConfig)) return;
