@@ -1,3 +1,3 @@
-<transfer, 101, 102, 100>
+<transfer, 101, 102, 50>
 <sleep, 3000>
 <balance, 101>

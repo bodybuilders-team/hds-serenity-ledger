@@ -8,6 +8,9 @@ import com.google.gson.JsonParseException;
 
 import java.lang.reflect.Type;
 
+/**
+ * The {@code MessageDeserializer} class is responsible for deserializing a {@code Message} object.
+ */
 public class MessageDeserializer implements JsonDeserializer<Message> {
 
     @Override

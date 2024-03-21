@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 public class CustomLogger {
 
     private static Logger logger;
-    private static boolean ENABLE_COLOR_PARSING = true;
+    private static final boolean ENABLE_COLOR_PARSING = true;
     private boolean enabled = true;
 
     /**
@@ -88,7 +88,7 @@ public class CustomLogger {
  */
 class CustomLog extends Formatter {
 
-    static Set<String> greenWords = Set.of(
+    private static final Set<String> greenWords = Set.of(
             "PREPARE", "COMMIT", "PRE-PREPARE", "ROUND-CHANGE",
             "TRANSFER", "TRANSFER-RESPONSE", "BALANCE", "BALANCE-RESPONSE",
             "ACK"
@@ -116,7 +116,7 @@ class CustomLog extends Formatter {
         Pattern escapeColorPattern = Pattern.compile("(\\u001B\\[[0-9]+(;[0-9]+)?m)");
 
         // Define regex pattern to capture words and numbers
-        //Pattern pattern = Pattern.compile("([a-zA-Z-]+)|([0-9]+)|(\".*\")|(\\u001B\\[[0-9]+(;[0-9]+)?m)");
+        // Pattern pattern = Pattern.compile("([a-zA-Z-]+)|([0-9]+)|(\".*\")|(\\u001B\\[[0-9]+(;[0-9]+)?m)");
         Pattern pattern = Pattern.compile(MessageFormat.format("(node [0-9a-zA-Z]+)|([a-zA-Z-]+)|([0-9]+)|(\".*\")|{0}", enclosingEscapeColorPattern.pattern()));
         Matcher matcher = pattern.matcher(originalMessage);
 

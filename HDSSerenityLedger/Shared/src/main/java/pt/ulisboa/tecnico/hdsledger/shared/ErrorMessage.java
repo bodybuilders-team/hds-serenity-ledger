@@ -1,34 +1,28 @@
 package pt.ulisboa.tecnico.hdsledger.shared;
 
+import lombok.Getter;
+
 /**
  * The {@code ErrorMessage} enum represents different error messages used in the application.
  * Each error message has a corresponding description.
  */
+@Getter
 public enum ErrorMessage {
-    ConfigFileNotFound("The configuration file is not available at the path supplied"),
-    ConfigFileFormat("The configuration file has wrong syntax"),
-    NoSuchNode("Can't send a message to a non existing node"),
-    SocketSendingError("Error while sending message"),
-    KeyPairLoadError("Error while loading key pair"),
-    KeyStoreLoadError("Error while loading keystore"),
-    SignatureError("Error while signing message"),
-    InvalidSignatureError("Invalid signature"),
-    CannotOpenSocket("Error while opening socket"),
-    PublicKeyLoadError("Error while loading public key"),
-    PrivateKeyLoadError("Error while loading private key");
+    CONFIG_FILE_NOT_FOUND("The configuration file is not available at the path supplied"),
+    CONFIG_FILE_FORMAT("The configuration file has wrong syntax"),
+    NO_SUCH_NODE("Can't send a message to a non existing node"),
+    SOCKET_SENDING_ERROR("Error while sending message"),
+    KEY_PAIR_LOAD_ERROR("Error while loading key pair"),
+    SIGNATURE_ERROR("Error while signing message"),
+    INVALID_SIGNATURE_ERROR("Invalid signature"),
+    CANNOT_OPEN_SOCKET("Error while opening socket"),
+    PUBLIC_KEY_LOAD_ERROR("Error while loading public key"),
+    PRIVATE_KEY_LOAD_ERROR("Error while loading private key"),
+    READING_SCRIPT_ERROR("Error while reading script");
 
     private final String message;
 
     ErrorMessage(String message) {
         this.message = message;
-    }
-
-    /**
-     * Returns the error message.
-     *
-     * @return the error message
-     */
-    public String getMessage() {
-        return message;
     }
 }

@@ -10,6 +10,9 @@ import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.lang.reflect.Type;
 
+/**
+ * Deserializer for the ConsensusMessage class.
+ */
 public class ConsensusMessageDeserializer implements JsonDeserializer<ConsensusMessage> {
 
     @Override

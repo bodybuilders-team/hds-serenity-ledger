@@ -11,7 +11,6 @@
     <modules>
         <module>Service</module>
         <module>Shared</module>
-        <module>Communication</module>
         <module>ClientLibrary</module>
         <module>Client</module>
     </modules>

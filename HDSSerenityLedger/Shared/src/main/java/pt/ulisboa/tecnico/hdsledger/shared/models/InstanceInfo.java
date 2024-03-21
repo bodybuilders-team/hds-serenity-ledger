@@ -30,5 +30,4 @@ public class InstanceInfo {
     public boolean alreadyDecided() {
         return decidedRound != -1;
     }
-
 }

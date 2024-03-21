@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.communication;
+package pt.ulisboa.tecnico.hdsledger.shared.communication;
 
 import com.google.gson.Gson;
 import pt.ulisboa.tecnico.hdsledger.shared.CollapsingSet;
@@ -6,13 +6,11 @@ import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
@@ -41,7 +39,7 @@ public class AuthenticatedPerfectLink {
 
     private static final boolean ENABLE_ACK_LOGGING = false;
     // Time to wait for an ACK before resending the message
-    private final long BASE_SLEEP_TIME;
+    private static final long BASE_SLEEP_TIME = 1000;
     // UDP Socket
     private final DatagramSocket socket;
     // Map of all nodes in the network
@@ -59,22 +57,13 @@ public class AuthenticatedPerfectLink {
     private final KeyPair keyPair;
     private final ProcessLogger logger;
 
-    public AuthenticatedPerfectLink(
-            ProcessConfig self, int port, ProcessConfig[] nodes, boolean activateLogs
-    ) {
-        this(self, port, nodes, activateLogs, 1000);
-    }
-
-    public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes,
-                                    boolean activateLogs, int baseSleepTime) {
+    public AuthenticatedPerfectLink(ProcessConfig self, int port, ProcessConfig[] nodes, boolean activateLogs) {
 
         this.keyPair = CryptoUtils.readKeyPair(self.getPrivateKeyPath(), self.getPublicKeyPath());
         this.config = self;
-        this.BASE_SLEEP_TIME = baseSleepTime;
         this.logger = new ProcessLogger(AuthenticatedPerfectLink.class.getName(), self.getId());
-        if (!activateLogs) {
+        if (!activateLogs)
             this.logger.disableLogging();
-        }
 
         Arrays.stream(nodes).forEach(node -> {
             String id = node.getId();
@@ -85,10 +74,15 @@ public class AuthenticatedPerfectLink {
         try {
             this.socket = new DatagramSocket(port, InetAddress.getByName(config.getHostname()));
         } catch (UnknownHostException | SocketException e) {
-            throw new HDSSException(ErrorMessage.CannotOpenSocket);
+            throw new HDSSException(ErrorMessage.CANNOT_OPEN_SOCKET);
         }
     }
 
+    /**
+     * Acknowledges all messages with the given message IDs
+     *
+     * @param messageIds The message IDs to acknowledge
+     */
     public void ackAll(List<Integer> messageIds) {
         receivedAcks.addAll(messageIds);
     }
@@ -116,7 +110,6 @@ public class AuthenticatedPerfectLink {
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
                 final var block = (Block) prePrepareMessage.getValue();
-
                 block.setConsensusInstance((int) (Math.random() * nodes.size()));
 
                 prePrepareMessage.setValue(block);
@@ -141,7 +134,7 @@ public class AuthenticatedPerfectLink {
             try {
                 ProcessConfig node = nodes.get(nodeId);
                 if (node == null)
-                    throw new HDSSException(ErrorMessage.NoSuchNode);
+                    throw new HDSSException(ErrorMessage.NO_SUCH_NODE);
 
                 if (localMessage.getType() != Type.ACK)
                     localMessage.setMessageId(messageCounter.getAndIncrement());
@@ -152,7 +145,7 @@ public class AuthenticatedPerfectLink {
                 // If we're a client, we should send messages to the client socket of the blockchain server
                 // otherwise, we are a server and should send messages to the server socket of the client or to the server socket of the blockchain server
                 int destPort = config instanceof ClientProcessConfig
-                        ? ((ServerProcessConfig) node).getClientPort()
+                        ? ((NodeProcessConfig) node).getClientPort()
                         : node.getPort();
 
                 int count = 1;
@@ -190,7 +183,7 @@ public class AuthenticatedPerfectLink {
 
                 logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully", localMessage, destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
-                e.printStackTrace();
+                logger.error(MessageFormat.format("Error sending message {0} to {1}: {2}", message, nodeId, e.getMessage()));
             }
         }).start();
     }
@@ -207,7 +200,7 @@ public class AuthenticatedPerfectLink {
             try {
                 socket.send(new DatagramPacket(data, data.length, hostname, port));
             } catch (IOException e) {
-                throw new HDSSException(ErrorMessage.SocketSendingError);
+                throw new HDSSException(ErrorMessage.SOCKET_SENDING_ERROR);
             }
         }).start();
     }
@@ -218,7 +211,7 @@ public class AuthenticatedPerfectLink {
      * @return The received message
      */
     public SignedMessage receive() throws IOException {
-        SignedMessage signedMessage = null;
+        SignedMessage signedMessage;
         Message message;
         boolean local = false;
         DatagramPacket response = null;
@@ -243,7 +236,7 @@ public class AuthenticatedPerfectLink {
         int messageId = message.getMessageId();
 
         if (!nodes.containsKey(senderId))
-            throw new HDSSException(ErrorMessage.NoSuchNode);
+            throw new HDSSException(ErrorMessage.NO_SUCH_NODE);
 
         // Validate signature
         if (signedMessage != null) {
@@ -254,18 +247,15 @@ public class AuthenticatedPerfectLink {
             boolean validSignature = CryptoUtils.verify(data, signedMessage.getSignature(), publicKey);
             if (!validSignature) {
                 logger.error(MessageFormat.format("Invalid signature for message {0}", message));
-                throw new HDSSException(ErrorMessage.InvalidSignatureError);
+                throw new HDSSException(ErrorMessage.INVALID_SIGNATURE_ERROR);
             }
         }
 
         if (message.getType() != Type.ACK || ENABLE_ACK_LOGGING) {
             if (response == null)
-                logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m",
-                        message));
-
+                logger.info(MessageFormat.format("Received {0} from \u001B[33mself (locally)\u001B[37m", message));
             else
-                logger.info(MessageFormat.format("Received {0} from {1}:{2}",
-                        message, response.getAddress(), String.valueOf(response.getPort())));
+                logger.info(MessageFormat.format("Received {0} from {1}:{2}", message, response.getAddress(), String.valueOf(response.getPort())));
         }
 
         // Handle ACKS, since it's possible to receive multiple acks from the same message
@@ -278,9 +268,8 @@ public class AuthenticatedPerfectLink {
 
         // Message already received (add returns false if already exists) => Discard
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
-        if (isRepeated) {
+        if (isRepeated)
             message.setType(Type.IGNORE);
-        }
 
         switch (message.getType()) {
             case PRE_PREPARE -> {
@@ -288,8 +277,6 @@ public class AuthenticatedPerfectLink {
             }
             case IGNORE -> {
                 if (!originalType.equals(Type.COMMIT) && !originalType.equals(Type.ROUND_CHANGE)) {
-                    /*logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID {0} from node {1}",
-                            message.getMessageId(), message.getSenderId()));*/
                     return signedMessage;
                 }
             }
@@ -306,6 +293,7 @@ public class AuthenticatedPerfectLink {
                     receivedAcks.add(consensusMessageDto.getReplyToMessageId());
             }
             default -> {
+                // Do nothing
             }
         }
 
@@ -324,9 +312,7 @@ public class AuthenticatedPerfectLink {
             // it will discard duplicates
 
             if (ENABLE_ACK_LOGGING)
-                logger.info(MessageFormat.format(
-                        "Sending {0} to {1}:{2}",
-                        responseMessage, address, String.valueOf(port)));
+                logger.info(MessageFormat.format("Sending {0} to {1}:{2}", responseMessage, address, String.valueOf(port)));
 
             byte[] signature = CryptoUtils.sign(responseMessage, keyPair.getPrivate());
             SignedMessage signedResponseMessage = new SignedMessage(responseMessage, signature);

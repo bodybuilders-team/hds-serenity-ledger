@@ -4,8 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,25 +13,25 @@ import java.util.Objects;
 /**
  * A block in the blockchain.
  */
+@Setter
 @Getter
 @Builder
 @AllArgsConstructor
 public class Block {
 
-    @Setter
     private List<SignedLedgerRequest> requests = new ArrayList<>();
-    @Setter
     private int consensusInstance;
-    @Setter
     private String creatorId;
 
     public Block() {
+        // Empty constructor for serialization
     }
 
-    public static Block fromJson(String json) {
-        return SerializationUtils.getGson().fromJson(json, Block.class);
-    }
-
+    /**
+     * Adds a request to the block.
+     *
+     * @param request the request to add
+     */
     public void addRequest(SignedLedgerRequest request) {
         requests.add(request);
     }
@@ -54,5 +53,4 @@ public class Block {
     public int hashCode() {
         return Objects.hash(consensusInstance, requests);
     }
-
 }

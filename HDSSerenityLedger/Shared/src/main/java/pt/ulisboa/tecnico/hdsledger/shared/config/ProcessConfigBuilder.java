@@ -31,36 +31,36 @@ public class ProcessConfigBuilder {
             Gson gson = SerializationUtils.getGson();
             return gson.fromJson(input, ProcessConfig[].class);
         } catch (FileNotFoundException e) {
-            throw new HDSSException(ErrorMessage.ConfigFileNotFound);
+            throw new HDSSException(ErrorMessage.CONFIG_FILE_NOT_FOUND);
         } catch (IOException | JsonSyntaxException e) {
-            throw new HDSSException(ErrorMessage.ConfigFileFormat);
+            throw new HDSSException(ErrorMessage.CONFIG_FILE_FORMAT);
         }
     }
 
     /**
-     * Returns the instance of ServerProcessConfig, read from a file.
+     * Returns the instance of {@code ServerProcessConfig}, read from a file.
      *
      * @param path The path to the file.
-     * @return The instance of ServerProcessConfig.
+     * @return The instance of {@code ServerProcessConfig}.
      * @throws HDSSException If the file is not found or the format is incorrect.
      */
-    public ServerProcessConfig[] fromFileServer(String path) {
+    public NodeProcessConfig[] fromFileNode(String path) {
         try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(path))) {
             String input = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             Gson gson = SerializationUtils.getGson();
-            return gson.fromJson(input, ServerProcessConfig[].class);
+            return gson.fromJson(input, NodeProcessConfig[].class);
         } catch (FileNotFoundException e) {
-            throw new HDSSException(ErrorMessage.ConfigFileNotFound);
+            throw new HDSSException(ErrorMessage.CONFIG_FILE_NOT_FOUND);
         } catch (IOException | JsonSyntaxException e) {
-            throw new HDSSException(ErrorMessage.ConfigFileFormat);
+            throw new HDSSException(ErrorMessage.CONFIG_FILE_FORMAT);
         }
     }
 
     /**
-     * Returns the instance of ClientProcessConfig, read from a file.
+     * Returns the instance of {@code ClientProcessConfig}, read from a file.
      *
      * @param path The path to the file.
-     * @return The instance of ClientProcessConfig.
+     * @return The instance of {@code ClientProcessConfig}.
      * @throws HDSSException If the file is not found or the format is incorrect.
      */
     public ClientProcessConfig[] fromFileClient(String path) {
@@ -69,9 +69,9 @@ public class ProcessConfigBuilder {
             Gson gson = SerializationUtils.getGson();
             return gson.fromJson(input, ClientProcessConfig[].class);
         } catch (FileNotFoundException e) {
-            throw new HDSSException(ErrorMessage.ConfigFileNotFound);
+            throw new HDSSException(ErrorMessage.CONFIG_FILE_NOT_FOUND);
         } catch (IOException | JsonSyntaxException e) {
-            throw new HDSSException(ErrorMessage.ConfigFileFormat);
+            throw new HDSSException(ErrorMessage.CONFIG_FILE_FORMAT);
         }
     }
 }

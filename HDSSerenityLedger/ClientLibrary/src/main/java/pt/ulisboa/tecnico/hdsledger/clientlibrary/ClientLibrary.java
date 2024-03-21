@@ -1,16 +1,16 @@
 package pt.ulisboa.tecnico.hdsledger.clientlibrary;
 
-import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.service.services.UDPService;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerCheckBalanceRequest;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerResponse;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerCheckBalanceRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerResponse;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTransferRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 
 import java.text.MessageFormat;
@@ -27,18 +27,20 @@ import static pt.ulisboa.tecnico.hdsledger.shared.models.Ledger.FEE;
  */
 public class ClientLibrary implements UDPService {
 
+    private final ProcessLogger logger;
     private static final boolean AUTHENTICATED_PERFECT_LINK_LOGS_ENABLED = true;
+
     private final ClientProcessConfig clientConfig;
     private final ProcessConfig[] clientsConfig;
     private final ProcessConfig[] nodesConfig;
-    private final ProcessLogger logger;
+
     private final AtomicLong requestIdCounter = new AtomicLong(0);
     // Response ID -> Sender ID -> Message
     private final Map<Long, Map<String, LedgerResponse>> ledgerResponses = new ConcurrentHashMap<>();
     private AuthenticatedPerfectLink authenticatedPerfectLink;
     private int quorumSize;
 
-    public ClientLibrary(ClientProcessConfig clientConfig, ServerProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
+    public ClientLibrary(ClientProcessConfig clientConfig, NodeProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
         this.clientConfig = clientConfig;
         this.logger = new ProcessLogger(ClientLibrary.class.getName(), clientConfig.getId());
         this.clientsConfig = clientsConfig;
@@ -56,7 +58,6 @@ public class ClientLibrary implements UDPService {
             this.quorumSize = Math.floorDiv(nodesConfig.length + f, 2) + 1;
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error creating link: {0}", e.getMessage()));
-            e.printStackTrace();
         }
     }
 
@@ -69,9 +70,8 @@ public class ClientLibrary implements UDPService {
     public void checkBalance(String accountId) {
         logger.info(MessageFormat.format("Checking balance of account \u001B[33m{0}\u001B[37m...", accountId));
 
-        ProcessConfig accountConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(accountId)).findAny().orElse(
-                Arrays.stream(nodesConfig).filter(c -> c.getId().equals(accountId)).findAny().orElse(null)
-        );
+        ProcessConfig accountConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(accountId)).findAny()
+                .orElse(Arrays.stream(nodesConfig).filter(c -> c.getId().equals(accountId)).findAny().orElse(null));
         if (accountConfig == null) {
             logger.error(MessageFormat.format("Account {0} not found", accountId));
             return;
@@ -98,7 +98,6 @@ public class ClientLibrary implements UDPService {
             authenticatedPerfectLink.broadcast(request);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
-            e.printStackTrace();
         }
     }
 
@@ -134,7 +133,6 @@ public class ClientLibrary implements UDPService {
             authenticatedPerfectLink.broadcast(signedLedgerRequest);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error sending read: {0}", e.getMessage()));
-            e.printStackTrace();
         }
     }
 
@@ -147,21 +145,17 @@ public class ClientLibrary implements UDPService {
                 try {
                     final var signedMessage = authenticatedPerfectLink.receive();
 
-                    if (!(signedMessage.getMessage() instanceof LedgerResponse ledgerResponse)) {
+                    if (!(signedMessage.getMessage() instanceof LedgerResponse ledgerResponse))
                         continue;
-                    }
 
                     switch (ledgerResponse.getType()) {
-                        case BALANCE_RESPONSE -> handleLedgerResponse(ledgerResponse);
-                        case TRANSFER_RESPONSE -> handleLedgerResponse(ledgerResponse);
+                        case BALANCE_RESPONSE, TRANSFER_RESPONSE -> handleLedgerResponse(ledgerResponse);
                         case IGNORE -> { /* Do nothing */ }
-                        default ->
-                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerResponse.getType()));
+                        default -> logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerResponse.getType()));
                     }
 
                 } catch (Exception e) {
                     logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
-                    e.printStackTrace();
                 }
             }
         }).start();
@@ -186,6 +180,7 @@ public class ClientLibrary implements UDPService {
                     default -> "unknown";
                 },
                 ledgerResponse.getMessage(),
-                ledgerResponse.getOriginalRequestId()));
+                ledgerResponse.getOriginalRequestId())
+        );
     }
 }

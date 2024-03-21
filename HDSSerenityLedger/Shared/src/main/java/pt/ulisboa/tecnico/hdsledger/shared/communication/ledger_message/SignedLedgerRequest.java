@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
+package pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -11,13 +11,15 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Objects;
 
+/**
+ * The {@code SignedLedgerRequest} class represents a signed request that clients submit to the ledger.
+ */
+@Setter
 @Getter
 @SuperBuilder
 public class SignedLedgerRequest extends Message {
-    @Setter
     private LedgerRequest ledgerRequest;
 
-    @Setter
     @ToString.Exclude
     private byte[] signature;
 
@@ -25,6 +27,12 @@ public class SignedLedgerRequest extends Message {
         super(senderId, type);
     }
 
+    /**
+     * Verifies the signature of the request.
+     *
+     * @param clientsConfig the clients configuration
+     * @return true if the signature is valid, false otherwise
+     */
     public boolean verifySignature(ClientProcessConfig[] clientsConfig) {
         switch (this.ledgerRequest) {
             case LedgerTransferRequest ledgerTransferRequest -> {

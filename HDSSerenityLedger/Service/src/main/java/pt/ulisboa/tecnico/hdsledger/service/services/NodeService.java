@@ -1,17 +1,17 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import lombok.Getter;
-import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
-import pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket.CommitMessageBucket;
-import pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket.PrepareMessageBucket;
-import pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket.RoundChangeMessageBucket;
+import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.CommitMessageBucket;
+import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.PrepareMessageBucket;
+import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.RoundChangeMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 import pt.ulisboa.tecnico.hdsledger.shared.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Ledger;
@@ -33,12 +33,11 @@ public class NodeService implements UDPService {
 
     // Expire time for the round-change timer
     private static final long ROUND_CHANGE_TIMER_EXPIRE_TIME = 10000000;
-    // Starting round
     private static final int STARTING_ROUND = 1;
 
     private final ProcessLogger logger;
-    private final ServerProcessConfig[] nodesConfig; // All nodes configuration
-    private final ServerProcessConfig config; // Current node configuration
+    private final NodeProcessConfig[] nodesConfig; // All nodes configuration
+    private final NodeProcessConfig config; // Current node configuration
 
     // Link to communicate with nodes
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
@@ -54,14 +53,10 @@ public class NodeService implements UDPService {
     private final Map<Integer, Map<Integer, Boolean>> receivedRoundChangeQuorum = new ConcurrentHashMap<>();
     // Consensus instance information per consensus instance
     private final Map<Integer, InstanceInfo> instanceInfo = new ConcurrentHashMap<>();
-    // Current consensus instance
+
     private final AtomicInteger currConsensusInstance = new AtomicInteger(0);
-    // Last decided consensus instance
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
-    // Ledger
-    @Getter
-    private final Ledger ledger;
-    private final ClientProcessConfig[] clientsConfig;
+
     // Timers for the consensus instances, triggering round-change
     private final Map<Integer, MultiThreadTimer> timers = new ConcurrentHashMap<>();
     // Lock objects for prepare messages
@@ -73,7 +68,10 @@ public class NodeService implements UDPService {
     // Wait for consensus object
     private final Map<Integer, Object> waitForConsensusObjects = new ConcurrentHashMap<>();
 
-    public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, ServerProcessConfig config, ServerProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
+    @Getter
+    private final Ledger ledger;
+
+    public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, NodeProcessConfig config, NodeProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
         this.authenticatedPerfectLink = authenticatedPerfectLink;
         this.config = config;
         this.nodesConfig = nodesConfig;
@@ -84,9 +82,13 @@ public class NodeService implements UDPService {
 
         this.logger = new ProcessLogger(NodeService.class.getName(), config.getId());
         this.ledger = new Ledger(clientsConfig, nodesConfig);
-        this.clientsConfig = clientsConfig;
     }
 
+    /**
+     * Get the configuration of the node.
+     *
+     * @return The configuration
+     */
     public ProcessConfig getConfig() {
         return this.config;
     }
@@ -241,9 +243,8 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, senderId));
 
-        if (!waitAndValidate(message)) {
+        if (!waitAndValidate(message))
             return;
-        }
 
         prepareMessages.addMessage(signedMessage);
 
@@ -299,6 +300,12 @@ public class NodeService implements UDPService {
         }
     }
 
+    /**
+     * Waits for the previous consensus to be decided and validates the block contained in the message.
+     *
+     * @param message Consensus message
+     * @return True if the block is valid, false otherwise
+     */
     public boolean waitAndValidate(ConsensusMessage message) {
         waitForPreviousConsensus(message.getConsensusInstance());
         final var block = (Block) message.getValue();
@@ -319,9 +326,8 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, message.getSenderId()));
 
-        if (!waitAndValidate(message)) {
+        if (!waitAndValidate(message))
             return;
-        }
 
         commitMessages.addMessage(signedMessage);
 
@@ -397,9 +403,8 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, message.getSenderId()));
 
-        if (!validateRoundChangeMessage(message)) {
+        if (!validateRoundChangeMessage(message))
             return;
-        }
 
         roundChangeMessages.addMessage(signedMessage);
 
@@ -413,15 +418,14 @@ public class NodeService implements UDPService {
         if (instance.alreadyDecided()) {
             logger.info(MessageFormat.format("Received {0} from node {1} but already decided for Consensus Instance {2}, sending the quorum of COMMIT back to sender", message, message.getSenderId(), consensusInstance));
 
-            commitMessages.getValidCommitQuorumMessages(consensusInstance, instance.getDecidedRound()).ifPresent(commitQuorumMessages -> {
-                commitQuorumMessages.forEach(commitQuorumSignedMessage -> {
-                    ConsensusMessage commitQuorumMessage = (ConsensusMessage) commitQuorumSignedMessage.getMessage();
-                    this.authenticatedPerfectLink.send(
-                            commitQuorumMessage.getSenderId(),
-                            commitQuorumMessage
-                    );
-                });
-            });
+            commitMessages.getValidCommitQuorumMessages(consensusInstance, instance.getDecidedRound()).ifPresent(commitQuorumMessages ->
+                    commitQuorumMessages.forEach(commitQuorumSignedMessage -> {
+                        ConsensusMessage commitQuorumMessage = (ConsensusMessage) commitQuorumSignedMessage.getMessage();
+                        this.authenticatedPerfectLink.send(
+                                commitQuorumMessage.getSenderId(),
+                                commitQuorumMessage
+                        );
+                    }));
 
             return;
         }
@@ -474,7 +478,7 @@ public class NodeService implements UDPService {
                 receivedRoundChangeQuorum.get(consensusInstance).putIfAbsent(round, true);
 
                 Block valueToBroadcast = !highestPrepared.get().isNull()
-                        ? highestPrepared.get().getValue()
+                        ? highestPrepared.get().value()
                         : instance.getInputValue();
 
                 ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
@@ -493,6 +497,14 @@ public class NodeService implements UDPService {
         }
     }
 
+    /**
+     * Validate the round change message.
+     * A round change message is valid if the prepared round is less than or equal to the round of the message and
+     * the block contained in the message is valid.
+     *
+     * @param message Consensus message
+     * @return True if the message is valid
+     */
     private boolean validateRoundChangeMessage(ConsensusMessage message) {
         if (message.getPreparedRound() < message.getRound())
             return false;
@@ -525,32 +537,27 @@ public class NodeService implements UDPService {
                                     case ROUND_CHANGE -> uponRoundChange(signedMessage);
 
                                     case ACK -> {
-                                    /*logger.info(MessageFormat.format("Received ACK({0}) from node {1}",
-                                            message.getMessageId(), message.getSenderId()));*/
+                                        /*logger.info(MessageFormat.format("Received ACK({0}) from node {1}", message.getMessageId(), message.getSenderId()));*/
                                     }
 
                                     case IGNORE -> {
-                                    /*logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID {0} from node {1}",
-                                    message.getMessageId(), message.getSenderId()));
-                                    * */
+                                        /*logger.info(MessageFormat.format("\u001B[31mIGNORING\u001B[37m message with ID {0} from node {1}", message.getMessageId(), message.getSenderId()));*/
                                     }
 
                                     default ->
                                             logger.info(MessageFormat.format("Received unknown message from {0}", consensusMessage.getSenderId()));
                                 }
                             } catch (Exception e) {
-                                e.printStackTrace();
+                                logger.error(MessageFormat.format("Error handling message: {0}", e.getMessage()));
                             }
                         }).start();
                     } catch (Exception e) {
                         logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
-                        e.printStackTrace();
                     }
                 }
             }).start();
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error while listening: {0}", e.getMessage()));
-            e.printStackTrace();
         }
     }
 
@@ -579,8 +586,8 @@ public class NodeService implements UDPService {
                 RoundChangeMessageBucket.getHighestPrepared(roundChangeQuorumMessages)
                         .map(highestPrepared ->
                                 prepareMessages
-                                        .hasValidPrepareQuorum(consensusInstance, highestPrepared.getRound())
-                                        .map(value -> highestPrepared.getValue().equals(value))
+                                        .hasValidPrepareQuorum(consensusInstance, highestPrepared.round())
+                                        .map(value -> highestPrepared.value().equals(value))
                                         .orElse(false)
                         ).orElse(false);
 
@@ -623,11 +630,11 @@ public class NodeService implements UDPService {
                 (highestPreparedPair
                         .map(highestPrepared ->
                                 prepareMessages
-                                        .hasValidPrepareQuorum(consensusInstance, highestPrepared.getRound())
-                                        .map(prepareMessageValue -> highestPrepared.getValue().equals(prepareMessageValue))
+                                        .hasValidPrepareQuorum(consensusInstance, highestPrepared.round())
+                                        .map(prepareMessageValue -> highestPrepared.value().equals(prepareMessageValue))
                                         .orElse(false)
                         ).orElse(false) &&
-                        value.equals(highestPreparedPair.get().getValue()));
+                        value.equals(highestPreparedPair.get().value()));
     }
 
     /**
@@ -701,7 +708,7 @@ public class NodeService implements UDPService {
                 try {
                     waitObject.wait();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    logger.error(MessageFormat.format("Error while waiting for previous consensus: {0}", e.getMessage()));
                 }
             }
         }
@@ -717,6 +724,13 @@ public class NodeService implements UDPService {
             this.timer = new Timer();
         }
 
+        /**
+         * Start the timer with a task and a delay.
+         * If the timer is already running, it is stopped and a new one is created.
+         *
+         * @param task  the task to run
+         * @param delay the delay in milliseconds
+         */
         public void startTimer(TimerTask task, long delay) {
             synchronized (this) {
                 this.stopTimer();
@@ -724,6 +738,9 @@ public class NodeService implements UDPService {
             }
         }
 
+        /**
+         * Stop the timer and create a new one.
+         */
         public void stopTimer() {
             synchronized (this) {
                 this.timer.cancel();

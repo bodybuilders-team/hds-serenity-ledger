@@ -1,8 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.shared.config;
 
+import lombok.Getter;
+
 /**
  * Configuration of a client process.
  */
+@Getter
 public class ClientProcessConfig extends ProcessConfig {
     private final String scriptPath;
     private final boolean useScript;
@@ -20,9 +23,5 @@ public class ClientProcessConfig extends ProcessConfig {
         super(id, hostname, port, privateKeyPath, publicKeyPath, behavior);
         this.scriptPath = scriptPath;
         this.useScript = useScript;
-    }
-
-    public String getScriptPath() {
-        return scriptPath;
     }
 }

@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
+package pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -7,15 +7,19 @@ import lombok.experimental.SuperBuilder;
 
 import java.util.Objects;
 
+/**
+ * The {@code LedgerRequest} class represents a request that clients submit to the ledger.
+ */
+@Setter
+@Getter
 @SuperBuilder
 @ToString(callSuper = true)
 public abstract class LedgerRequest {
-    @Getter
-    @Setter
+
     private long requestId;
 
     public LedgerRequest() {
-
+        // Empty constructor for serialization
     }
 
     @Override

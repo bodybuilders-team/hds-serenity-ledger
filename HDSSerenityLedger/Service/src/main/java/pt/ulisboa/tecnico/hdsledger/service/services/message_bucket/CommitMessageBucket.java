@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.service.services.models.message_bucket;
+package pt.ulisboa.tecnico.hdsledger.service.services.message_bucket;
 
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
@@ -45,6 +45,13 @@ public class CommitMessageBucket extends MessageBucket {
                 .findFirst();
     }
 
+    /**
+     * Get the messages for a given instance and round.
+     *
+     * @param instance The consensus instance
+     * @param round    The round
+     * @return The messages
+     */
     public Optional<List<SignedMessage>> getValidCommitQuorumMessages(int instance, int round) {
         if (!bucket.containsKey(instance) || !bucket.get(instance).containsKey(round))
             return Optional.empty();

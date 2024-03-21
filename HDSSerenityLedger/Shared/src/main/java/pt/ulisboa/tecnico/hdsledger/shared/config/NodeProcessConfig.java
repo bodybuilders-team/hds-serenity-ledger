@@ -1,13 +1,16 @@
 package pt.ulisboa.tecnico.hdsledger.shared.config;
 
+import lombok.Getter;
+
 /**
  * Configuration of a server process.
  */
-public class ServerProcessConfig extends ProcessConfig {
+@Getter
+public class NodeProcessConfig extends ProcessConfig {
     private final int clientPort; // Receives and sends messages to the clients of the blockchain
     private final int crashTimeout;
 
-    public ServerProcessConfig(
+    public NodeProcessConfig(
             String id,
             String hostname,
             int port,
@@ -22,11 +25,4 @@ public class ServerProcessConfig extends ProcessConfig {
         this.clientPort = clientPort;
     }
 
-    public int getCrashTimeout() {
-        return crashTimeout;
-    }
-
-    public int getClientPort() {
-        return clientPort;
-    }
 }

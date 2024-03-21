@@ -1,14 +1,13 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
-import pt.ulisboa.tecnico.hdsledger.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerCheckBalanceRequest;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerResponse;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerCheckBalanceRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerResponse;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTransferRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Account;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
@@ -21,13 +20,14 @@ import java.util.List;
  */
 public class LedgerService implements UDPService {
 
+    private static final int ACCUMULATION_THRESHOLD = 1;
+
     private final NodeService nodeService;
     private final ProcessLogger logger;
     private final ClientProcessConfig[] clientsConfig; // All clients configuration
 
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
-    private final int accumulationThreshold = 1;
     private final List<SignedLedgerRequest> accumulatedMessages = new ArrayList<>();
 
     public LedgerService(
@@ -74,7 +74,6 @@ public class LedgerService implements UDPService {
             authenticatedPerfectLink.send(request.getSenderId(), response);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error transferring: {0}", e.getMessage()));
-            e.printStackTrace();
         }
     }
 
@@ -110,7 +109,27 @@ public class LedgerService implements UDPService {
             authenticatedPerfectLink.send(request.getSenderId(), response);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error retrieving balance: {0}", e.getMessage()));
-            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Accumulate messages and propose a block if the threshold is reached.
+     *
+     * @param signedLedgerRequest the signed ledger request
+     */
+    private void accumulateOrPropose(SignedLedgerRequest signedLedgerRequest) {
+        accumulatedMessages.add(signedLedgerRequest);
+        if (accumulatedMessages.size() >= ACCUMULATION_THRESHOLD) {
+            var block = new Block();
+            for (var message : accumulatedMessages)
+                block.addRequest(message);
+
+            block.setCreatorId(nodeService.getConfig().getId());
+
+            var proposed = nodeService.startConsensus(block);
+
+            if (proposed)
+                accumulatedMessages.clear();
         }
     }
 
@@ -140,31 +159,14 @@ public class LedgerService implements UDPService {
                                         logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerRequest.getType()));
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            logger.error(MessageFormat.format("Error processing message: {0}", e.getMessage()));
                         }
                     }).start();
 
                 } catch (Exception e) {
                     logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
-                    e.printStackTrace();
                 }
             }
         }).start();
-    }
-
-    private void accumulateOrPropose(SignedLedgerRequest signedLedgerRequest) {
-        accumulatedMessages.add(signedLedgerRequest);
-        if (accumulatedMessages.size() >= accumulationThreshold) {
-            var block = new Block();
-            for (var message : accumulatedMessages)
-                block.addRequest(message);
-
-            block.setCreatorId(nodeService.getConfig().getId());
-
-            var proposed = nodeService.startConsensus(block);
-
-            if (proposed)
-                accumulatedMessages.clear();
-        }
     }
 }

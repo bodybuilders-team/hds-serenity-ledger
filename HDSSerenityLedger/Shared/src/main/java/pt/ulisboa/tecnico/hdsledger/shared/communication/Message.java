@@ -5,32 +5,30 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerResponse;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerResponse;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 
 import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * The {@code Message} class represents a message that is sent between nodes.
+ * <p>
+ * Contains the sender identifier, message identifier (to distinguish messages from the same sender), and the message type.
+ */
+@Setter
+@Getter
 @SuperBuilder
 public class Message implements Serializable {
 
-    // Sender identifier
-    @Getter
-    @Setter
     private String senderId;
-    // Message identifier
-    @Getter
-    @Setter
     private int messageId = -1;
-    // Message type
-    @Getter
-    @Setter
     private Type type;
 
     public Message() {
-
+        // Empty constructor for serialization
     }
 
     public Message(String senderId, Type type) {

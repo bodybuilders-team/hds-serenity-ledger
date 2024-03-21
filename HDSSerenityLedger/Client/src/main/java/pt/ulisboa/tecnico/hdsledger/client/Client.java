@@ -1,10 +1,12 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.ClientLibrary;
+import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfigBuilder;
-import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -39,11 +41,12 @@ public class Client {
         ProcessLogger logger = new ProcessLogger(Client.class.getName(), clientID);
 
         ClientProcessConfig[] clientsConfig = new ProcessConfigBuilder().fromFileClient(clientsConfigPath);
-        ServerProcessConfig[] nodesConfig = new ProcessConfigBuilder().fromFileServer(nodesConfigPath);
+        NodeProcessConfig[] nodesConfig = new ProcessConfigBuilder().fromFileNode(nodesConfigPath);
 
-        clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(clientID)).findAny().get();
-        logger.info(MessageFormat.format("Running at \u001B[34m{0}:{1}\u001B[37m",
-                clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
+        clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(clientID)).findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Client ID not found in the configuration file"));
+
+        logger.info(MessageFormat.format("Running at \u001B[34m{0}:{1}\u001B[37m", clientConfig.getHostname(), String.valueOf(clientConfig.getPort())));
 
         clientLibrary = new ClientLibrary(clientConfig, nodesConfig, clientsConfig);
         clientLibrary.listen();
@@ -64,6 +67,7 @@ public class Client {
         Scanner in = new Scanner(System.in);
 
         while (running) {
+            System.out.print("> ");
             String command = in.nextLine().trim();
             executeCommand(command, false);
         }
@@ -87,7 +91,7 @@ public class Client {
                 executeCommand(command, true);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new HDSSException(ErrorMessage.READING_SCRIPT_ERROR);
         }
     }
 
@@ -160,13 +164,11 @@ public class Client {
     private static void printMenu() {
         System.out.println("""
                 \u001B[33m\u001B[1mAvailable commands:\u001B[21m\u001B[24m
-                    \u001B[32mbalance <account_id>\u001B[0m  Check the balance of an account
-                    \u001B[32mtransfer <source_account_id> <destination_account_id> <amount>\u001B[0m
-                                            Transfer an amount from one account to another (fee is applied)
-                    \u001B[32mexit\u001B[0m                 Exit the client
-                    \u001B[32mhelp\u001B[0m                 Show this help message
+                    \u001B[32mbalance <account_id>\u001B[0m                                             Check the balance of an account
+                    \u001B[32mtransfer <source_account_id> <destination_account_id> <amount>\u001B[0m   Transfer an amount from one account to another (fee is applied)
+                    \u001B[32mexit\u001B[0m                                                             Exit the client
+                    \u001B[32mhelp\u001B[0m                                                             Show this help message
                 """
         );
-        System.out.print("> ");
     }
 }

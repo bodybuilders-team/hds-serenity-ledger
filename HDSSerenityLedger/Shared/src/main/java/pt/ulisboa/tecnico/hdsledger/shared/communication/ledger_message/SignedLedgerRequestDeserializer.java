@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
+package pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -9,6 +9,9 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 
 import java.lang.reflect.Type;
 
+/**
+ * The {@code SignedLedgerRequestDeserializer} class is a custom deserializer for the {@code SignedLedgerRequest} class.
+ */
 public class SignedLedgerRequestDeserializer implements JsonDeserializer<SignedLedgerRequest> {
 
     @Override

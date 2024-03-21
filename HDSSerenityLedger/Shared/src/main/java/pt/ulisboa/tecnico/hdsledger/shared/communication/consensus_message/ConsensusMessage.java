@@ -7,31 +7,23 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 
 import java.text.MessageFormat;
 
+/**
+ * The {@code ConsensusMessage} class represents a message that is used in the IBFT consensus algorithm.
+ */
+@Setter
 @Getter
 @SuperBuilder
 public class ConsensusMessage extends Message {
 
-    // Consensus instance
-    @Setter
     private int consensusInstance;
-    // Round
-    @Setter
     private int round;
-    // Prepared round
-    @Setter
     private int preparedRound;
-    // Prepared value
-    @Setter
     private Object preparedValue;
-    // Who sent the previous message
-    @Setter
-    private String replyTo;
-    // Id of the previous message
-    @Setter
-    private int replyToMessageId;
-    // Value
-    @Setter
     private Object value;
+    // Who sent the previous message
+    private String replyTo;
+    // ID of the previous message
+    private int replyToMessageId;
 
     public ConsensusMessage(String senderId, Type type) {
         super(senderId, type);

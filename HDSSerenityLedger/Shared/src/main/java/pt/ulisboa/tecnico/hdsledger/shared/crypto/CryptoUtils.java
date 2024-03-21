@@ -3,7 +3,6 @@ package pt.ulisboa.tecnico.hdsledger.shared.crypto;
 import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
-import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedPacket;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 
 import java.io.File;
@@ -39,6 +38,15 @@ public class CryptoUtils {
         // Empty constructor
     }
 
+    /**
+     * Verifies the signature of the provided object, using the public key of the client with the specified id.
+     *
+     * @param object        the object to verify
+     * @param id            the id of the client
+     * @param signature     the signature to verify
+     * @param clientsConfig the configuration of the clients
+     * @return {@code true} if the signature is valid, {@code false} otherwise
+     */
     public static boolean verifySignature(Object object, String id, byte[] signature, ClientProcessConfig[] clientsConfig) {
         final var clientConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(id)).findAny().orElse(null);
         if (clientConfig == null)
@@ -63,7 +71,7 @@ public class CryptoUtils {
         final PublicKey publicKey = getPublicKey(publicKeyPath);
         final PrivateKey privateKey = getPrivateKey(privateKeyPath);
         if (publicKey == null || privateKey == null)
-            throw new HDSSException(ErrorMessage.KeyPairLoadError);
+            throw new HDSSException(ErrorMessage.KEY_PAIR_LOAD_ERROR);
 
         return new KeyPair(publicKey, privateKey);
     }
@@ -78,7 +86,7 @@ public class CryptoUtils {
     public static PublicKey getPublicKey(String publicKeyPath) {
         File publicKeyFile = new File(publicKeyPath);
         if (!publicKeyFile.exists())
-            throw new HDSSException(ErrorMessage.PublicKeyLoadError);
+            throw new HDSSException(ErrorMessage.PUBLIC_KEY_LOAD_ERROR);
 
         try {
             byte[] keyBytes = Files.readAllBytes(publicKeyFile.toPath());
@@ -87,7 +95,7 @@ public class CryptoUtils {
             KeyFactory kf = KeyFactory.getInstance(KEY_ALGORITHM);
             return kf.generatePublic(spec);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new HDSSException(ErrorMessage.PublicKeyLoadError);
+            throw new HDSSException(ErrorMessage.PUBLIC_KEY_LOAD_ERROR);
         }
     }
 
@@ -101,7 +109,7 @@ public class CryptoUtils {
     public static PrivateKey getPrivateKey(String privateKeyPath) {
         File privateKeyFile = new File(privateKeyPath);
         if (!privateKeyFile.exists())
-            throw new HDSSException(ErrorMessage.PrivateKeyLoadError);
+            throw new HDSSException(ErrorMessage.PRIVATE_KEY_LOAD_ERROR);
 
         try {
             byte[] keyBytes = Files.readAllBytes(privateKeyFile.toPath());
@@ -110,7 +118,7 @@ public class CryptoUtils {
             KeyFactory kf = KeyFactory.getInstance(KEY_ALGORITHM);
             return kf.generatePrivate(spec);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new HDSSException(ErrorMessage.PrivateKeyLoadError);
+            throw new HDSSException(ErrorMessage.PRIVATE_KEY_LOAD_ERROR);
         }
     }
 
@@ -129,20 +137,20 @@ public class CryptoUtils {
             signature.update(data);
             return signature.sign();
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
-            throw new HDSSException(ErrorMessage.SignatureError);
+            throw new HDSSException(ErrorMessage.SIGNATURE_ERROR);
         }
     }
 
-    public static byte[] sign(Object data, PrivateKey key) {
-        return sign(SerializationUtils.serializeToBytes(data), key);
+    /**
+     * Signs the provided object with the given private key.
+     *
+     * @param object the object to sign
+     * @param key    the private key
+     * @return the signature
+     */
+    public static byte[] sign(Object object, PrivateKey key) {
+        return sign(SerializationUtils.serializeToBytes(object), key);
     }
-
-    public static SignedPacket signPacket(Object data, PrivateKey key) {
-        var serializedData = SerializationUtils.serializeToBytes(data);
-        var sign = sign(serializedData, key);
-        return new SignedPacket(serializedData, sign);
-    }
-
 
     /**
      * Verifies the signature of the provided data using the given public key.
@@ -161,7 +169,7 @@ public class CryptoUtils {
 
             return sig.verify(signature);
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-            throw new HDSSException(ErrorMessage.InvalidSignatureError);
+            throw new HDSSException(ErrorMessage.INVALID_SIGNATURE_ERROR);
         }
     }
 

@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message;
+package pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,6 +7,9 @@ import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 
+/**
+ * The {@code LedgerTransferRequest} class represents a request to transfer money between two accounts.
+ */
 @Getter
 @AllArgsConstructor
 @SuperBuilder
@@ -17,6 +20,14 @@ public class LedgerTransferRequest extends LedgerRequest {
     private final double amount;
     private final double fee;
 
+    /**
+     * Verifies the signature of the request.
+     * A signature is valid if it was signed by the source account.
+     *
+     * @param signature     the signature to verify
+     * @param clientsConfig the clients configuration
+     * @return {@code true} if the signature is valid, {@code false} otherwise
+     */
     public boolean verifySignature(byte[] signature, ClientProcessConfig[] clientsConfig) {
         return CryptoUtils.verifySignature(this, this.getSourceAccountId(), signature, clientsConfig);
     }
