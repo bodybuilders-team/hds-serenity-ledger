@@ -8,6 +8,7 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.Ledge
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Account;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
@@ -50,7 +51,9 @@ public class LedgerService implements UDPService {
         logger.info(MessageFormat.format("Received transfer request: {0}", request));
 
         try {
-            if (!request.verifySignature(clientsConfig)) return;
+            boolean validTransfer = request.verifySignature(clientsConfig);
+            if (!validTransfer)
+                logger.warn("Failed to transfer: signature of the request is not from the source account.");
 
             LedgerTransferRequest transferRequest = (LedgerTransferRequest) request.getLedgerRequest();
 
@@ -62,7 +65,7 @@ public class LedgerService implements UDPService {
                     .senderId(nodeService.getConfig().getId())
                     .type(Message.Type.TRANSFER_RESPONSE)
                     .originalRequestId(request.getLedgerRequest().getRequestId())
-                    .message(MessageFormat.format("Received transfer request. Will try to transfer the amount of {0} HDS² from {1} to {2}",
+                    .message(MessageFormat.format("Received transfer request. Will try to transfer the amount of {0} HDC from {1} to {2}",
                             transferRequest.getAmount(),
                             transferRequest.getSourceAccountId(),
                             transferRequest.getDestinationAccountId()))
@@ -85,12 +88,15 @@ public class LedgerService implements UDPService {
         logger.info(MessageFormat.format("Received balance request: {0}", request));
 
         try {
-            if (!request.verifySignature(clientsConfig)) return;
+            if (!request.verifySignature(clientsConfig)) {
+                logger.warn("Failed to check balance: signature of the request is not from the requester.");
+                return;
+            }
 
             String accountId = ((LedgerCheckBalanceRequest) request.getLedgerRequest()).getAccountId();
 
             Account account = nodeService.getLedger().getAccount(accountId);
-            long balance = account.getBalance();
+            double balance = account.getBalance();
 
             logger.info(MessageFormat.format("Sending balance response: {0}", balance));
 
@@ -150,15 +156,15 @@ public class LedgerService implements UDPService {
         accumulatedMessages.add(signedLedgerRequest);
         if (accumulatedMessages.size() >= accumulationThreshold) {
             var block = new Block();
-            for (var message : accumulatedMessages) {
+            for (var message : accumulatedMessages)
                 block.addRequest(message);
-            }
+
+            block.setCreatorId(nodeService.getConfig().getId());
 
             var proposed = nodeService.startConsensus(block);
 
-            if (proposed) {
+            if (proposed)
                 accumulatedMessages.clear();
-            }
         }
     }
 }

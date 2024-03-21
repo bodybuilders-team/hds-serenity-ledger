@@ -23,6 +23,8 @@ public class Block {
     private List<SignedLedgerRequest> requests = new ArrayList<>();
     @Setter
     private int consensusInstance;
+    @Setter
+    private String creatorId;
 
     public Block() {
     }

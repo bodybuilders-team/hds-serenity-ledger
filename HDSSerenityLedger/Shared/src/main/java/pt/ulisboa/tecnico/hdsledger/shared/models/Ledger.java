@@ -3,22 +3,31 @@ package pt.ulisboa.tecnico.hdsledger.shared.models;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Ledger {
 
+    public static final double FEE = 0.01;
+
     // PublicKey -> Account
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();
     private final ClientProcessConfig[] clientsConfig; // All clients configuration
+    private final ServerProcessConfig[] nodesConfig;
 
-    public Ledger(ClientProcessConfig[] clientsConfig) {
+    public Ledger(ClientProcessConfig[] clientsConfig, ServerProcessConfig[] nodesConfig) {
         this.clientsConfig = clientsConfig;
-        // Initialize the accounts
-        for (var clientConfig : clientsConfig) {
+        this.nodesConfig = nodesConfig;
+
+        // Initialize the client accounts
+        for (var clientConfig : clientsConfig)
             accounts.put(clientConfig.getId(), new Account(clientConfig.getId()));
-        }
+
+        // Initialize the node accounts
+        for (var nodeConfig : nodesConfig)
+            accounts.put(nodeConfig.getId(), new Account(nodeConfig.getId()));
     }
 
     public void addAccount(String publicKey, Account account) {
@@ -36,12 +45,15 @@ public class Ledger {
 
         for (var request : block.getRequests()) {
             if (request.getType() == Type.TRANSFER) {
-                var transferRequest = (LedgerTransferRequest) request.getLedgerRequest();
+                final var transferRequest = (LedgerTransferRequest) request.getLedgerRequest();
 
-                Account sender = accounts.get(transferRequest.getDestinationAccountId());
-                Account receiver = accounts.get(transferRequest.getSourceAccountId());
-                sender.setBalance(sender.getBalance() - transferRequest.getAmount());
-                receiver.setBalance(receiver.getBalance() + transferRequest.getAmount());
+                final Account sender = accounts.get(transferRequest.getSourceAccountId());
+                final Account receiver = accounts.get(transferRequest.getDestinationAccountId());
+                final Account blockCreator = accounts.get(block.getCreatorId());
+
+                sender.subtractBalance(transferRequest.getAmount() + transferRequest.getFee());
+                receiver.addBalance(transferRequest.getAmount());
+                blockCreator.addBalance(transferRequest.getFee());
             }
         }
 
@@ -50,9 +62,8 @@ public class Ledger {
 
     public boolean validateBlock(Block block) {
         for (var request : block.getRequests()) {
-            if (!request.verifySignature(clientsConfig)) {
+            if (!request.verifySignature(clientsConfig))
                 return false;
-            }
 
             if (request.getType() == Type.TRANSFER) {
                 var transferMessage = (LedgerTransferRequest) request.getLedgerRequest();
@@ -60,18 +71,13 @@ public class Ledger {
                 Account sender = accounts.get(transferMessage.getDestinationAccountId());
                 Account receiver = accounts.get(transferMessage.getSourceAccountId());
 
-                if (sender == null || receiver == null) {
+                if (sender == null || receiver == null)
                     return false;
-                }
 
-                if (sender.getBalance() < transferMessage.getAmount()) {
+                if (sender.getBalance() < transferMessage.getAmount())
                     return false;
-                }
-
             }
         }
-
-
         return true;
     }
 }

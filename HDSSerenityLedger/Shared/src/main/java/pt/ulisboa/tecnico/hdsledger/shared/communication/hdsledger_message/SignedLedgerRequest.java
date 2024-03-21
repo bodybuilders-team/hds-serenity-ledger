@@ -43,7 +43,7 @@ public class SignedLedgerRequest extends Message {
             case Type.TRANSFER -> {
                 LedgerTransferRequest ledgerTransferRequest = (LedgerTransferRequest) this.getLedgerRequest();
 
-                return MessageFormat.format("<{0}(\u001B[33m{1} HDS²\u001B[37m, {2}, {3}), requestId={4}, messageId={5}>",
+                return MessageFormat.format("<{0}(\u001B[33m{1} HDC\u001B[37m, {2}, {3}), requestId={4}, messageId={5}>",
                         this.getType(),
                         ledgerTransferRequest.getAmount(),
                         ledgerTransferRequest.getSourceAccountId(),
@@ -55,9 +55,10 @@ public class SignedLedgerRequest extends Message {
             case Type.BALANCE -> {
                 LedgerCheckBalanceRequest ledgerCheckBalanceRequest = (LedgerCheckBalanceRequest) this.getLedgerRequest();
 
-                return MessageFormat.format("<{0}({1}), requestId={2}, messageId={3}>",
+                return MessageFormat.format("<{0}({1}), requesterId={2}, requestId={3}, messageId={4}>",
                         this.getType(),
                         ledgerCheckBalanceRequest.getAccountId(),
+                        ledgerCheckBalanceRequest.getRequesterId(),
                         ledgerCheckBalanceRequest.getRequestId(),
                         this.getMessageId()
                 );

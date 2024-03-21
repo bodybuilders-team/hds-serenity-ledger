@@ -14,8 +14,11 @@ public class LedgerCheckBalanceRequest extends LedgerRequest {
     @Getter
     private final String accountId;
 
+    @Getter
+    private final String requesterId;
+
     public boolean verifySignature(byte[] signature, ClientProcessConfig[] clientsConfig) {
-        return CryptoUtils.verifySignature(this, accountId, signature, clientsConfig);
+        return CryptoUtils.verifySignature(this, requesterId, signature, clientsConfig);
     }
 
 }

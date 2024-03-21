@@ -9,6 +9,7 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.Ledge
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.hdsledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ServerProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 
@@ -19,6 +20,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static pt.ulisboa.tecnico.hdsledger.shared.models.Ledger.FEE;
+
 /**
  * API for the HDSLedger client.
  */
@@ -26,7 +29,8 @@ public class ClientLibrary implements UDPService {
 
     private static final boolean AUTHENTICATED_PERFECT_LINK_LOGS_ENABLED = true;
     private final ClientProcessConfig clientConfig;
-    private final ClientProcessConfig[] clientsConfig;
+    private final ProcessConfig[] clientsConfig;
+    private final ProcessConfig[] nodesConfig;
     private final ProcessLogger logger;
     private final AtomicLong requestIdCounter = new AtomicLong(0);
     // Response ID -> Sender ID -> Message
@@ -38,6 +42,7 @@ public class ClientLibrary implements UDPService {
         this.clientConfig = clientConfig;
         this.logger = new ProcessLogger(ClientLibrary.class.getName(), clientConfig.getId());
         this.clientsConfig = clientsConfig;
+        this.nodesConfig = nodesConfig;
 
         try {
             this.authenticatedPerfectLink = new AuthenticatedPerfectLink(
@@ -64,7 +69,9 @@ public class ClientLibrary implements UDPService {
     public void checkBalance(String accountId) {
         logger.info(MessageFormat.format("Checking balance of account \u001B[33m{0}\u001B[37m...", accountId));
 
-        ClientProcessConfig accountConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(accountId)).findAny().orElse(null);
+        ProcessConfig accountConfig = Arrays.stream(clientsConfig).filter(c -> c.getId().equals(accountId)).findAny().orElse(
+                Arrays.stream(nodesConfig).filter(c -> c.getId().equals(accountId)).findAny().orElse(null)
+        );
         if (accountConfig == null) {
             logger.error(MessageFormat.format("Account {0} not found", accountId));
             return;
@@ -74,6 +81,7 @@ public class ClientLibrary implements UDPService {
             final var ledgerRequest = LedgerCheckBalanceRequest.builder()
                     .requestId(requestIdCounter.getAndIncrement())
                     .accountId(accountId)
+                    .requesterId(clientConfig.getId())
                     .build();
 
             var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());
@@ -101,8 +109,8 @@ public class ClientLibrary implements UDPService {
      * @param destinationAccountId the destination account id
      * @param amount               the amount to transfer
      */
-    public void transfer(String sourceAccountId, String destinationAccountId, int amount) {
-        logger.info(MessageFormat.format("Transferring \u001B[33m{0} HDS²\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
+    public void transfer(String sourceAccountId, String destinationAccountId, double amount) {
+        logger.info(MessageFormat.format("Transferring \u001B[33m{0} HDC\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
 
         try {
             final var transferRequest = LedgerTransferRequest.builder()
@@ -110,6 +118,7 @@ public class ClientLibrary implements UDPService {
                     .sourceAccountId(sourceAccountId)
                     .destinationAccountId(destinationAccountId)
                     .amount(amount)
+                    .fee(amount * FEE)
                     .build();
 
             final var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());

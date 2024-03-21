@@ -83,7 +83,7 @@ public class NodeService implements UDPService {
         this.roundChangeMessages = new RoundChangeMessageBucket(nodesConfig.length);
 
         this.logger = new ProcessLogger(NodeService.class.getName(), config.getId());
-        this.ledger = new Ledger(clientsConfig);
+        this.ledger = new Ledger(clientsConfig, nodesConfig);
         this.clientsConfig = clientsConfig;
     }
 
@@ -187,7 +187,7 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, senderId));
 
-        if (!validate(message)) {
+        if (!waitAndValidate(message)) {
             logger.info("Received invalid pre-prepare message. Ignoring... " + message);
             return;
         }
@@ -241,7 +241,7 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, senderId));
 
-        if (!validate(message)) {
+        if (!waitAndValidate(message)) {
             return;
         }
 
@@ -254,24 +254,18 @@ public class NodeService implements UDPService {
             if (instance.getPreparedRound() != -1) {
                 logger.info(MessageFormat.format("Already received quorum of PREPARE for Consensus Instance {0}. Replying with COMMIT to make sure it reaches the initial senders of {1}", consensusInstance, message));
 
-                // TODO Too many commits being sent? Send just to this one sender who is late?
-
-                // TODO Change to normal broadcast instead of sending only to those who sent prepare messages (needs ACK to be sent in all messages, though)
-                prepareMessages.getMessages(consensusInstance, round).values().forEach(senderSignedMessage -> {
-                    ConsensusMessage senderMessage = (ConsensusMessage) senderSignedMessage.getMessage();
-                    this.authenticatedPerfectLink.send(
-                            senderMessage.getSenderId(),
-                            ConsensusMessage.builder()
-                                    .senderId(config.getId())
-                                    .type(Message.Type.COMMIT)
-                                    .consensusInstance(consensusInstance)
-                                    .round(instance.getPreparedRound())
-                                    .replyTo(senderMessage.getSenderId())
-                                    .replyToMessageId(senderMessage.getMessageId())
-                                    .value(instance.getPreparedValue())
-                                    .build()
-                    );
-                });
+                this.authenticatedPerfectLink.send(
+                        message.getSenderId(),
+                        ConsensusMessage.builder()
+                                .senderId(config.getId())
+                                .type(Message.Type.COMMIT)
+                                .consensusInstance(consensusInstance)
+                                .round(instance.getPreparedRound())
+                                .replyTo(message.getSenderId())
+                                .replyToMessageId(message.getMessageId())
+                                .value(instance.getPreparedValue())
+                                .build()
+                );
 
                 return;
             }
@@ -305,7 +299,7 @@ public class NodeService implements UDPService {
         }
     }
 
-    public boolean validate(ConsensusMessage message) {
+    public boolean waitAndValidate(ConsensusMessage message) {
         waitForPreviousConsensus(message.getConsensusInstance());
         final var block = (Block) message.getValue();
 
@@ -325,7 +319,7 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, message.getSenderId()));
 
-        if (!validate(message)) {
+        if (!waitAndValidate(message)) {
             return;
         }
 
@@ -503,7 +497,7 @@ public class NodeService implements UDPService {
         if (message.getPreparedRound() < message.getRound())
             return false;
 
-        return validate(message);
+        return waitAndValidate(message);
     }
 
     @Override

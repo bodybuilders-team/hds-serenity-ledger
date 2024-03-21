@@ -14,7 +14,8 @@ import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 public class LedgerTransferRequest extends LedgerRequest {
     private final String sourceAccountId;
     private final String destinationAccountId;
-    private final int amount;
+    private final double amount;
+    private final double fee;
 
     public boolean verifySignature(byte[] signature, ClientProcessConfig[] clientsConfig) {
         return CryptoUtils.verifySignature(this, this.getSourceAccountId(), signature, clientsConfig);

@@ -8,14 +8,20 @@ import lombok.Setter;
  */
 @Getter
 public class Account {
-
     private static final int INITIAL_BALANCE = 100;
     private final String ownerId;
     @Setter
-    private long balance = INITIAL_BALANCE;
+    private double balance = INITIAL_BALANCE;
 
     public Account(String ownerId) {
         this.ownerId = ownerId;
     }
 
+    public void addBalance(double amount) {
+        balance += amount;
+    }
+
+    public void subtractBalance(double amount) {
+        balance -= amount;
+    }
 }

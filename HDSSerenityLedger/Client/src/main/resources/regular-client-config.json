@@ -4,6 +4,7 @@
     "hostname": "localhost",
     "port": 4001,
     "scriptPath": "script_sample.txt",
+    "useScript": false,
     "privateKeyPath": "../keypairs/client_1/private_key.der",
     "publicKeyPath": "../keypairs/client_1/public_key.der",
     "behavior": "REGULAR"
