@@ -34,7 +34,7 @@ import java.util.function.Supplier;
 public class NodeService implements UDPService {
 
     // Expire time for the round-change timer
-    private static final long ROUND_CHANGE_TIMER_EXPIRE_TIME = 7000;
+    private static final long ROUND_CHANGE_TIMER_EXPIRE_TIME = 2000;
     private static final int STARTING_ROUND = 1;
 
     private final ProcessLogger logger;
@@ -478,12 +478,14 @@ public class NodeService implements UDPService {
             return;
         }
 
+        handleRoundChangePiggybackJustification(message, consensusInstance);
+
         roundChangeMessages.addMessage(signedMessage);
 
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         if (instance == null) {
-            logger.error(MessageFormat.format("\u001B[31mCRITICAL:\u001B[37m Received {0} from node {1}", message, message.getSenderId()));
+            logger.error(MessageFormat.format("\u001B[31mCRITICAL:\u001B[37m Received {0} from node {1} \u001B[31mBUT NO INSTANCE FOUND\u001B[37m", message, message.getSenderId()));
             return;
         }
 
@@ -492,10 +494,9 @@ public class NodeService implements UDPService {
 
             commitMessages.getValidCommitQuorumMessages(consensusInstance, instance.getDecidedRound()).ifPresent(commitQuorumMessages ->
                     commitQuorumMessages.forEach(commitQuorumSignedMessage -> {
-                        ConsensusMessage commitQuorumMessage = (ConsensusMessage) commitQuorumSignedMessage.getMessage();
-                        this.authenticatedPerfectLinkNode.send(
-                                commitQuorumMessage.getSenderId(),
-                                commitQuorumMessage
+                        this.authenticatedPerfectLinkNode.sendSignedMessage(
+                                message.getSenderId(),
+                                commitQuorumSignedMessage
                         );
                     }));
 
@@ -570,9 +571,30 @@ public class NodeService implements UDPService {
     }
 
     /**
+     * Handles the prepare piggyback messages that are part of the justification of a round change message.
+     *
+     * @param message           The round change message to be justified
+     * @param consensusInstance The consensus instance
+     */
+    private void handleRoundChangePiggybackJustification(ConsensusMessage message, int consensusInstance) {
+        if (message.getPrepareQuorumPiggybackList() == null)
+            return;
+
+        message.getPrepareQuorumPiggybackList().forEach(signedPrepareMessage -> {
+            ConsensusMessage prepareMessage = (ConsensusMessage) signedPrepareMessage.getMessage();
+
+            if (!waitAndValidate(prepareMessage))
+                return;
+
+            if (prepareMessages.getMessages(consensusInstance, prepareMessage.getRound()).get(prepareMessage.getSenderId()) == null)
+                uponPrepare(signedPrepareMessage);
+        });
+    }
+
+    /**
      * Validate the round change message.
-     * A round change message is valid if the prepared round is less than or equal to the round of the message and
-     * the block contained in the message is valid.
+     * A round change message is valid if the prepared round is smaller than the round of the message and
+     * the block contained in the prepared value is valid.
      *
      * @param message Consensus message
      * @return True if the message is valid
@@ -766,6 +788,7 @@ public class NodeService implements UDPService {
                             .round(round)
                             .preparedRound(preparedRound)
                             .preparedValue(preparedValue)
+                            .prepareQuorumPiggybackList(prepareMessages.getValidPrepareQuorumMessages(consensusInstance, preparedRound).orElse(null))
                             .messageId(-1)
                             .build();
 

@@ -125,6 +125,54 @@ public class AuthenticatedPerfectLink {
     }
 
     /**
+     * Sends an already signed message to a specific node with no guarantee of delivery.
+     * @param nodeId The node identifier
+     * @param signedMessage The signed message to be sent
+     */
+    public void sendSignedMessage(String nodeId, SignedMessage signedMessage) {
+        try {
+            ProcessConfig node = nodes.get(nodeId);
+            if (node == null)
+                throw new HDSSException(ErrorMessage.NO_SUCH_NODE);
+
+            // If the message is not ACK, it will be resent
+            InetAddress destAddress = InetAddress.getByName(node.getHostname());
+
+            // If we're a client, we should send messages to the client socket of the blockchain server
+            // otherwise, we are a server and should send messages to the server socket of the client or to the server socket of the blockchain server
+            int destPort = config instanceof ClientProcessConfig
+                    ? ((NodeProcessConfig) node).getClientPort()
+                    : node.getPort();
+
+            // Send message to local queue instead of using network if destination in self
+            if (nodeId.equals(this.config.getId())) {
+                this.localhostQueue.add(signedMessage);
+
+                logger.info(MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m successfully", signedMessage.getMessage()));
+
+                return;
+            }
+
+            byte[] dataToSend = SerializationUtils.getGson().toJson(signedMessage).getBytes();
+
+            // Send message to local queue instead of using network if destination in self
+            if (nodeId.equals(this.config.getId())) {
+                this.localhostQueue.add(signedMessage);
+
+                logger.info(MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m successfully", signedMessage));
+
+                return;
+            }
+
+            unreliableSend(destAddress, destPort, dataToSend);
+
+            logger.info(MessageFormat.format("Sending {0} to {1}:{2}", signedMessage.getMessage(), destAddress, String.valueOf(destPort)));
+        } catch (UnknownHostException e) {
+            logger.error(MessageFormat.format("Error sending signed message {0} to {1}: {2}", signedMessage.getMessage(), nodeId, e.getMessage()));
+        }
+    }
+
+    /**
      * Sends a message to a specific node with guarantee of delivery
      *
      * @param nodeId  The node identifier
@@ -140,9 +188,6 @@ public class AuthenticatedPerfectLink {
                 if (node == null)
                     throw new HDSSException(ErrorMessage.NO_SUCH_NODE);
 
-                if (localMessage.getType() != Type.ACK)
-                    localMessage.setMessageId(messageCounter.getAndIncrement());
-
                 // If the message is not ACK, it will be resent
                 InetAddress destAddress = InetAddress.getByName(node.getHostname());
 
@@ -152,8 +197,11 @@ public class AuthenticatedPerfectLink {
                         ? ((NodeProcessConfig) node).getClientPort()
                         : node.getPort();
 
-                int count = 1;
+                if (localMessage.getType() != Type.ACK)
+                    localMessage.setMessageId(messageCounter.getAndIncrement());
                 int messageId = localMessage.getMessageId();
+
+                int count = 1;
                 long sleepTime = BASE_SLEEP_TIME;
 
                 byte[] signature = CryptoUtils.sign(localMessage, keyPair.getPrivate());
@@ -250,7 +298,10 @@ public class AuthenticatedPerfectLink {
 
             boolean validSignature = CryptoUtils.verify(data, signedMessage.getSignature(), publicKey);
             if (!validSignature) {
-                logger.error(MessageFormat.format("Invalid signature for message {0}", message));
+                if (response == null)
+                    logger.error(MessageFormat.format("Invalid signature for message {0} from \u001B[33mself (locally)\u001B[37m", message));
+                else
+                    logger.error(MessageFormat.format("Invalid signature for message {0} from {1}:{2}", message, response.getAddress(), String.valueOf(response.getPort())));
                 throw new HDSSException(ErrorMessage.INVALID_SIGNATURE_ERROR);
             }
         }

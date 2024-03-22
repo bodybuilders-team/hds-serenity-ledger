@@ -123,6 +123,9 @@ public class Ledger {
      * @return {@code true} if the block is valid, {@code false} otherwise
      */
     public boolean validateBlock(Block block) {
+        if (block == null)
+            return false;
+
         return block.getRequests().stream().allMatch(this::validateRequest);
     }
 
@@ -163,6 +166,3 @@ public class Ledger {
         return Utils.convertWithStream(accounts);
     }
 }
-
-
-

@@ -46,7 +46,7 @@ public class CommitMessageBucket extends MessageBucket {
     }
 
     /**
-     * Get the messages for a given instance and round.
+     * Get the valid commit quorum messages for a given instance and round.
      *
      * @param instance The consensus instance
      * @param round    The round

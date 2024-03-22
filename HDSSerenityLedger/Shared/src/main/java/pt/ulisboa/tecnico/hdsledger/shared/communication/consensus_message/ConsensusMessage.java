@@ -5,9 +5,11 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
 
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.List;
 
 /**
  * The {@code ConsensusMessage} class represents a message that is used in the IBFT consensus algorithm.
@@ -26,6 +28,9 @@ public class ConsensusMessage extends Message {
     private String replyTo;
     // ID of the previous message
     private int replyToMessageId;
+
+    // For round-change messages, piggyback justification of round-change
+    private List<SignedMessage> prepareQuorumPiggybackList;
 
     public ConsensusMessage(String senderId, Type type) {
         super(senderId, type);
@@ -66,7 +71,10 @@ public class ConsensusMessage extends Message {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         ConsensusMessage that = (ConsensusMessage) o;
-        return consensusInstance == that.consensusInstance && round == that.round && preparedRound == that.preparedRound && replyToMessageId == that.replyToMessageId && Objects.equals(preparedValue, that.preparedValue) && Objects.equals(value, that.value) && Objects.equals(replyTo, that.replyTo);
+        return consensusInstance == that.consensusInstance && round == that.round && preparedRound == that.preparedRound
+                && replyToMessageId == that.replyToMessageId && Objects.equals(preparedValue, that.preparedValue)
+                && Objects.equals(value, that.value) && Objects.equals(replyTo, that.replyTo)
+                && Objects.equals(prepareQuorumPiggybackList, that.prepareQuorumPiggybackList);
     }
 
     @Override
