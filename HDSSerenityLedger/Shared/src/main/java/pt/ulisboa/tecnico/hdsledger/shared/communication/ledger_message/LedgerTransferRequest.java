@@ -18,7 +18,6 @@ public class LedgerTransferRequest extends LedgerRequest {
     private final String sourceAccountId;
     private final String destinationAccountId;
     private final double amount;
-    private final double fee;
 
     /**
      * Verifies the signature of the request.

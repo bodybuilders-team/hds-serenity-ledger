@@ -109,7 +109,7 @@ public class AuthenticatedPerfectLink {
             ConsensusMessage prePrepareMessage = (ConsensusMessage) data;
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
-                final var block = (Block) prePrepareMessage.getValue();
+                final var block = prePrepareMessage.getValue();
                 block.setConsensusInstance((int) (Math.random() * nodes.size()));
 
                 prePrepareMessage.setValue(block);

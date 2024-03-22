@@ -32,7 +32,7 @@ public class PrepareMessageBucket extends MessageBucket {
         HashMap<Block, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach(signedMessage -> {
             ConsensusMessage message = (ConsensusMessage) signedMessage.getMessage();
-            Block block = (Block) message.getValue();
+            Block block = message.getValue();
             frequency.put(block, frequency.getOrDefault(block, 0) + 1);
         });
 

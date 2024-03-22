@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The {@code Message} class represents a message that is sent between nodes.
@@ -106,6 +107,19 @@ public class Message implements Serializable {
 
             return clazz;
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Message message = (Message) o;
+        return messageId == message.messageId && Objects.equals(senderId, message.senderId) && type == message.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(senderId, messageId, type);
     }
 }
 

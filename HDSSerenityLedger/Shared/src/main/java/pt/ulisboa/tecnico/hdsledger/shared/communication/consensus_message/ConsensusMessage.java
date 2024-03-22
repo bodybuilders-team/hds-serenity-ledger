@@ -4,8 +4,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.text.MessageFormat;
+import java.util.Objects;
 
 /**
  * The {@code ConsensusMessage} class represents a message that is used in the IBFT consensus algorithm.
@@ -18,8 +20,8 @@ public class ConsensusMessage extends Message {
     private int consensusInstance;
     private int round;
     private int preparedRound;
-    private Object preparedValue;
-    private Object value;
+    private Block preparedValue;
+    private Block value;
     // Who sent the previous message
     private String replyTo;
     // ID of the previous message
@@ -54,6 +56,20 @@ public class ConsensusMessage extends Message {
                 return "NO REPRESENTATION";
             }
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ConsensusMessage that = (ConsensusMessage) o;
+        return consensusInstance == that.consensusInstance && round == that.round && preparedRound == that.preparedRound && replyToMessageId == that.replyToMessageId && Objects.equals(preparedValue, that.preparedValue) && Objects.equals(value, that.value) && Objects.equals(replyTo, that.replyTo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), consensusInstance, round, preparedRound, preparedValue, value, replyTo, replyToMessageId);
     }
 }
 

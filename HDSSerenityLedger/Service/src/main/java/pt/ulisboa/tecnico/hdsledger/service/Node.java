@@ -63,12 +63,13 @@ public class Node {
                 }
             }, crashTimeout);
         }
+        final MessageAccumulator messageAccumulator = new MessageAccumulator(nodeConfig);
 
         // Service to handle the node's logic - consensus
-        NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs, clientConfigs);
+        NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs, clientConfigs, messageAccumulator);
 
         // Service to handle the node's logic - ledger
-        LedgerService ledgerService = new LedgerService(authenticatedPerfectLinkToClients, nodeService, clientConfigs);
+        LedgerService ledgerService = new LedgerService(authenticatedPerfectLinkToClients, nodeService, clientConfigs, messageAccumulator);
 
         nodeService.listen();
         ledgerService.listen();

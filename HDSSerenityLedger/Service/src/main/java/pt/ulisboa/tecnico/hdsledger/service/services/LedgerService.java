@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
+import pt.ulisboa.tecnico.hdsledger.service.MessageAccumulator;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
@@ -12,33 +13,32 @@ import pt.ulisboa.tecnico.hdsledger.shared.models.Account;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Service used to interact with the HDSLedger.
  */
 public class LedgerService implements UDPService {
 
-    private static final int ACCUMULATION_THRESHOLD = 1;
+    private static final int ACCUMULATION_THRESHOLD = 3;
 
     private final NodeService nodeService;
     private final ProcessLogger logger;
     private final ClientProcessConfig[] clientsConfig; // All clients configuration
+    private final MessageAccumulator messageAccum;
 
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
-    private final List<SignedLedgerRequest> accumulatedMessages = new ArrayList<>();
 
     public LedgerService(
             AuthenticatedPerfectLink authenticatedPerfectLink,
             NodeService nodeService,
-            ClientProcessConfig[] clientsConfig
-    ) {
+            ClientProcessConfig[] clientsConfig,
+            MessageAccumulator messageAccum) {
         this.nodeService = nodeService;
         this.authenticatedPerfectLink = authenticatedPerfectLink;
         this.logger = new ProcessLogger(LedgerService.class.getName(), nodeService.getConfig().getId());
         this.clientsConfig = clientsConfig;
+        this.messageAccum = messageAccum;
     }
 
 
@@ -118,19 +118,23 @@ public class LedgerService implements UDPService {
      * @param signedLedgerRequest the signed ledger request
      */
     private void accumulateOrPropose(SignedLedgerRequest signedLedgerRequest) {
-        accumulatedMessages.add(signedLedgerRequest);
-        if (accumulatedMessages.size() >= ACCUMULATION_THRESHOLD) {
-            var block = new Block();
-            for (var message : accumulatedMessages)
-                block.addRequest(message);
+        final Block block;
 
-            block.setCreatorId(nodeService.getConfig().getId());
+        synchronized (messageAccum) {
+            //TODO: validateRequest
 
-            var proposed = nodeService.startConsensus(block);
+            messageAccum.accumulate(signedLedgerRequest);
 
-            if (proposed)
-                accumulatedMessages.clear();
+            // Check if node is leader
+            if (!nodeService.isNextConsensusInstanceLeader()) return;
+
+            block = messageAccum.getBlock(nodeService::startConsensus).orElse(null);
         }
+
+        if (block == null)
+            return;
+
+        nodeService.startConsensus(block);
     }
 
 

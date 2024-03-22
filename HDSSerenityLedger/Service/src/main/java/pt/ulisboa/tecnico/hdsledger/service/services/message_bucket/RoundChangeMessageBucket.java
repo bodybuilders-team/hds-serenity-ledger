@@ -32,7 +32,7 @@ public class RoundChangeMessageBucket extends MessageBucket {
                         ((ConsensusMessage) signedMessage.getMessage()).getPreparedRound()))
                 .map(signedMessage -> {
                     ConsensusMessage message = (ConsensusMessage) signedMessage.getMessage();
-                    return new PreparedRoundValuePair(message.getPreparedRound(), (Block) message.getPreparedValue());
+                    return new PreparedRoundValuePair(message.getPreparedRound(), message.getPreparedValue());
                 });
     }
 

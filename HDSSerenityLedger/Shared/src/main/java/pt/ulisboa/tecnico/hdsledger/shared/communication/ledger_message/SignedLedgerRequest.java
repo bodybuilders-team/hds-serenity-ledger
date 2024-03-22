@@ -81,13 +81,14 @@ public class SignedLedgerRequest extends Message {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
         SignedLedgerRequest that = (SignedLedgerRequest) o;
         return Objects.equals(ledgerRequest, that.ledgerRequest) && Arrays.equals(signature, that.signature);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(ledgerRequest);
+        int result = Objects.hash(super.hashCode(), ledgerRequest);
         result = 31 * result + Arrays.hashCode(signature);
         return result;
     }

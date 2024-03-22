@@ -1,10 +1,15 @@
 package pt.ulisboa.tecnico.hdsledger.shared.models;
 
+import lombok.Getter;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTransferRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,6 +22,10 @@ public class Ledger {
 
     // PublicKey -> Account
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();
+    private final List<Block> blockChain = new ArrayList<>();
+    @Getter
+    private final HashSet<SignedLedgerRequest> requests = new HashSet<>();
+
     private final ClientProcessConfig[] clientsConfig;
 
     public Ledger(ClientProcessConfig[] clientsConfig, NodeProcessConfig[] nodesConfig) {
@@ -28,16 +37,6 @@ public class Ledger {
 
         for (var nodeConfig : nodesConfig)
             accounts.put(nodeConfig.getId(), new Account(nodeConfig.getId()));
-    }
-
-    /**
-     * Adds an account to the ledger.
-     *
-     * @param publicKey the public key of the account
-     * @param account   the account to add
-     */
-    public void addAccount(String publicKey, Account account) {
-        accounts.put(publicKey, account);
     }
 
     /**
@@ -60,7 +59,11 @@ public class Ledger {
         if (!validateBlock(block))
             return false;
 
+        blockChain.add(block);
+
         for (var request : block.getRequests()) {
+            requests.add(request);
+
             if (request.getType() == Type.TRANSFER) {
                 final var transferRequest = (LedgerTransferRequest) request.getLedgerRequest();
 
@@ -68,9 +71,12 @@ public class Ledger {
                 final Account receiver = accounts.get(transferRequest.getDestinationAccountId());
                 final Account blockCreator = accounts.get(block.getCreatorId());
 
-                sender.subtractBalance(transferRequest.getAmount() + transferRequest.getFee());
+                final var fee = transferRequest.getAmount() * FEE;
+
+                sender.subtractBalance(transferRequest.getAmount() + fee);
                 receiver.addBalance(transferRequest.getAmount());
-                blockCreator.addBalance(transferRequest.getFee());
+
+                blockCreator.addBalance(fee);
             }
         }
 
@@ -86,22 +92,34 @@ public class Ledger {
      */
     public boolean validateBlock(Block block) {
         for (var request : block.getRequests()) {
-            if (!request.verifySignature(clientsConfig))
+            if (!validateRequest(request))
+                return false;
+        }
+        return true;
+    }
+
+    private boolean validateRequest(SignedLedgerRequest request) {
+        if (!request.verifySignature(clientsConfig))
+            return false;
+
+        if (requests.contains(request))
+            return false;
+
+        if (request.getType() == Type.TRANSFER) {
+            var transferMessage = (LedgerTransferRequest) request.getLedgerRequest();
+
+            Account sender = accounts.get(transferMessage.getDestinationAccountId());
+            Account receiver = accounts.get(transferMessage.getSourceAccountId());
+
+            if (sender == null || receiver == null)
                 return false;
 
-            if (request.getType() == Type.TRANSFER) {
-                var transferMessage = (LedgerTransferRequest) request.getLedgerRequest();
+            final var fee = transferMessage.getAmount() * FEE;
 
-                Account sender = accounts.get(transferMessage.getDestinationAccountId());
-                Account receiver = accounts.get(transferMessage.getSourceAccountId());
-
-                if (sender == null || receiver == null)
-                    return false;
-
-                if (sender.getBalance() < transferMessage.getAmount() + transferMessage.getFee())
-                    return false;
-            }
+            if (sender.getBalance() < transferMessage.getAmount() + fee)
+                return false;
         }
+
         return true;
     }
 }

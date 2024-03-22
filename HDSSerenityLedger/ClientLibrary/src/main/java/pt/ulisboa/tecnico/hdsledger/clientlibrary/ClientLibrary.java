@@ -117,7 +117,6 @@ public class ClientLibrary implements UDPService {
                     .sourceAccountId(sourceAccountId)
                     .destinationAccountId(destinationAccountId)
                     .amount(amount)
-                    .fee(amount * FEE)
                     .build();
 
             final var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());

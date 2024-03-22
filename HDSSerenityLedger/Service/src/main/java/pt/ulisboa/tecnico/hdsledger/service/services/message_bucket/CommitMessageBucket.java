@@ -35,7 +35,7 @@ public class CommitMessageBucket extends MessageBucket {
         HashMap<Block, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach(signedMessage -> {
             ConsensusMessage message = (ConsensusMessage) signedMessage.getMessage();
-            Block value = (Block) message.getValue();
+            Block value = message.getValue();
             frequency.put(value, frequency.getOrDefault(value, 0) + 1);
         });
 
@@ -60,7 +60,7 @@ public class CommitMessageBucket extends MessageBucket {
 
         bucket.get(instance).get(round).values().forEach(signedMessage -> {
             ConsensusMessage message = (ConsensusMessage) signedMessage.getMessage();
-            Block value = (Block) message.getValue();
+            Block value = message.getValue();
             List<SignedMessage> previousList = messageList.getOrDefault(value, new ArrayList<>());
             previousList.add(signedMessage);
             messageList.put(value, previousList);

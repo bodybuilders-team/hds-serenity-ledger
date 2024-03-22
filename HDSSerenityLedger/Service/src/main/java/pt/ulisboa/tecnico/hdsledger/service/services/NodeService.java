@@ -1,9 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import lombok.Getter;
+import pt.ulisboa.tecnico.hdsledger.service.MessageAccumulator;
 import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.CommitMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.PrepareMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.RoundChangeMessageBucket;
+import pt.ulisboa.tecnico.hdsledger.shared.MultiThreadTimer;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
@@ -21,7 +23,6 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,6 +37,7 @@ public class NodeService implements UDPService {
     private static final int STARTING_ROUND = 1;
 
     private final ProcessLogger logger;
+    private final MessageAccumulator accumulatedMessages;
     private final NodeProcessConfig[] nodesConfig; // All nodes configuration
     private final NodeProcessConfig config; // Current node configuration
 
@@ -71,7 +73,7 @@ public class NodeService implements UDPService {
     @Getter
     private final Ledger ledger;
 
-    public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, NodeProcessConfig config, NodeProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
+    public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, NodeProcessConfig config, NodeProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig, MessageAccumulator accumulatedMessages) {
         this.authenticatedPerfectLink = authenticatedPerfectLink;
         this.config = config;
         this.nodesConfig = nodesConfig;
@@ -81,6 +83,7 @@ public class NodeService implements UDPService {
         this.roundChangeMessages = new RoundChangeMessageBucket(nodesConfig.length);
 
         this.logger = new ProcessLogger(NodeService.class.getName(), config.getId());
+        this.accumulatedMessages = accumulatedMessages;
         this.ledger = new Ledger(clientsConfig, nodesConfig);
     }
 
@@ -136,6 +139,18 @@ public class NodeService implements UDPService {
             return false;
         }
 
+        waitForPreviousConsensus(localConsensusInstance);
+
+        var iterator = inputValue.getRequests().iterator();
+
+        while (iterator.hasNext()) {
+            var request = iterator.next();
+            if (ledger.getRequests().contains(request)) {
+                iterator.remove();
+                logger.info(MessageFormat.format("Request {0} already in ledger, removing from block", request));
+            }
+        }
+
         final var nodeIsLeader = isNodeLeader(localConsensusInstance, STARTING_ROUND, this.config.getId());
 
         // Broadcasts PRE-PREPARE message
@@ -183,7 +198,7 @@ public class NodeService implements UDPService {
         ConsensusMessage message = ((ConsensusMessage) signedMessage.getMessage());
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
-        Block value = (Block) message.getValue();
+        Block value = message.getValue();
         String senderId = message.getSenderId();
         int senderMessageId = message.getMessageId();
 
@@ -238,7 +253,7 @@ public class NodeService implements UDPService {
         ConsensusMessage message = ((ConsensusMessage) signedMessage.getMessage());
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
-        Block block = (Block) message.getValue();
+        Block block = message.getValue();
         String senderId = message.getSenderId();
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, senderId));
@@ -308,7 +323,7 @@ public class NodeService implements UDPService {
      */
     public boolean waitAndValidate(ConsensusMessage message) {
         waitForPreviousConsensus(message.getConsensusInstance());
-        final var block = (Block) message.getValue();
+        final var block = message.getValue();
 
         return ledger.validateBlock(block);
     }
@@ -360,7 +375,7 @@ public class NodeService implements UDPService {
 
                 waitForPreviousConsensus(consensusInstance); // TODO Optimize to not wait in the thread, store a list of consensus values that are to be appended later
 
-                appendToLedger(consensusInstance, block);
+                appendToLedger(block);
 
                 int decidedConsensusInstance = lastDecidedConsensusInstance.incrementAndGet();
                 Object waitObject = waitForConsensusObjects.computeIfAbsent(decidedConsensusInstance, k -> new Object());
@@ -374,19 +389,23 @@ public class NodeService implements UDPService {
     /**
      * Append block to the ledger.
      *
-     * @param consensusInstance Consensus instance
-     * @param block             Block to append
+     * @param block Block to append
      */
-    private void appendToLedger(int consensusInstance, Block block) {
+    private void appendToLedger(Block block) {
         logger.info(MessageFormat.format("Started to append block \u001B[36m{0}\u001B[37m to ledger...", block));
 
-        synchronized (ledger) {
-            var added = ledger.addBlock(block);
+        synchronized (accumulatedMessages) {
+            synchronized (ledger) {
+                var added = ledger.addBlock(block);
 
-            if (added)
-                logger.info(MessageFormat.format("Appended block \u001B[36m{0}\u001B[37m to ledger", block));
-            else //TODO: What to do if the block is not added (Should not happen in decide)
-                logger.info(MessageFormat.format("Block \u001B[36m{0}\u001B[37m not added", block));
+                for (var request : block.getRequests())
+                    accumulatedMessages.remove(request);
+
+                if (added)
+                    logger.info(MessageFormat.format("Appended block \u001B[36m{0}\u001B[37m to ledger", block));
+                else //TODO: What to do if the block is not added (Should not happen in decide)
+                    logger.error(MessageFormat.format("Block \u001B[36m{0}\u001B[37m not added", block));
+            }
         }
     }
 
@@ -579,7 +598,7 @@ public class NodeService implements UDPService {
                     ConsensusMessage consensusMessage = (ConsensusMessage) roundChangeMessage.getMessage();
                     return new PreparedRoundValuePair(
                             consensusMessage.getPreparedRound(),
-                            (Block) consensusMessage.getPreparedValue()
+                            consensusMessage.getPreparedValue()
                     ).isNull();
                 })
                 ||
@@ -623,7 +642,7 @@ public class NodeService implements UDPService {
                     ConsensusMessage consensusMessage = (ConsensusMessage) roundChangeMessage.getMessage();
                     return new PreparedRoundValuePair(
                             consensusMessage.getPreparedRound(),
-                            (Block) consensusMessage.getPreparedValue()
+                            consensusMessage.getPreparedValue()
                     ).isNull();
                 })
                 ||
@@ -714,38 +733,9 @@ public class NodeService implements UDPService {
         }
     }
 
-    /**
-     * Multi-thread timer to handle multiple timers at the same time.
-     */
-    static class MultiThreadTimer {
-        private Timer timer;
-
-        public MultiThreadTimer() {
-            this.timer = new Timer();
-        }
-
-        /**
-         * Start the timer with a task and a delay.
-         * If the timer is already running, it is stopped and a new one is created.
-         *
-         * @param task  the task to run
-         * @param delay the delay in milliseconds
-         */
-        public void startTimer(TimerTask task, long delay) {
-            synchronized (this) {
-                this.stopTimer();
-                this.timer.schedule(task, delay);
-            }
-        }
-
-        /**
-         * Stop the timer and create a new one.
-         */
-        public void stopTimer() {
-            synchronized (this) {
-                this.timer.cancel();
-                this.timer = new Timer();
-            }
-        }
+    public boolean isNextConsensusInstanceLeader() {
+        return isNodeLeader(currConsensusInstance.get() + 1, STARTING_ROUND, config.getId());
     }
+
+
 }

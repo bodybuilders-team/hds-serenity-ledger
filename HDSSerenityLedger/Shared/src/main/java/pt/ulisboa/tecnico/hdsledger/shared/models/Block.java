@@ -41,16 +41,17 @@ public class Block {
         return String.valueOf(this.hashCode());
     }
 
+
     @Override
-    public boolean equals(java.lang.Object o) {
+    public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Block block = (Block) o;
-        return consensusInstance == block.consensusInstance && Objects.equals(requests, block.requests);
+        return consensusInstance == block.consensusInstance && Objects.equals(requests, block.requests) && Objects.equals(creatorId, block.creatorId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(consensusInstance, requests);
+        return Objects.hash(requests, consensusInstance, creatorId);
     }
 }
