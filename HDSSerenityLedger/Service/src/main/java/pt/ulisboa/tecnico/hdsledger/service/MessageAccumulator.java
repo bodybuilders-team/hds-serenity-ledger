@@ -36,7 +36,9 @@ public class MessageAccumulator {
         timer.startTimer(new TimerTask() {
             @Override
             public void run() {
-                onTimerElapsed.accept(g);
+                var block = getBlock();
+
+                block.ifPresent(onTimerElapsed);
             }
         }, DELAY);
 
