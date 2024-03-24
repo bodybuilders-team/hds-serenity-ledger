@@ -19,8 +19,6 @@ import java.text.MessageFormat;
  */
 public class LedgerService implements UDPService {
 
-    private static final int ACCUMULATION_THRESHOLD = 3;
-
     private final NodeService nodeService;
     private final ProcessLogger logger;
     private final ClientProcessConfig[] clientsConfig; // All clients configuration
@@ -124,9 +122,6 @@ public class LedgerService implements UDPService {
             //TODO: validateRequest
 
             messageAccum.accumulate(signedLedgerRequest);
-
-            // Check if node is leader
-            if (!nodeService.isNextConsensusInstanceLeader()) return;
 
             block = messageAccum.getBlock(nodeService::startConsensus).orElse(null);
         }

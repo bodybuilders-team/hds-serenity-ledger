@@ -56,7 +56,7 @@ public class NodeService implements UDPService {
     // Consensus instance information per consensus instance
     private final Map<Integer, InstanceInfo> instanceInfo = new ConcurrentHashMap<>();
 
-    private final AtomicInteger currConsensusInstance = new AtomicInteger(0);
+    private final AtomicInteger lastProposedConsensusInstance = new AtomicInteger(0);
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
 
     // Timers for the consensus instances, triggering round-change
@@ -128,15 +128,15 @@ public class NodeService implements UDPService {
      * Only the current leader will start a consensus instance the remaining nodes only update values.
      *
      * @param inputValue Value to value agreed upon
-     * @return True if proposal was started
      */
-    public boolean startConsensus(Block inputValue) {
-        final var localConsensusInstance = this.currConsensusInstance.incrementAndGet();
+    public void startConsensus(Block inputValue) {
+        final int localConsensusInstance = getNextConsensusInstanceToPropose();
+
         final var existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(inputValue));
 
         if (existingConsensus != null) {
             logger.info(MessageFormat.format("Node already started consensus for instance {0}", localConsensusInstance));
-            return false;
+            return;
         }
 
         waitForPreviousConsensus(localConsensusInstance);
@@ -186,7 +186,24 @@ public class NodeService implements UDPService {
         // Start timer for the consensus instance
         startTimer(localConsensusInstance);
 
-        return nodeIsLeader;
+    }
+
+    /**
+     * Get the next consensus instance to propose.
+     *
+     * @return The next consensus instance to propose
+     */
+    private int getNextConsensusInstanceToPropose() {
+        final int localLastProposedConsensusInstance = this.lastProposedConsensusInstance.get();
+        final int localLastDecidedConsensusInstance = this.lastDecidedConsensusInstance.get();
+
+        if (localLastProposedConsensusInstance > localLastDecidedConsensusInstance) {
+            return this.lastProposedConsensusInstance.incrementAndGet();
+        }
+        else {
+            this.lastProposedConsensusInstance.set(localLastDecidedConsensusInstance + 1);
+            return localLastDecidedConsensusInstance + 1;
+        }
     }
 
     /**
@@ -732,10 +749,4 @@ public class NodeService implements UDPService {
             }
         }
     }
-
-    public boolean isNextConsensusInstanceLeader() {
-        return isNodeLeader(currConsensusInstance.get() + 1, STARTING_ROUND, config.getId());
-    }
-
-
 }
