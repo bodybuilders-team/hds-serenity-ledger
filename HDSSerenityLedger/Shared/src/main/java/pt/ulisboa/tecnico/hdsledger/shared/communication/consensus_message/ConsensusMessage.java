@@ -4,12 +4,12 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.text.MessageFormat;
-import java.util.Objects;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The {@code ConsensusMessage} class represents a message that is used in the IBFT consensus algorithm.
@@ -60,7 +60,7 @@ public class ConsensusMessage extends Message {
                 );
             }
             default -> {
-                return "NO REPRESENTATION";
+                throw new IllegalStateException("Unexpected value: " + this.getType());
             }
         }
     }

@@ -55,7 +55,20 @@ public class Message implements Serializable {
             return MessageFormat.format("ACK({0})", this.getMessageId());
         } else if (this.getType() == Type.IGNORE) {
             return MessageFormat.format("IGNORE({0})", this.getMessageId());
-        } else return "NO REPRESENTATION";
+        } else throw new IllegalStateException("Unexpected value: " + this.getType());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Message message = (Message) o;
+        return messageId == message.messageId && Objects.equals(senderId, message.senderId) && type == message.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(senderId, messageId, type);
     }
 
     @Override

@@ -39,7 +39,7 @@ public class LedgerResponse extends Message {
                     this.getMessageId()
             );
 
-            default -> "NO REPRESENTATION";
+            default -> throw new IllegalStateException("Unexpected value: " + this.getType());
         };
     }
 

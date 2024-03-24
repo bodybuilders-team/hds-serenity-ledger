@@ -72,7 +72,7 @@ public class SignedLedgerRequest extends Message {
                 );
             }
             default -> {
-                return "NO REPRESENTATION";
+                throw new IllegalStateException("Unexpected value: " + this.getType());
             }
         }
     }

@@ -309,7 +309,7 @@ public class NodeService implements UDPService {
 
         synchronized (prepareLockObjects.computeIfAbsent(consensusInstance, k -> new Object())) {
             if (instance.getPreparedRound() != -1) {
-                logger.info(MessageFormat.format("Already received quorum of PREPARE for Consensus Instance {0}. Replying with COMMIT to make sure it reaches the initial senders of {1}", consensusInstance, message));
+                logger.info(MessageFormat.format("Already received quorum of PREPARE for Consensus Instance {0}. Replying with COMMIT to make sure it reaches the initial sender", consensusInstance));
 
                 this.authenticatedPerfectLinkNode.send(
                         message.getSenderId(),
@@ -394,7 +394,7 @@ public class NodeService implements UDPService {
 
         if (instance == null) {
             // Should never happen because only receives commit as a response to a prepare message
-            logger.error(MessageFormat.format("\u001B[31mCRITICAL:\u001B[37m Received {0} from node {1}", message, message.getSenderId()));
+            logger.error(MessageFormat.format("\u001B[31mCRITICAL:\u001B[37m Received {0} from node {1} \u001B[31mBUT NO INSTANCE INFO\u001B[37m", message, message.getSenderId()));
             return;
         }
 
@@ -535,7 +535,7 @@ public class NodeService implements UDPService {
             }
 
             if (receivedRoundChangeQuorum.computeIfAbsent(consensusInstance, k -> new ConcurrentHashMap<>()).get(round) != null) {
-                logger.info(MessageFormat.format("Already received quorum of ROUND_CHANGE({0}, {1}, _, _). Ignoring...", consensusInstance, round));
+                logger.info(MessageFormat.format("Already received quorum of ROUND-CHANGE({0}, {1}, _, _). Ignoring...", consensusInstance, round));
                 return;
             }
 
@@ -563,7 +563,7 @@ public class NodeService implements UDPService {
                         .messageId(-1)
                         .build();
 
-                logger.info(MessageFormat.format("Received quorum of ROUND_CHANGE({0}, {1}, _, _). Broadcasting {2}", consensusInstance, round, messageToBroadcast));
+                logger.info(MessageFormat.format("Received quorum of ROUND-CHANGE({0}, {1}, _, _). Broadcasting {2}", consensusInstance, round, messageToBroadcast));
 
                 this.authenticatedPerfectLinkNode.broadcast(messageToBroadcast);
             }
@@ -604,6 +604,10 @@ public class NodeService implements UDPService {
             return false;
 
         waitForPreviousConsensus(message.getConsensusInstance());
+
+        if (message.getPreparedValue() == null || message.getPreparedRound() == -1)
+            return true;
+
         final var block = message.getPreparedValue();
 
         return ledger.validateBlock(block);
@@ -826,6 +830,7 @@ public class NodeService implements UDPService {
                     waitObject.wait();
                 } catch (InterruptedException e) {
                     logger.error(MessageFormat.format("Error while waiting for previous consensus: {0}", e.getMessage()));
+                    e.printStackTrace();
                 }
             }
         }

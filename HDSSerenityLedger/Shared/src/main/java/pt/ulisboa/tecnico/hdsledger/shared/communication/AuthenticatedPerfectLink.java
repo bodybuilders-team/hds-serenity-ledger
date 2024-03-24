@@ -126,7 +126,8 @@ public class AuthenticatedPerfectLink {
 
     /**
      * Sends an already signed message to a specific node with no guarantee of delivery.
-     * @param nodeId The node identifier
+     *
+     * @param nodeId        The node identifier
      * @param signedMessage The signed message to be sent
      */
     public void sendSignedMessage(String nodeId, SignedMessage signedMessage) {
@@ -155,20 +156,12 @@ public class AuthenticatedPerfectLink {
 
             byte[] dataToSend = SerializationUtils.getGson().toJson(signedMessage).getBytes();
 
-            // Send message to local queue instead of using network if destination in self
-            if (nodeId.equals(this.config.getId())) {
-                this.localhostQueue.add(signedMessage);
-
-                logger.info(MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m successfully", signedMessage));
-
-                return;
-            }
-
             unreliableSend(destAddress, destPort, dataToSend);
 
             logger.info(MessageFormat.format("Sending {0} to {1}:{2}", signedMessage.getMessage(), destAddress, String.valueOf(destPort)));
         } catch (UnknownHostException e) {
             logger.error(MessageFormat.format("Error sending signed message {0} to {1}: {2}", signedMessage.getMessage(), nodeId, e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -236,6 +229,7 @@ public class AuthenticatedPerfectLink {
                 logger.info(MessageFormat.format("Message {0} received by {1}:{2} successfully", localMessage, destAddress, String.valueOf(destPort)));
             } catch (InterruptedException | UnknownHostException e) {
                 logger.error(MessageFormat.format("Error sending message {0} to {1}: {2}", message, nodeId, e.getMessage()));
+                e.printStackTrace();
             }
         }).start();
     }

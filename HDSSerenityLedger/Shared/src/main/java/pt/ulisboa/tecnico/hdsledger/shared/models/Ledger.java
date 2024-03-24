@@ -154,8 +154,7 @@ public class Ledger {
 
             final var fee = transferMessage.getAmount() * FEE;
 
-            if (sender.getBalance() < transferMessage.getAmount() + fee)
-                return false;
+            return sender.getBalance() >= transferMessage.getAmount() + fee;
         }
 
         return true;
