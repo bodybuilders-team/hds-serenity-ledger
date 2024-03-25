@@ -1,8 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.shared.config;
 
+import lombok.Getter;
+
 /**
  * Configuration of a process.
  */
+@Getter
 public class ProcessConfig {
     private final String hostname;
     private final String id;
@@ -25,30 +28,6 @@ public class ProcessConfig {
         this.privateKeyPath = privateKeyPath;
         this.publicKeyPath = publicKeyPath;
         this.behavior = behavior;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getHostname() {
-        return hostname;
-    }
-
-    public String getPrivateKeyPath() {
-        return privateKeyPath;
-    }
-
-    public String getPublicKeyPath() {
-        return publicKeyPath;
-    }
-
-    public ProcessBehavior getBehavior() {
-        return behavior;
     }
 
     public enum ProcessBehavior {

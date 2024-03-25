@@ -2,8 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.shared.config;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 
 import java.io.BufferedInputStream;

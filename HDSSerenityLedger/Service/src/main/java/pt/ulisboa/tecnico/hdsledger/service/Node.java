@@ -2,7 +2,7 @@ package pt.ulisboa.tecnico.hdsledger.service;
 
 import pt.ulisboa.tecnico.hdsledger.service.services.LedgerService;
 import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
-import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;

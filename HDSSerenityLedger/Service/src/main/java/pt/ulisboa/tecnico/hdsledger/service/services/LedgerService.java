@@ -1,7 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import pt.ulisboa.tecnico.hdsledger.service.MessageAccumulator;
-import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerCheckBalanceRequest;
@@ -9,6 +8,7 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerRe
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.text.MessageFormat;
@@ -30,7 +30,8 @@ public class LedgerService implements UDPService {
             AuthenticatedPerfectLink authenticatedPerfectLink,
             NodeService nodeService,
             ClientProcessConfig[] clientsConfig,
-            MessageAccumulator messageAccum) {
+            MessageAccumulator messageAccum
+    ) {
         this.nodeService = nodeService;
         this.authenticatedPerfectLink = authenticatedPerfectLink;
         this.logger = new ProcessLogger(LedgerService.class.getName(), nodeService.getConfig().getId());
@@ -118,7 +119,10 @@ public class LedgerService implements UDPService {
         final Block block;
 
         synchronized (messageAccum) {
-            //TODO: validateRequest
+            if (!nodeService.getLedger().validateRequest(signedLedgerRequest)) {
+                logger.warn("Failed to validate request. Not accumulating.");
+                return;
+            }
 
             messageAccum.accumulate(signedLedgerRequest);
 

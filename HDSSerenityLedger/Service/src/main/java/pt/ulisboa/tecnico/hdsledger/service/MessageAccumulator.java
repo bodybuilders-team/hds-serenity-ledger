@@ -11,10 +11,15 @@ import java.util.Queue;
 import java.util.TimerTask;
 import java.util.function.Consumer;
 
+/**
+ * The {@code MessageAccumulator} class represents a mempool for the ledger requests.
+ * It accumulates requests until a threshold is reached or a timer expires.
+ */
 public class MessageAccumulator {
 
     private static final int TRANSACTION_THRESHOLD = 10;
     private static final int DELAY = 2000;
+
     final MultiThreadTimer timer = new MultiThreadTimer();
     private final Queue<SignedLedgerRequest> accumulatedMessages = new LinkedList<>();
     private final NodeProcessConfig config;
@@ -24,16 +29,26 @@ public class MessageAccumulator {
         this.config = config;
     }
 
+    /**
+     * Accumulates a request.
+     *
+     * @param request the request to accumulate
+     */
     public void accumulate(SignedLedgerRequest request) {
         accumulatedMessages.add(request);
     }
 
+    /**
+     * Gets a block of requests.
+     *
+     * @param onTimerElapsed the consumer to execute when the timer expires
+     * @return an optional block of requests
+     */
     public synchronized Optional<Block> getBlock(Consumer<Block> onTimerElapsed) {
         timer.startTimer(new TimerTask() {
             @Override
             public void run() {
                 var block = getBlock();
-
                 block.ifPresent(onTimerElapsed);
             }
         }, DELAY);
@@ -86,7 +101,12 @@ public class MessageAccumulator {
     }
     * */
 
-    public synchronized Optional<Block> getBlock() {
+    /**
+     * Gets a block of requests.
+     *
+     * @return an optional block of requests
+     */
+    private synchronized Optional<Block> getBlock() {
         var block = new Block();
 
         for (int i = 0; i < TRANSACTION_THRESHOLD; i++) {
@@ -107,6 +127,11 @@ public class MessageAccumulator {
         return Optional.of(block);
     }
 
+    /**
+     * Removes a request from the accumulator.
+     *
+     * @param request the request to remove
+     */
     public void remove(SignedLedgerRequest request) {
         accumulatedMessages.remove(request);
     }

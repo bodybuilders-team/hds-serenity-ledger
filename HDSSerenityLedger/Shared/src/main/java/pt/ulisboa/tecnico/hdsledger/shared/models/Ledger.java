@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The {@code Ledger} class represents the ledger of the system, containing all the accounts.
+ * The {@code Ledger} class represents the ledger of the system, containing all the accounts and the blockchain.
  */
 public class Ledger {
 
@@ -121,7 +121,7 @@ public class Ledger {
      * @param request the request to validate
      * @return {@code true} if the request is valid, {@code false} otherwise
      */
-    private boolean validateRequest(SignedLedgerRequest request) {
+    public boolean validateRequest(SignedLedgerRequest request) {
         if (!request.verifySignature(clientsConfig))
             return false;
 

@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.shared;
+package pt.ulisboa.tecnico.hdsledger.shared.exception;
 
 import lombok.Getter;
 

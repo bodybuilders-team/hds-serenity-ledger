@@ -1,9 +1,9 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.clientlibrary.ClientLibrary;
-import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
-import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.HDSSException;
+import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfigBuilder;

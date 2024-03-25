@@ -6,7 +6,6 @@ import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.CommitMessag
 import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.PrepareMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.service.services.message_bucket.RoundChangeMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.shared.MultiThreadTimer;
-import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
@@ -14,6 +13,7 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.Conse
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 import pt.ulisboa.tecnico.hdsledger.shared.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Ledger;
@@ -427,7 +427,6 @@ public class NodeService implements UDPService {
                     logger.error(MessageFormat.format("Block \u001B[36m{0}\u001B[37m not added", block));
 
                 var responses = ledger.addBlock(block);
-
                 for (var response : responses)
                     authenticatedPerfectLinkClient.send(response.getOriginalRequestSenderId(), response);
 

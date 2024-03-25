@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.shared;
+package pt.ulisboa.tecnico.hdsledger.shared.exception;
 
 /**
  * The {@code HDSSException} class represents an exception specific to the HDSS application.

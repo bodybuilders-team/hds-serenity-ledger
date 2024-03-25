@@ -2,9 +2,9 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication;
 
 import com.google.gson.Gson;
 import pt.ulisboa.tecnico.hdsledger.shared.CollapsingSet;
-import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
-import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.HDSSException;
+import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;

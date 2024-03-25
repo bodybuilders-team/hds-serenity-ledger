@@ -30,7 +30,7 @@ public class MultiThreadTimer {
     /**
      * Stop the timer and create a new one.
      */
-    public void stopTimer() {
+    public void stopTimer() { // TODO: Rename to resetTimer? stopAndResetTimer? stopTimer is misleading for me because is not mentioned that a new timer is created
         synchronized (this) {
             this.timer.cancel();
             this.timer = new Timer();

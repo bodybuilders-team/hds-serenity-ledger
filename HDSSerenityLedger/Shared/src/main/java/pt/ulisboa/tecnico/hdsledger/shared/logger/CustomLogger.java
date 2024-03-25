@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.shared;
+package pt.ulisboa.tecnico.hdsledger.shared.logger;
 
 import java.text.MessageFormat;
 import java.util.Set;
