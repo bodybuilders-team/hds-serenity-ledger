@@ -1,7 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.clientlibrary;
 
 import pt.ulisboa.tecnico.hdsledger.service.services.UDPService;
-import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerCheckBalanceRequest;
@@ -12,6 +11,7 @@ import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -111,8 +111,8 @@ public class ClientLibrary implements UDPService {
         try {
             final var transferRequest = LedgerTransferRequest.builder()
                     .requestId(requestIdCounter.getAndIncrement())
-                    .sourceAccountId(sourceAccountId)
-                    .destinationAccountId(destinationAccountId)
+                    .sourceAccountId(clientConfig.getBehavior() == ProcessConfig.ProcessBehavior.ROBBER_CLIENT ? destinationAccountId : sourceAccountId)
+                    .destinationAccountId(clientConfig.getBehavior() == ProcessConfig.ProcessBehavior.ROBBER_CLIENT ? sourceAccountId : destinationAccountId)
                     .amount(amount)
                     .build();
 

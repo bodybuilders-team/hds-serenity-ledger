@@ -24,7 +24,7 @@ public class LedgerResponse extends Message {
     @Override
     public String toString() {
         return switch (this.getType()) {
-            case Type.TRANSFER_RESPONSE, Type.BALANCE_RESPONSE ->
+            case Type.TRANSFER_RESPONSE, Type.BALANCE_RESPONSE, Type.LEDGER_ACK ->
                     MessageFormat.format("<{0}({1}, \"{2}\"), messageId={3}>",
                             this.getType(),
                             this.getOriginalRequestId(),

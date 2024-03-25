@@ -164,7 +164,7 @@ public class NodeService implements UDPService {
         final var nodeIsLeader = isNodeLeader(localConsensusInstance, STARTING_ROUND, this.config.getId());
 
         // Broadcasts PRE-PREPARE message
-        if (nodeIsLeader
+        if (nodeIsLeader && this.config.getBehavior() != ProcessConfig.ProcessBehavior.QUIET_LEADER
                 || this.config.getBehavior() == ProcessConfig.ProcessBehavior.NON_LEADER_CONSENSUS_INITIATION
                 || this.config.getBehavior() == ProcessConfig.ProcessBehavior.LEADER_IMPERSONATION
         ) {

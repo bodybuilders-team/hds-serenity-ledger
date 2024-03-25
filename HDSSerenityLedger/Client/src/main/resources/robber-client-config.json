@@ -1,0 +1,20 @@
+[
+  {
+    "id": "101",
+    "hostname": "localhost",
+    "port": 4001,
+    "scriptPath": "script_sample.txt",
+    "useScript": false,
+    "privateKeyPath": "../keypairs/client_1/private_key.der",
+    "publicKeyPath": "../keypairs/client_1/public_key.der",
+    "behavior": "ROBBER_CLIENT"
+  },
+  {
+    "id": "102",
+    "hostname": "localhost",
+    "port": 4002,
+    "privateKeyPath": "../keypairs/client_2/private_key.der",
+    "publicKeyPath": "../keypairs/client_2/public_key.der",
+    "behavior": "REGULAR"
+  }
+]
