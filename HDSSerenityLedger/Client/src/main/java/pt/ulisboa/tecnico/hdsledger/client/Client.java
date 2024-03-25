@@ -5,8 +5,8 @@ import pt.ulisboa.tecnico.hdsledger.shared.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.shared.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfigBuilder;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

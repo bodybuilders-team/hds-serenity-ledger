@@ -19,12 +19,11 @@ import java.util.TimerTask;
  */
 public class Node {
 
+    private static final boolean ACTIVATE_AUTHENTICATED_LINK_NODE_LOGGING = true;
+    private static final boolean ACTIVATE_AUTHENTICATED_LINK_CLIENT_LOGGING = true;
     // Hardcoded path to files
     private static String nodesConfigPath = "src/main/resources/";
     private static String clientsConfigPath = "../Client/src/main/resources/";
-
-    private static final boolean ACTIVATE_AUTHENTICATED_LINK_NODE_LOGGING = true;
-    private static final boolean ACTIVATE_AUTHENTICATED_LINK_CLIENT_LOGGING = true;
 
     /**
      * Entry point for the node.
@@ -66,7 +65,7 @@ public class Node {
         final MessageAccumulator messageAccumulator = new MessageAccumulator(nodeConfig);
 
         // Service to handle the node's logic - consensus
-        NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, nodeConfig, nodeConfigs, clientConfigs, messageAccumulator);
+        NodeService nodeService = new NodeService(authenticatedPerfectLinkToNodes, authenticatedPerfectLinkToClients, nodeConfig, nodeConfigs, clientConfigs, messageAccumulator);
 
         // Service to handle the node's logic - ledger
         LedgerService ledgerService = new LedgerService(authenticatedPerfectLinkToClients, nodeService, clientConfigs, messageAccumulator);

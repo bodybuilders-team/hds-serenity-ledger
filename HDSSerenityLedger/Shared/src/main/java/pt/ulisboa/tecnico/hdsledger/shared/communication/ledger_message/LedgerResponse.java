@@ -16,6 +16,9 @@ public class LedgerResponse extends Message {
     @Setter
     private long originalRequestId;
 
+    @Setter
+    private String originalRequestSenderId;
+
     private String message;
 
     @Override
@@ -28,6 +31,12 @@ public class LedgerResponse extends Message {
                             this.getMessage(),
                             this.getMessageId()
                     );
+
+            case Type.ACK -> MessageFormat.format("<{0}({1}), messageId={2}>",
+                    this.getType(),
+                    this.getMessage(),
+                    this.getMessageId()
+            );
 
             default -> "NO REPRESENTATION";
         };

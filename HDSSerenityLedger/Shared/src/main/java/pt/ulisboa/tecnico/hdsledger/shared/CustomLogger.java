@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
  */
 public class CustomLogger {
 
-    private static Logger logger;
     private static final boolean ENABLE_COLOR_PARSING = true;
+    private static Logger logger;
     private boolean enabled = true;
 
     /**

@@ -9,7 +9,6 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerRe
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.models.Account;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.text.MessageFormat;
@@ -61,7 +60,7 @@ public class LedgerService implements UDPService {
             // Send the response
             LedgerResponse response = LedgerResponse.builder()
                     .senderId(nodeService.getConfig().getId())
-                    .type(Message.Type.TRANSFER_RESPONSE)
+                    .type(Message.Type.LEDGER_ACK)
                     .originalRequestId(request.getLedgerRequest().getRequestId())
                     .message(MessageFormat.format("Received transfer request. Will try to transfer the amount of {0} HDC from {1} to {2}",
                             transferRequest.getAmount(),
@@ -90,18 +89,18 @@ public class LedgerService implements UDPService {
                 return;
             }
 
-            String accountId = ((LedgerCheckBalanceRequest) request.getLedgerRequest()).getAccountId();
+            LedgerCheckBalanceRequest ledgerRequest = (LedgerCheckBalanceRequest) request.getLedgerRequest();
 
-            Account account = nodeService.getLedger().getAccount(accountId);
-            double balance = account.getBalance();
+            // Accumulate messages
+            accumulateOrPropose(request);
 
-            logger.info(MessageFormat.format("Sending balance response: {0}", balance));
-
-            final LedgerResponse response = LedgerResponse.builder()
+            // Send the response
+            LedgerResponse response = LedgerResponse.builder()
                     .senderId(nodeService.getConfig().getId())
-                    .originalRequestId(request.getLedgerRequest().getRequestId())
-                    .type(Message.Type.BALANCE_RESPONSE)
-                    .message(String.valueOf(balance))
+                    .type(Message.Type.LEDGER_ACK)
+                    .originalRequestId(ledgerRequest.getRequestId())
+                    .message(MessageFormat.format("Received balance request. Will try to check the balance of account {0}",
+                            ledgerRequest.getAccountId()))
                     .build();
 
             authenticatedPerfectLink.send(request.getSenderId(), response);
@@ -142,18 +141,15 @@ public class LedgerService implements UDPService {
                 try {
                     final var signedMessage = authenticatedPerfectLink.receive();
 
-                    if (!(signedMessage.getMessage() instanceof SignedLedgerRequest ledgerRequest)) {
+                    if (!(signedMessage.getMessage() instanceof SignedLedgerRequest ledgerRequest))
                         continue;
-                    }
 
                     new Thread(() -> {
                         try {
                             switch (ledgerRequest.getType()) {
                                 case BALANCE -> uponBalance(ledgerRequest);
-
                                 case TRANSFER -> uponTransfer(ledgerRequest);
                                 case IGNORE -> {/* Do nothing */}
-
                                 default ->
                                         logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerRequest.getType()));
                             }

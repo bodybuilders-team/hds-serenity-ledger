@@ -9,8 +9,8 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerRe
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
 
 import java.text.MessageFormat;
@@ -20,16 +20,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static pt.ulisboa.tecnico.hdsledger.shared.models.Ledger.FEE;
-
 /**
  * API for the HDSLedger client.
  */
 public class ClientLibrary implements UDPService {
 
+    private static final boolean AUTHENTICATED_PERFECT_LINK_LOGS_ENABLED = false;
     private final ProcessLogger logger;
-    private static final boolean AUTHENTICATED_PERFECT_LINK_LOGS_ENABLED = true;
-
     private final ClientProcessConfig clientConfig;
     private final ProcessConfig[] clientsConfig;
     private final ProcessConfig[] nodesConfig;
@@ -37,6 +34,7 @@ public class ClientLibrary implements UDPService {
     private final AtomicLong requestIdCounter = new AtomicLong(0);
     // Response ID -> Sender ID -> Message
     private final Map<Long, Map<String, LedgerResponse>> ledgerResponses = new ConcurrentHashMap<>();
+    private final Map<Long, Map<String, LedgerResponse>> ledgerAcks = new ConcurrentHashMap<>();
     private AuthenticatedPerfectLink authenticatedPerfectLink;
     private int quorumSize;
 
@@ -87,7 +85,6 @@ public class ClientLibrary implements UDPService {
             var privateKey = CryptoUtils.getPrivateKey(clientConfig.getPrivateKeyPath());
             var signature = CryptoUtils.sign(ledgerRequest, privateKey);
 
-            // Need to sign the message (stage 2 request)
             final var request = SignedLedgerRequest.builder()
                     .senderId(clientConfig.getId())
                     .type(Message.Type.BALANCE)
@@ -150,7 +147,20 @@ public class ClientLibrary implements UDPService {
                     switch (ledgerResponse.getType()) {
                         case BALANCE_RESPONSE, TRANSFER_RESPONSE -> handleLedgerResponse(ledgerResponse);
                         case IGNORE -> { /* Do nothing */ }
-                        default -> logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerResponse.getType()));
+                        case LEDGER_ACK -> {
+                            final var requestIdAcks = ledgerAcks.computeIfAbsent(ledgerResponse.getOriginalRequestId(), k -> new HashMap<>());
+                            requestIdAcks.putIfAbsent(ledgerResponse.getSenderId(), ledgerResponse);
+
+                            if (requestIdAcks.size() != quorumSize)
+                                continue;
+
+                            logger.info(MessageFormat.format("Received acknowledgement: \"{0}\" for request ID {1}",
+                                    ledgerResponse.getMessage(),
+                                    ledgerResponse.getOriginalRequestId())
+                            );
+                        }
+                        default ->
+                                logger.warn(MessageFormat.format("Received unknown message type: {0}", ledgerResponse.getType()));
                     }
 
                 } catch (Exception e) {

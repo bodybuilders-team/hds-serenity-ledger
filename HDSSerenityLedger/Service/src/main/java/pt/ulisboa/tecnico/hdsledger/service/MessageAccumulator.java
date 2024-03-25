@@ -13,11 +13,10 @@ import java.util.function.Consumer;
 
 public class MessageAccumulator {
 
-    private final Queue<SignedLedgerRequest> accumulatedMessages = new LinkedList<>();
-
     private static final int TRANSACTION_THRESHOLD = 10;
     private static final int DELAY = 2000;
     final MultiThreadTimer timer = new MultiThreadTimer();
+    private final Queue<SignedLedgerRequest> accumulatedMessages = new LinkedList<>();
     private final NodeProcessConfig config;
     private boolean timerElapsed = true;
 

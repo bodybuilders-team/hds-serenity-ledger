@@ -42,7 +42,9 @@ public class NodeService implements UDPService {
     private final NodeProcessConfig config; // Current node configuration
 
     // Link to communicate with nodes
-    private final AuthenticatedPerfectLink authenticatedPerfectLink;
+    private final AuthenticatedPerfectLink authenticatedPerfectLinkNode;
+    // Link to communicate with clients
+    private final AuthenticatedPerfectLink authenticatedPerfectLinkClient;
     // Consensus instance -> Round -> List of prepare messages
     private final PrepareMessageBucket prepareMessages;
     // Consensus instance -> Round -> List of commit messages
@@ -73,8 +75,16 @@ public class NodeService implements UDPService {
     @Getter
     private final Ledger ledger;
 
-    public NodeService(AuthenticatedPerfectLink authenticatedPerfectLink, NodeProcessConfig config, NodeProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig, MessageAccumulator accumulatedMessages) {
-        this.authenticatedPerfectLink = authenticatedPerfectLink;
+    public NodeService(
+            AuthenticatedPerfectLink authenticatedPerfectLinkNode,
+            AuthenticatedPerfectLink authenticatedPerfectLinkClient,
+            NodeProcessConfig config,
+            NodeProcessConfig[] nodesConfig,
+            ClientProcessConfig[] clientsConfig,
+            MessageAccumulator accumulatedMessages
+    ) {
+        this.authenticatedPerfectLinkNode = authenticatedPerfectLinkNode;
+        this.authenticatedPerfectLinkClient = authenticatedPerfectLinkClient;
         this.config = config;
         this.nodesConfig = nodesConfig;
 
@@ -84,7 +94,7 @@ public class NodeService implements UDPService {
 
         this.logger = new ProcessLogger(NodeService.class.getName(), config.getId());
         this.accumulatedMessages = accumulatedMessages;
-        this.ledger = new Ledger(clientsConfig, nodesConfig);
+        this.ledger = new Ledger(clientsConfig, nodesConfig, config.getId());
     }
 
     /**
@@ -178,7 +188,7 @@ public class NodeService implements UDPService {
             else
                 logger.info(MessageFormat.format("Broadcasting {0} - Node is not leader, but is impersonating leader", messageToBroadcast));
 
-            this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+            this.authenticatedPerfectLinkNode.broadcast(messageToBroadcast);
         } else {
             logger.info("Node is not leader, waiting for PRE-PREPARE message...");
         }
@@ -199,8 +209,7 @@ public class NodeService implements UDPService {
 
         if (localLastProposedConsensusInstance > localLastDecidedConsensusInstance) {
             return this.lastProposedConsensusInstance.incrementAndGet();
-        }
-        else {
+        } else {
             this.lastProposedConsensusInstance.set(localLastDecidedConsensusInstance + 1);
             return localLastDecidedConsensusInstance + 1;
         }
@@ -233,7 +242,7 @@ public class NodeService implements UDPService {
 
             Message responseMessage = new Message(this.config.getId(), Message.Type.ACK);
             responseMessage.setMessageId(senderMessageId);
-            this.authenticatedPerfectLink.send(senderId, responseMessage);
+            this.authenticatedPerfectLinkNode.send(senderId, responseMessage);
             return;
         }
 
@@ -258,7 +267,7 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("PRE-PREPARE is justified. Broadcasting {0}", messageToBroadcast));
 
-        this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+        this.authenticatedPerfectLinkNode.broadcast(messageToBroadcast);
     }
 
     /**
@@ -287,7 +296,7 @@ public class NodeService implements UDPService {
             if (instance.getPreparedRound() != -1) {
                 logger.info(MessageFormat.format("Already received quorum of PREPARE for Consensus Instance {0}. Replying with COMMIT to make sure it reaches the initial senders of {1}", consensusInstance, message));
 
-                this.authenticatedPerfectLink.send(
+                this.authenticatedPerfectLinkNode.send(
                         message.getSenderId(),
                         ConsensusMessage.builder()
                                 .senderId(config.getId())
@@ -315,7 +324,7 @@ public class NodeService implements UDPService {
 
                 prepareMessages.getMessages(consensusInstance, round).values().forEach(senderSignedMessage -> {
                     ConsensusMessage senderMessage = (ConsensusMessage) senderSignedMessage.getMessage();
-                    this.authenticatedPerfectLink.send(
+                    this.authenticatedPerfectLinkNode.send(
                             senderMessage.getSenderId(),
                             ConsensusMessage.builder()
                                     .senderId(config.getId())
@@ -413,15 +422,19 @@ public class NodeService implements UDPService {
 
         synchronized (accumulatedMessages) {
             synchronized (ledger) {
-                var added = ledger.addBlock(block);
+                // TODO: What to do if the block is not added (Should not happen in decide)
+                if (!ledger.validateBlock(block))
+                    logger.error(MessageFormat.format("Block \u001B[36m{0}\u001B[37m not added", block));
+
+                var responses = ledger.addBlock(block);
+
+                for (var response : responses)
+                    authenticatedPerfectLinkClient.send(response.getOriginalRequestSenderId(), response);
 
                 for (var request : block.getRequests())
                     accumulatedMessages.remove(request);
 
-                if (added)
-                    logger.info(MessageFormat.format("Appended block \u001B[36m{0}\u001B[37m to ledger", block));
-                else //TODO: What to do if the block is not added (Should not happen in decide)
-                    logger.error(MessageFormat.format("Block \u001B[36m{0}\u001B[37m not added", block));
+                logger.info(MessageFormat.format("Appended block \u001B[36m{0}\u001B[37m to ledger", block));
             }
         }
     }
@@ -457,7 +470,7 @@ public class NodeService implements UDPService {
             commitMessages.getValidCommitQuorumMessages(consensusInstance, instance.getDecidedRound()).ifPresent(commitQuorumMessages ->
                     commitQuorumMessages.forEach(commitQuorumSignedMessage -> {
                         ConsensusMessage commitQuorumMessage = (ConsensusMessage) commitQuorumSignedMessage.getMessage();
-                        this.authenticatedPerfectLink.send(
+                        this.authenticatedPerfectLinkNode.send(
                                 commitQuorumMessage.getSenderId(),
                                 commitQuorumMessage
                         );
@@ -493,7 +506,7 @@ public class NodeService implements UDPService {
 
                     logger.info(MessageFormat.format("Updated round to {0} for Consensus Instance {1}. Broadcasting {2}", newRound, consensusInstance, messageToBroadcast));
 
-                    this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+                    this.authenticatedPerfectLinkNode.broadcast(messageToBroadcast);
                 }
             }
 
@@ -528,7 +541,7 @@ public class NodeService implements UDPService {
 
                 logger.info(MessageFormat.format("Received quorum of ROUND_CHANGE({0}, {1}, _, _). Broadcasting {2}", consensusInstance, round, messageToBroadcast));
 
-                this.authenticatedPerfectLink.broadcast(messageToBroadcast);
+                this.authenticatedPerfectLinkNode.broadcast(messageToBroadcast);
             }
         }
     }
@@ -555,7 +568,7 @@ public class NodeService implements UDPService {
             new Thread(() -> {
                 while (true) {
                     try {
-                        final var signedMessage = this.authenticatedPerfectLink.receive();
+                        final var signedMessage = this.authenticatedPerfectLinkNode.receive();
 
                         if (!(signedMessage.getMessage() instanceof ConsensusMessage consensusMessage))
                             continue;
@@ -713,7 +726,7 @@ public class NodeService implements UDPService {
 
                     logger.info(MessageFormat.format("Timer expired for Consensus Instance {0}. Updated round to {1}, triggering round-change. Broadcasting {2}", consensusInstance, round, messageToBroadcast));
 
-                    authenticatedPerfectLink.broadcast(messageToBroadcast);
+                    authenticatedPerfectLinkNode.broadcast(messageToBroadcast);
                 }
             }, timeToWait);
         }

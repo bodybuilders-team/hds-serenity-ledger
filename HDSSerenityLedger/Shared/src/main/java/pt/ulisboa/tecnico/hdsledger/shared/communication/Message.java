@@ -58,12 +58,25 @@ public class Message implements Serializable {
         } else return "NO REPRESENTATION";
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Message message = (Message) o;
+        return messageId == message.messageId && Objects.equals(senderId, message.senderId) && type == message.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(senderId, messageId, type);
+    }
+
     public enum Type {
         // Messages for consensus (node to node)
         PRE_PREPARE, PREPARE, COMMIT, ROUND_CHANGE,
 
         // Messages for the library (client to node)
-        BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE,
+        BALANCE, BALANCE_RESPONSE, TRANSFER, TRANSFER_RESPONSE, LEDGER_ACK,
 
         // Others
         ACK, IGNORE;
@@ -77,7 +90,7 @@ public class Message implements Serializable {
         }
 
         public static List<Type> clientResponseTypes() {
-            return Arrays.asList(BALANCE_RESPONSE, TRANSFER_RESPONSE);
+            return Arrays.asList(BALANCE_RESPONSE, TRANSFER_RESPONSE, LEDGER_ACK);
         }
 
         @Override
@@ -87,6 +100,7 @@ public class Message implements Serializable {
                 case ROUND_CHANGE -> "ROUND-CHANGE";
                 case BALANCE_RESPONSE -> "BALANCE-RESPONSE";
                 case TRANSFER_RESPONSE -> "TRANSFER-RESPONSE";
+                case LEDGER_ACK -> "LEDGER-ACK";
                 default -> super.toString();
             };
         }
@@ -107,19 +121,6 @@ public class Message implements Serializable {
 
             return clazz;
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Message message = (Message) o;
-        return messageId == message.messageId && Objects.equals(senderId, message.senderId) && type == message.type;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(senderId, messageId, type);
     }
 }
 

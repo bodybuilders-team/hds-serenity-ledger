@@ -2,7 +2,6 @@ package pt.ulisboa.tecnico.hdsledger.service.services.message_bucket;
 
 import pt.ulisboa.tecnico.hdsledger.shared.communication.SignedMessage;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 import pt.ulisboa.tecnico.hdsledger.shared.models.PreparedRoundValuePair;
 
 import java.util.ArrayList;
