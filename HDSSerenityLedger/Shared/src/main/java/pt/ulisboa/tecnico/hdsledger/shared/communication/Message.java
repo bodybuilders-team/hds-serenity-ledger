@@ -71,19 +71,6 @@ public class Message implements Serializable {
         return Objects.hash(senderId, messageId, type);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Message message = (Message) o;
-        return messageId == message.messageId && Objects.equals(senderId, message.senderId) && type == message.type;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(senderId, messageId, type);
-    }
-
     public enum Type {
         // Messages for consensus (node to node)
         PRE_PREPARE, PREPARE, COMMIT, ROUND_CHANGE,
