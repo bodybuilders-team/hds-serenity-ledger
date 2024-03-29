@@ -112,11 +112,10 @@ public class ClientLibrary implements UDPService {
         logger.info(MessageFormat.format("Transferring \u001B[33m{0} HDC\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
 
         try {
-            //TODO: Change ROBBER_CLIENT Implementation
             final var transferRequest = LedgerTransferRequest.builder()
                     .requestId(requestIdCounter.getAndIncrement())
-                    .sourceAccountId(clientConfig.getBehavior() == ProcessConfig.ProcessBehavior.ROBBER_CLIENT ? destinationAccountId : sourceAccountId)
-                    .destinationAccountId(clientConfig.getBehavior() == ProcessConfig.ProcessBehavior.ROBBER_CLIENT ? sourceAccountId : destinationAccountId)
+                    .sourceAccountId(sourceAccountId)
+                    .destinationAccountId(destinationAccountId)
                     .amount(amount)
                     .build();
 

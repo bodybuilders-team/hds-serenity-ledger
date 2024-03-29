@@ -42,9 +42,6 @@ public class ProcessConfig {
         QUIET_LEADER,                       // Leader does not broadcast pre-prepare messages
         BULLY_LEADER,                       // Leader does not include txs from a specific client in the block
         ROBBER_LEADER,                      // Leader charges a greater fee than the one agreed // TODO - Implement
-
-        // Clients
-        ROBBER_CLIENT,                      // Client sends a request with another source account than its own
     }
 }
 

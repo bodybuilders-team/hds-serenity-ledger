@@ -20,8 +20,8 @@ client_configs = [
     "robber-client-config.json",
 ]
 
-server_config = server_configs[8]
-client_config = client_configs[0]
+server_config = server_configs[0]
+client_config = client_configs[1]
 
 if os.name == "nt":
     import json

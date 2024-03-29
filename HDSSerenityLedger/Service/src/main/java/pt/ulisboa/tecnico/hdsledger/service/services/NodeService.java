@@ -34,7 +34,7 @@ import java.util.function.Supplier;
 public class NodeService implements UDPService {
 
     // Expire time for the round-change timer
-    private static final long ROUND_CHANGE_TIMER_EXPIRE_TIME = 2000;
+    private static final long ROUND_CHANGE_TIMER_EXPIRE_TIME = 7000;
     private static final int STARTING_ROUND = 1;
 
     private final ProcessLogger logger;
