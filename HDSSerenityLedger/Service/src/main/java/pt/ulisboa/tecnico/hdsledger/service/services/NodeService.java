@@ -330,8 +330,10 @@ public class NodeService implements UDPService {
             Optional<Block> preparedValue = prepareMessages.hasValidPrepareQuorum(consensusInstance, round);
 
             if (preparedValue.isPresent() && instance.getPreparedRound() < round) {
-                instance.setPreparedRound(round);
-                instance.setPreparedValue(preparedValue.get());
+                synchronized (instance) {
+                    instance.setPreparedRound(round);
+                    instance.setPreparedValue(preparedValue.get());
+                }
 
                 // TODO Change to normal broadcast instead of sending only to those who sent prepare messages (needs ACK to be sent in all messages, though)
 
@@ -762,30 +764,34 @@ public class NodeService implements UDPService {
             timer.startTimer(new TimerTask() {
                 @Override
                 public void run() {
-                    instance.setCurrentRound(instance.getCurrentRound() + 1);
-                    int round = instance.getCurrentRound();
-                    int preparedRound = instance.getPreparedRound();
-                    Block preparedValue = instance.getPreparedValue();
+                    final int round;
+                    final int preparedRound;
+                    Block preparedValue;
 
-                    startTimer(consensusInstance);
+                    synchronized (instance) {
+                        instance.setCurrentRound(instance.getCurrentRound() + 1);
+                        round = instance.getCurrentRound();
+                        preparedRound = instance.getPreparedRound();
+                        preparedValue = instance.getPreparedValue();
 
-                    if (preparedValue == null) {
-                        preparedValue = messageAccum.getBlock();
-                        instance.setPreparedValue(preparedValue);
+                        if (preparedValue == null) {
+                            preparedValue = messageAccum.getBlock();
+                            instance.setPreparedValue(preparedValue);
 
-                        var iterator = preparedValue.getRequests().iterator();
-                        while (iterator.hasNext()) {
-                            var request = iterator.next();
-                            if (!ledger.validateRequest(request)) {
-                                logger.info(MessageFormat.format("Request {0} is invalid. Removing from block...", request));
-                                logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
-                                iterator.remove();
-                                messageAccum.remove(request);
+                            var iterator = preparedValue.getRequests().iterator();
+                            while (iterator.hasNext()) {
+                                var request = iterator.next();
+                                if (!ledger.validateRequest(request)) {
+                                    logger.info(MessageFormat.format("Request {0} is invalid. Removing from block...", request));
+                                    logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
+                                    iterator.remove();
+                                    messageAccum.remove(request);
+                                }
                             }
                         }
                     }
-
-                    ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
+                    
+                    final ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
                             .senderId(config.getId())
                             .type(Message.Type.ROUND_CHANGE)
                             .consensusInstance(consensusInstance)
@@ -799,6 +805,8 @@ public class NodeService implements UDPService {
                     logger.info(MessageFormat.format("Timer expired for Consensus Instance {0}. Updated round to {1}, triggering round-change. Broadcasting {2}", consensusInstance, round, messageToBroadcast));
 
                     authenticatedPerfectLinkNode.broadcast(messageToBroadcast);
+
+                    startTimer(consensusInstance);
                 }
             }, timeToWait);
         }
