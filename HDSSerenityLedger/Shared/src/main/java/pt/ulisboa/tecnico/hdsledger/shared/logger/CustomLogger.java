@@ -92,7 +92,7 @@ class CustomLog extends Formatter {
     private static final Set<String> greenWords = Set.of(
             "PREPARE", "COMMIT", "PRE-PREPARE", "ROUND-CHANGE",
             "TRANSFER", "TRANSFER-RESPONSE", "BALANCE", "BALANCE-RESPONSE",
-            "ACK"
+            "ACK", "LEDGER-ACK"
     );
     private final boolean enableColorParsing;
 

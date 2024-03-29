@@ -37,10 +37,10 @@ public class Block {
 
     @Override
     public String toString() {
-        return "Block{" +
-                "requests=" + requests +
-                ", creatorId='" + creatorId + '\'' +
-                '}';
+        return "\u001B[36mBlock{" +
+                "requests=\u001B[37m" + requests +
+                "\u001B[36m, creatorId=\u001B[37m\"" + creatorId + '\"' +
+                "\u001B[36m}\u001B[37m";
     }
 
     @Override

@@ -335,7 +335,7 @@ public class NodeService implements UDPService {
 
                 // TODO Change to normal broadcast instead of sending only to those who sent prepare messages (needs ACK to be sent in all messages, though)
 
-                logger.info(MessageFormat.format("Received quorum of PREPARE({0}, {1}, \u001B[36m{2}\u001B[37m). Broadcasting COMMIT({0}, {1}, \u001B[36m{2}\u001B[37m)", consensusInstance, round, preparedValue.get()));
+                logger.info(MessageFormat.format("Received quorum of PREPARE({0}, {1}, {2}). Broadcasting COMMIT({0}, {1}, \u001B[36m{2}\u001B[37m)", consensusInstance, round, preparedValue.get()));
 
                 prepareMessages.getMessages(consensusInstance, round).values().forEach(senderSignedMessage -> {
                     ConsensusMessage senderMessage = (ConsensusMessage) senderSignedMessage.getMessage();
@@ -414,8 +414,8 @@ public class NodeService implements UDPService {
                 instance.setDecidedRound(round);
                 instance.setDecidedValue(block);
 
-                logger.info(MessageFormat.format("Decided on block \u001B[36m{0}\u001B[37m for Consensus Instance {1}, Round {2} successfully", commitValue.get(), consensusInstance, round));
-                logger.info(MessageFormat.format("Starting or waiting to append block \u001B[36m{0}\u001B[37m to ledger...", commitValue.get()));
+                logger.info(MessageFormat.format("Decided on block {0} for Consensus Instance {1}, Round {2} successfully", commitValue.get(), consensusInstance, round));
+                logger.info(MessageFormat.format("Starting or waiting to append block {0} to ledger...", commitValue.get()));
 
                 waitForPreviousConsensus(consensusInstance); // TODO Optimize to not wait in the thread, store a list of consensus values that are to be appended later
 
@@ -439,13 +439,13 @@ public class NodeService implements UDPService {
      * @param block Block to append
      */
     private void appendToLedger(Block block) {
-        logger.info(MessageFormat.format("Started to append block \u001B[36m{0}\u001B[37m to ledger decided on instance {1}...", block, lastDecidedConsensusInstance.get() + 1));
+        logger.info(MessageFormat.format("Started to append block {0} to ledger decided on instance {1}...", block, lastDecidedConsensusInstance.get() + 1));
 
         synchronized (messageAccum) {
             synchronized (ledger) {
                 // TODO: What to do if the block is not added (Should not happen in decide)
                 if (!ledger.validateBlock(block))
-                    logger.error(MessageFormat.format("Block \u001B[36m{0}\u001B[37m not added", block));
+                    logger.error(MessageFormat.format("Block {0} not added", block));
 
                 var responses = ledger.addBlock(block);
                 for (var response : responses)
@@ -454,7 +454,7 @@ public class NodeService implements UDPService {
                 for (var request : block.getRequests())
                     messageAccum.remove(request);
 
-                logger.info(MessageFormat.format("Appended block \u001B[36m{0}\u001B[37m to ledger", block));
+                logger.info(MessageFormat.format("Appended block {0} to ledger", block));
                 logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
             }
         }

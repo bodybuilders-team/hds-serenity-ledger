@@ -35,7 +35,7 @@ public class ConsensusMessage extends Message {
     public String toString() {
         switch (this.getType()) {
             case Type.PRE_PREPARE, Type.PREPARE, Type.COMMIT -> {
-                return MessageFormat.format("<{0}({1}, {2}, \u001B[36m{3}\u001B[37m), messageId={4}>",
+                return MessageFormat.format("<{0}({1}, {2}, {3}), messageId={4}>",
                         this.getType(),
                         this.getConsensusInstance(),
                         this.getRound(),
@@ -45,7 +45,7 @@ public class ConsensusMessage extends Message {
                 );
             }
             case Type.ROUND_CHANGE -> {
-                return MessageFormat.format("<ROUND-CHANGE({0}, {1}, {2}, \u001B[36m{3}\u001B[37m), messageId={4}>",
+                return MessageFormat.format("<ROUND-CHANGE({0}, {1}, {2}, {3}), messageId={4}>",
                         this.getConsensusInstance(),
                         this.getRound(),
                         this.getPreparedRound(),
