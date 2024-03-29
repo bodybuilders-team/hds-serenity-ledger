@@ -40,22 +40,24 @@ public class ConsensusMessage extends Message {
     public String toString() {
         switch (this.getType()) {
             case Type.PRE_PREPARE, Type.PREPARE, Type.COMMIT -> {
-                return MessageFormat.format("<{0}({1}, {2}, {3}), messageId={4}>",
+                return MessageFormat.format("<{0}({1}, {2}, {3}), senderId={4}, messageId={5}>",
                         this.getType(),
                         this.getConsensusInstance(),
                         this.getRound(),
 //                        this.getValue() != null ? this.getValue().hashCode() : "null",
                         this.getValue(),
+                        this.getSenderId(),
                         this.getMessageId()
                 );
             }
             case Type.ROUND_CHANGE -> {
-                return MessageFormat.format("<ROUND-CHANGE({0}, {1}, {2}, {3}), messageId={4}>",
+                return MessageFormat.format("<ROUND-CHANGE({0}, {1}, {2}, {3}), senderId={4}, messageId={5}>",
                         this.getConsensusInstance(),
                         this.getRound(),
                         this.getPreparedRound(),
 //                        this.getPreparedValue() != null ? this.getPreparedValue().hashCode() : "null",
                         this.getPreparedValue(),
+                        this.getSenderId(),
                         this.getMessageId()
                 );
             }

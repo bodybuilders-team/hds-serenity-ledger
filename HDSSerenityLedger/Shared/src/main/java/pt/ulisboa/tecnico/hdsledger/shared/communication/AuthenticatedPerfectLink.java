@@ -131,6 +131,8 @@ public class AuthenticatedPerfectLink {
      * @param signedMessage The signed message to be sent
      */
     public void sendSignedMessage(String nodeId, SignedMessage signedMessage) {
+        final SignedMessage localSignedMessage = signedMessage.deepCopy();
+
         try {
             ProcessConfig node = nodes.get(nodeId);
             if (node == null)
@@ -147,20 +149,20 @@ public class AuthenticatedPerfectLink {
 
             // Send message to local queue instead of using network if destination in self
             if (nodeId.equals(this.config.getId())) {
-                this.localhostQueue.add(signedMessage);
+                this.localhostQueue.add(localSignedMessage);
 
-                logger.info(MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m successfully", signedMessage.getMessage()));
+                logger.info(MessageFormat.format("Sent {0} to \u001B[33mself (locally)\u001B[37m successfully", localSignedMessage.getMessage()));
 
                 return;
             }
 
-            byte[] dataToSend = SerializationUtils.getGson().toJson(signedMessage).getBytes();
+            byte[] dataToSend = SerializationUtils.getGson().toJson(localSignedMessage).getBytes();
 
             unreliableSend(destAddress, destPort, dataToSend);
 
-            logger.info(MessageFormat.format("Sending {0} to {1}:{2}", signedMessage.getMessage(), destAddress, String.valueOf(destPort)));
+            logger.info(MessageFormat.format("Sending {0} to {1}:{2}", localSignedMessage.getMessage(), destAddress, String.valueOf(destPort)));
         } catch (UnknownHostException e) {
-            logger.error(MessageFormat.format("Error sending signed message {0} to {1}: {2}", signedMessage.getMessage(), nodeId, e.getMessage()));
+            logger.error(MessageFormat.format("Error sending signed message {0} to {1}: {2}", localSignedMessage.getMessage(), nodeId, e.getMessage()));
             e.printStackTrace();
         }
     }

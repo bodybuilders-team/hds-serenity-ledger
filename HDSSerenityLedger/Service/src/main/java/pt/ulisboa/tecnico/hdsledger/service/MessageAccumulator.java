@@ -4,8 +4,8 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLe
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
-import java.util.Deque;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The {@code MessageAccumulator} class represents a mempool for the ledger requests.
@@ -14,7 +14,7 @@ import java.util.LinkedList;
 public class MessageAccumulator {
 
     private static final int TRANSACTION_THRESHOLD = 3;
-    private final Deque<SignedLedgerRequest> accumulatedMessages = new LinkedList<>();
+    private final List<SignedLedgerRequest> accumulatedMessages = new ArrayList<>();
     private final NodeProcessConfig config;
 
     public MessageAccumulator(NodeProcessConfig config) {
@@ -82,8 +82,8 @@ public class MessageAccumulator {
     public synchronized Block getBlock() {
         var block = new Block();
 
-        for (int i = 0; i < TRANSACTION_THRESHOLD; i++) {
-            var request = accumulatedMessages.poll();
+        for (int i = 0; i < Math.min(TRANSACTION_THRESHOLD, accumulatedMessages.size()); i++) {
+            var request = accumulatedMessages.get(i);
             if (request == null)
                 break;
 
