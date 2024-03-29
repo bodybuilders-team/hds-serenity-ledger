@@ -36,4 +36,12 @@ public class Account {
     public void subtractBalance(double amount) {
         balance -= amount;
     }
+
+    @Override
+    public String toString() {
+        return "Account{" +
+                "ownerId='" + ownerId + '\'' +
+                ", balance=" + balance +
+                '}';
+    }
 }

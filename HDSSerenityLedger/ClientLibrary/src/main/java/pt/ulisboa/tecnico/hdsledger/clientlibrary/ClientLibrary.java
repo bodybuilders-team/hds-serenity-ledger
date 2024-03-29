@@ -37,6 +37,7 @@ public class ClientLibrary implements UDPService {
     private final Map<Long, Map<String, LedgerResponse>> ledgerAcks = new ConcurrentHashMap<>();
     private AuthenticatedPerfectLink authenticatedPerfectLink;
     private int quorumSize;
+    private int f;
 
     public ClientLibrary(ClientProcessConfig clientConfig, NodeProcessConfig[] nodesConfig, ClientProcessConfig[] clientsConfig) {
         this.clientConfig = clientConfig;
@@ -52,10 +53,11 @@ public class ClientLibrary implements UDPService {
                     AUTHENTICATED_PERFECT_LINK_LOGS_ENABLED
             );
 
-            int f = Math.floorDiv(nodesConfig.length - 1, 3);
+            this.f = Math.floorDiv(nodesConfig.length - 1, 3);
             this.quorumSize = Math.floorDiv(nodesConfig.length + f, 2) + 1;
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error creating link: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -95,6 +97,7 @@ public class ClientLibrary implements UDPService {
             authenticatedPerfectLink.broadcast(request);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error sending append: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -109,6 +112,7 @@ public class ClientLibrary implements UDPService {
         logger.info(MessageFormat.format("Transferring \u001B[33m{0} HDC\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
 
         try {
+            //TODO: Change ROBBER_CLIENT Implementation
             final var transferRequest = LedgerTransferRequest.builder()
                     .requestId(requestIdCounter.getAndIncrement())
                     .sourceAccountId(clientConfig.getBehavior() == ProcessConfig.ProcessBehavior.ROBBER_CLIENT ? destinationAccountId : sourceAccountId)
@@ -129,6 +133,7 @@ public class ClientLibrary implements UDPService {
             authenticatedPerfectLink.broadcast(signedLedgerRequest);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error sending read: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -165,6 +170,7 @@ public class ClientLibrary implements UDPService {
 
                 } catch (Exception e) {
                     logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
+                    e.printStackTrace();
                 }
             }
         }).start();
@@ -176,20 +182,30 @@ public class ClientLibrary implements UDPService {
      * @param ledgerResponse the ledger response
      */
     private void handleLedgerResponse(LedgerResponse ledgerResponse) {
-        final var requestIdBalanceResponses = ledgerResponses.computeIfAbsent(ledgerResponse.getOriginalRequestId(), k -> new HashMap<>());
-        requestIdBalanceResponses.putIfAbsent(ledgerResponse.getSenderId(), ledgerResponse);
+        final var requestIdResponses = ledgerResponses.computeIfAbsent(ledgerResponse.getOriginalRequestId(), k -> new HashMap<>());
+        requestIdResponses.putIfAbsent(ledgerResponse.getSenderId(), ledgerResponse);
 
-        if (requestIdBalanceResponses.size() != quorumSize)
+        HashMap<LedgerResponse, Integer> frequency = new HashMap<>();
+        requestIdResponses.values().forEach(bucketLedgerResponse ->
+                frequency.put(bucketLedgerResponse, frequency.getOrDefault(bucketLedgerResponse, 0) + 1)
+        );
+
+        var accumLedgerResponse = frequency.entrySet().stream()
+                .filter(entry -> entry.getValue() == f + 1)
+                .map(Map.Entry::getKey)
+                .findFirst().orElse(null);
+
+        if (accumLedgerResponse == null)
             return;
 
         logger.info(MessageFormat.format("Received {0} response: \"{1}\" for request ID {2}",
-                switch (ledgerResponse.getType()) {
+                switch (accumLedgerResponse.getType()) {
                     case BALANCE_RESPONSE -> "balance";
                     case TRANSFER_RESPONSE -> "transfer";
                     default -> "unknown";
                 },
-                ledgerResponse.getMessage(),
-                ledgerResponse.getOriginalRequestId())
+                accumLedgerResponse.getMessage(),
+                accumLedgerResponse.getOriginalRequestId())
         );
     }
 }

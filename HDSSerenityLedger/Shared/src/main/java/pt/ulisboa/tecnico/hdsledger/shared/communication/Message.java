@@ -24,9 +24,9 @@ import java.util.Objects;
 @SuperBuilder
 public class Message implements Serializable {
 
-    private String senderId;
-    private int messageId = -1;
-    private Type type;
+    protected String senderId;
+    protected int messageId = -1;
+    protected Type type;
 
     public Message() {
         // Empty constructor for serialization

@@ -6,6 +6,7 @@ import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 
 import java.text.MessageFormat;
+import java.util.Objects;
 
 /**
  * The {@code LedgerResponse} class represents a response from the ledger.
@@ -40,5 +41,20 @@ public class LedgerResponse extends Message {
 
             default -> "NO REPRESENTATION";
         };
+    }
+
+    // HashCode and Equals do not consider the sender id nor the message id.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        LedgerResponse that = (LedgerResponse) o;
+        return type == that.type && originalRequestId == that.originalRequestId && Objects.equals(originalRequestSenderId, that.originalRequestSenderId) && Objects.equals(message, that.message);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, originalRequestId, originalRequestSenderId, message);
     }
 }

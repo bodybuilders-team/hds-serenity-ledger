@@ -20,7 +20,6 @@ import java.util.Objects;
 public class Block {
 
     private List<SignedLedgerRequest> requests = new ArrayList<>();
-    private int consensusInstance;
     private String creatorId;
 
     public Block() {
@@ -38,20 +37,22 @@ public class Block {
 
     @Override
     public String toString() {
-        return String.valueOf(this.hashCode());
+        return "Block{" +
+                "requests=" + requests +
+                ", creatorId='" + creatorId + '\'' +
+                '}';
     }
-
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Block block = (Block) o;
-        return consensusInstance == block.consensusInstance && Objects.equals(requests, block.requests) && Objects.equals(creatorId, block.creatorId);
+        return Objects.equals(requests, block.requests) && Objects.equals(creatorId, block.creatorId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(requests, consensusInstance, creatorId);
+        return Objects.hash(requests, creatorId);
     }
 }

@@ -1,15 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.service;
 
-import pt.ulisboa.tecnico.hdsledger.shared.MultiThreadTimer;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
+import java.util.Deque;
 import java.util.LinkedList;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.TimerTask;
-import java.util.function.Consumer;
 
 /**
  * The {@code MessageAccumulator} class represents a mempool for the ledger requests.
@@ -17,13 +13,9 @@ import java.util.function.Consumer;
  */
 public class MessageAccumulator {
 
-    private static final int TRANSACTION_THRESHOLD = 10;
-    private static final int DELAY = 2000;
-
-    final MultiThreadTimer timer = new MultiThreadTimer();
-    private final Queue<SignedLedgerRequest> accumulatedMessages = new LinkedList<>();
+    private static final int TRANSACTION_THRESHOLD = 3;
+    private final Deque<SignedLedgerRequest> accumulatedMessages = new LinkedList<>();
     private final NodeProcessConfig config;
-    private boolean timerElapsed = true;
 
     public MessageAccumulator(NodeProcessConfig config) {
         this.config = config;
@@ -38,27 +30,8 @@ public class MessageAccumulator {
         accumulatedMessages.add(request);
     }
 
-    /**
-     * Gets a block of requests.
-     *
-     * @param onTimerElapsed the consumer to execute when the timer expires
-     * @return an optional block of requests
-     */
-    public synchronized Optional<Block> getBlock(Consumer<Block> onTimerElapsed) {
-        timer.startTimer(new TimerTask() {
-            @Override
-            public void run() {
-                var block = getBlock();
-                block.ifPresent(onTimerElapsed);
-            }
-        }, DELAY);
-
-        if (accumulatedMessages.size() < TRANSACTION_THRESHOLD)
-            return Optional.empty();
-
-        timer.stopTimer();
-
-        return getBlock();
+    public boolean enoughRequests() {
+        return accumulatedMessages.size() >= TRANSACTION_THRESHOLD;
     }
 
     /*
@@ -106,7 +79,7 @@ public class MessageAccumulator {
      *
      * @return an optional block of requests
      */
-    private synchronized Optional<Block> getBlock() {
+    public synchronized Block getBlock() {
         var block = new Block();
 
         for (int i = 0; i < TRANSACTION_THRESHOLD; i++) {
@@ -117,14 +90,10 @@ public class MessageAccumulator {
             block.addRequest(request);
         }
 
-        if (block.getRequests().isEmpty())
-            return Optional.empty();
-
-        accumulatedMessages.clear();
-
         block.setCreatorId(config.getId());
 
-        return Optional.of(block);
+
+        return block;
     }
 
     /**
@@ -135,4 +104,5 @@ public class MessageAccumulator {
     public void remove(SignedLedgerRequest request) {
         accumulatedMessages.remove(request);
     }
+
 }

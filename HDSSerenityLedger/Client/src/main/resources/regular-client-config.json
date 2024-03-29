@@ -3,8 +3,8 @@
     "id": "101",
     "hostname": "localhost",
     "port": 4001,
-    "scriptPath": "script_sample.txt",
-    "useScript": false,
+    "scriptPath": "script_sample-101.txt",
+    "useScript": true,
     "privateKeyPath": "../keypairs/client_1/private_key.der",
     "publicKeyPath": "../keypairs/client_1/public_key.der",
     "behavior": "REGULAR"
@@ -13,6 +13,8 @@
     "id": "102",
     "hostname": "localhost",
     "port": 4002,
+    "scriptPath": "script_sample-102.txt",
+    "useScript": true,
     "privateKeyPath": "../keypairs/client_2/private_key.der",
     "publicKeyPath": "../keypairs/client_2/public_key.der",
     "behavior": "REGULAR"

@@ -2,16 +2,18 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication;
 
 import com.google.gson.Gson;
 import pt.ulisboa.tecnico.hdsledger.shared.CollapsingSet;
-import pt.ulisboa.tecnico.hdsledger.shared.exception.ErrorMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.exception.HDSSException;
-import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.consensus_message.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTransferRequest;
+import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.HDSSException;
+import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -100,7 +102,11 @@ public class AuthenticatedPerfectLink {
         if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_BROADCAST) {
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
-                data.setMessageId((int) (Math.random() * nodes.size()));
+                if (data.getType() == Type.TRANSFER) {
+                    SignedLedgerRequest signedLedgerRequest = (SignedLedgerRequest) data;
+                    LedgerTransferRequest ledgerTransferRequest = (LedgerTransferRequest) signedLedgerRequest.getLedgerRequest();
+                    ledgerTransferRequest.setAmount(ledgerTransferRequest.getAmount() + Math.random() * 100);
+                }
                 send(destId, data);
             });
         } else if (this.config.getBehavior() == ProcessConfig.ProcessBehavior.CORRUPT_LEADER
@@ -109,8 +115,7 @@ public class AuthenticatedPerfectLink {
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
                 final var block = prePrepareMessage.getValue();
-                block.setConsensusInstance((int) (Math.random() * nodes.size()));
-
+                //TODO: Change
                 prePrepareMessage.setValue(block);
 
                 send(destId, prePrepareMessage);

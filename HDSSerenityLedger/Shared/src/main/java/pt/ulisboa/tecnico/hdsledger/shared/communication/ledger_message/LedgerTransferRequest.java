@@ -2,6 +2,7 @@ package pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
@@ -11,13 +12,14 @@ import pt.ulisboa.tecnico.hdsledger.shared.crypto.CryptoUtils;
  * The {@code LedgerTransferRequest} class represents a request to transfer money between two accounts.
  */
 @Getter
+@Setter
 @AllArgsConstructor
 @SuperBuilder
 @ToString
 public class LedgerTransferRequest extends LedgerRequest {
-    private final String sourceAccountId;
-    private final String destinationAccountId;
-    private final double amount;
+    private String sourceAccountId;
+    private String destinationAccountId;
+    private double amount;
 
     /**
      * Verifies the signature of the request.

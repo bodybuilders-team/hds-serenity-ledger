@@ -39,6 +39,7 @@ public class ConsensusMessage extends Message {
                         this.getType(),
                         this.getConsensusInstance(),
                         this.getRound(),
+//                        this.getValue() != null ? this.getValue().hashCode() : "null",
                         this.getValue(),
                         this.getMessageId()
                 );
@@ -48,7 +49,8 @@ public class ConsensusMessage extends Message {
                         this.getConsensusInstance(),
                         this.getRound(),
                         this.getPreparedRound(),
-                        this.getPreparedValue() != null ? this.getPreparedValue() : "null",
+//                        this.getPreparedValue() != null ? this.getPreparedValue().hashCode() : "null",
+                        this.getPreparedValue(),
                         this.getMessageId()
                 );
             }

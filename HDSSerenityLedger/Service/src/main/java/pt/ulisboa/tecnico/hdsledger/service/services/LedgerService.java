@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.service.services;
 
 import pt.ulisboa.tecnico.hdsledger.service.MessageAccumulator;
+import pt.ulisboa.tecnico.hdsledger.shared.MultiThreadTimer;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.AuthenticatedPerfectLink;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerCheckBalanceRequest;
@@ -8,10 +9,12 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerRe
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTransferRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
-import pt.ulisboa.tecnico.hdsledger.shared.models.Block;
 
 import java.text.MessageFormat;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Service used to interact with the HDSLedger.
@@ -25,6 +28,12 @@ public class LedgerService implements UDPService {
 
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
+
+    private static final int DELAY = 2000;
+
+    final MultiThreadTimer timer = new MultiThreadTimer();
+    private final AtomicBoolean previousConsensusStartFinished = new AtomicBoolean(true);
+
 
     public LedgerService(
             AuthenticatedPerfectLink authenticatedPerfectLink,
@@ -72,6 +81,7 @@ public class LedgerService implements UDPService {
             authenticatedPerfectLink.send(request.getSenderId(), response);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error transferring: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -107,6 +117,7 @@ public class LedgerService implements UDPService {
             authenticatedPerfectLink.send(request.getSenderId(), response);
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error retrieving balance: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -116,23 +127,55 @@ public class LedgerService implements UDPService {
      * @param signedLedgerRequest the signed ledger request
      */
     private void accumulateOrPropose(SignedLedgerRequest signedLedgerRequest) {
-        final Block block;
-
-        synchronized (messageAccum) {
-            if (!nodeService.getLedger().validateRequest(signedLedgerRequest)) {
-                logger.warn("Failed to validate request. Not accumulating.");
-                return;
-            }
-
-            messageAccum.accumulate(signedLedgerRequest);
-
-            block = messageAccum.getBlock(nodeService::startConsensus).orElse(null);
+        if (!nodeService.getLedger().validateRequest(signedLedgerRequest)) {
+            logger.warn("Failed to validate request. Not accumulating.");
+            return;
         }
 
-        if (block == null)
+        if (this.nodeService.getConfig().getBehavior() == ProcessConfig.ProcessBehavior.BULLY_LEADER
+                && signedLedgerRequest.getSenderId().equals("101"))
             return;
 
-        nodeService.startConsensus(block);
+        messageAccum.accumulate(signedLedgerRequest);
+
+        checkConsensus();
+    }
+
+    private void checkConsensus() {
+        logger.debug("Checking consensus...");
+        boolean startConsensus = false;
+        synchronized (previousConsensusStartFinished) {
+            if (previousConsensusStartFinished.get() && messageAccum.enoughRequests()) {
+                previousConsensusStartFinished.set(false);
+                startConsensus = true;
+            }
+        }
+
+        if (startConsensus) {
+            nodeService.startConsensus(messageAccum::getBlock);
+            previousConsensusStartFinished.set(true);
+        } else {
+            timer.startTimer(new TimerTask() {
+                @Override
+                public void run() {
+                    logger.debug("Timer elapsed. Checking consensus...");
+                    checkConsensusWithoutEnoughRequests();
+                }
+            }, DELAY);
+        }
+    }
+
+    private void checkConsensusWithoutEnoughRequests() {
+        if (previousConsensusStartFinished.get()) {
+            nodeService.startConsensus(messageAccum::getBlock);
+        } else {
+            try {
+                Thread.sleep(100); //TODO: Change to wait-notify
+                checkConsensusWithoutEnoughRequests();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 
@@ -159,11 +202,13 @@ public class LedgerService implements UDPService {
                             }
                         } catch (Exception e) {
                             logger.error(MessageFormat.format("Error processing message: {0}", e.getMessage()));
+                            e.printStackTrace();
                         }
                     }).start();
 
                 } catch (Exception e) {
                     logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
+                    e.printStackTrace();
                 }
             }
         }).start();

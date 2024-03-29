@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 /**
  * Service to handle consensus instances and ledger.
@@ -33,11 +34,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NodeService implements UDPService {
 
     // Expire time for the round-change timer
-    private static final long ROUND_CHANGE_TIMER_EXPIRE_TIME = 10000000;
+    private static final long ROUND_CHANGE_TIMER_EXPIRE_TIME = 7000;
     private static final int STARTING_ROUND = 1;
 
     private final ProcessLogger logger;
-    private final MessageAccumulator accumulatedMessages;
+    private final MessageAccumulator messageAccum;
     private final NodeProcessConfig[] nodesConfig; // All nodes configuration
     private final NodeProcessConfig config; // Current node configuration
 
@@ -59,7 +60,7 @@ public class NodeService implements UDPService {
     private final Map<Integer, InstanceInfo> instanceInfo = new ConcurrentHashMap<>();
 
     private final AtomicInteger lastProposedConsensusInstance = new AtomicInteger(0);
-    private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
+    public final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
 
     // Timers for the consensus instances, triggering round-change
     private final Map<Integer, MultiThreadTimer> timers = new ConcurrentHashMap<>();
@@ -81,7 +82,7 @@ public class NodeService implements UDPService {
             NodeProcessConfig config,
             NodeProcessConfig[] nodesConfig,
             ClientProcessConfig[] clientsConfig,
-            MessageAccumulator accumulatedMessages
+            MessageAccumulator messageAccum
     ) {
         this.authenticatedPerfectLinkNode = authenticatedPerfectLinkNode;
         this.authenticatedPerfectLinkClient = authenticatedPerfectLinkClient;
@@ -93,8 +94,8 @@ public class NodeService implements UDPService {
         this.roundChangeMessages = new RoundChangeMessageBucket(nodesConfig.length);
 
         this.logger = new ProcessLogger(NodeService.class.getName(), config.getId());
-        this.accumulatedMessages = accumulatedMessages;
-        this.ledger = new Ledger(clientsConfig, nodesConfig, config.getId());
+        this.messageAccum = messageAccum;
+        this.ledger = new Ledger(clientsConfig, nodesConfig, config);
     }
 
     /**
@@ -137,29 +138,24 @@ public class NodeService implements UDPService {
      * Start an instance of consensus for a value.
      * Only the current leader will start a consensus instance the remaining nodes only update values.
      *
-     * @param inputValue Value to value agreed upon
+     * @param inputValueSupplier Value to value agreed upon
      */
-    public void startConsensus(Block inputValue) {
+    public void startConsensus(Supplier<Block> inputValueSupplier) {
         final int localConsensusInstance = getNextConsensusInstanceToPropose();
 
-        final var existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(inputValue));
+        logger.debug(MessageFormat.format("Starting consensus for instance {0} and waiting for previous consensus", localConsensusInstance));
+        waitForPreviousConsensus(localConsensusInstance);
+        logger.debug(MessageFormat.format("Previous consensus instance {0} decided", localConsensusInstance - 1));
+
+
+        final var existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo());
 
         if (existingConsensus != null) {
             logger.info(MessageFormat.format("Node already started consensus for instance {0}", localConsensusInstance));
             return;
         }
 
-        waitForPreviousConsensus(localConsensusInstance);
-
-        var iterator = inputValue.getRequests().iterator();
-
-        while (iterator.hasNext()) {
-            var request = iterator.next();
-            if (ledger.getRequests().contains(request)) {
-                iterator.remove();
-                logger.info(MessageFormat.format("Request {0} already in ledger, removing from block", request));
-            }
-        }
+        logger.debug(MessageFormat.format("Starting consensus for instance {0}", localConsensusInstance));
 
         final var nodeIsLeader = isNodeLeader(localConsensusInstance, STARTING_ROUND, this.config.getId());
 
@@ -168,7 +164,23 @@ public class NodeService implements UDPService {
                 || this.config.getBehavior() == ProcessConfig.ProcessBehavior.NON_LEADER_CONSENSUS_INITIATION
                 || this.config.getBehavior() == ProcessConfig.ProcessBehavior.LEADER_IMPERSONATION
         ) {
-            final var senderId = nodeIsLeader || this.config.getBehavior() == ProcessConfig.ProcessBehavior.NON_LEADER_CONSENSUS_INITIATION
+            var inputValue = inputValueSupplier.get();
+
+            logger.debug(MessageFormat.format("Proposing consensus for instance {0} with value {1}", localConsensusInstance, inputValue));
+
+            var iterator = inputValue.getRequests().iterator();
+            while (iterator.hasNext()) {
+                var request = iterator.next();
+                if (!ledger.validateRequest(request)) {
+                    logger.info(MessageFormat.format("Request {0} is invalid. Removing from block...", request));
+                    logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
+                    iterator.remove();
+                    messageAccum.remove(request);
+                }
+            }
+
+
+            final var senderId = this.config.getBehavior() == ProcessConfig.ProcessBehavior.LEADER_IMPERSONATION
                     ? this.config.getId()
                     : getLeaderId(localConsensusInstance, STARTING_ROUND); // Impersonate leader
 
@@ -195,7 +207,6 @@ public class NodeService implements UDPService {
 
         // Start timer for the consensus instance
         startTimer(localConsensusInstance);
-
     }
 
     /**
@@ -232,6 +243,7 @@ public class NodeService implements UDPService {
 
         if (!waitAndValidate(message)) {
             logger.info("Received invalid pre-prepare message. Ignoring... " + message);
+            logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
             return;
         }
 
@@ -284,8 +296,11 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, senderId));
 
-        if (!waitAndValidate(message))
+        if (!waitAndValidate(message)) {
+            logger.info("Received invalid prepare message. Ignoring... " + message);
+            logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
             return;
+        }
 
         prepareMessages.addMessage(signedMessage);
 
@@ -367,8 +382,11 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, message.getSenderId()));
 
-        if (!waitAndValidate(message))
+        if (!waitAndValidate(message)) {
+            logger.info(MessageFormat.format("Received invalid commit message. Ignoring... {0}", message));
+            logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
             return;
+        }
 
         commitMessages.addMessage(signedMessage);
 
@@ -408,6 +426,9 @@ public class NodeService implements UDPService {
                 synchronized (waitObject) {
                     waitObject.notifyAll();
                 }
+            } else {
+                logger.debug(MessageFormat.format("Did not receive quorum of COMMIT({0}, {1}, _) yet", consensusInstance, round));
+                logger.debug(MessageFormat.format("Current quorum: {0}", commitMessages.getMessages(consensusInstance, round).values()));
             }
         }
     }
@@ -418,9 +439,9 @@ public class NodeService implements UDPService {
      * @param block Block to append
      */
     private void appendToLedger(Block block) {
-        logger.info(MessageFormat.format("Started to append block \u001B[36m{0}\u001B[37m to ledger...", block));
+        logger.info(MessageFormat.format("Started to append block \u001B[36m{0}\u001B[37m to ledger decided on instance {1}...", block, lastDecidedConsensusInstance.get() + 1));
 
-        synchronized (accumulatedMessages) {
+        synchronized (messageAccum) {
             synchronized (ledger) {
                 // TODO: What to do if the block is not added (Should not happen in decide)
                 if (!ledger.validateBlock(block))
@@ -431,9 +452,10 @@ public class NodeService implements UDPService {
                     authenticatedPerfectLinkClient.send(response.getOriginalRequestSenderId(), response);
 
                 for (var request : block.getRequests())
-                    accumulatedMessages.remove(request);
+                    messageAccum.remove(request);
 
                 logger.info(MessageFormat.format("Appended block \u001B[36m{0}\u001B[37m to ledger", block));
+                logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
             }
         }
     }
@@ -451,8 +473,10 @@ public class NodeService implements UDPService {
 
         logger.info(MessageFormat.format("Received {0} from node {1}", message, message.getSenderId()));
 
-        if (!validateRoundChangeMessage(message))
+        if (!validateRoundChangeMessage(message)) {
+            logger.debug(MessageFormat.format("Received invalid round-change message. Ignoring... {0}", message));
             return;
+        }
 
         roundChangeMessages.addMessage(signedMessage);
 
@@ -554,10 +578,13 @@ public class NodeService implements UDPService {
      * @return True if the message is valid
      */
     private boolean validateRoundChangeMessage(ConsensusMessage message) {
-        if (message.getPreparedRound() < message.getRound())
+        if (message.getPreparedRound() >= message.getRound())
             return false;
 
-        return waitAndValidate(message);
+        waitForPreviousConsensus(message.getConsensusInstance());
+        final var block = message.getPreparedValue();
+
+        return ledger.validateBlock(block);
     }
 
     @Override
@@ -597,15 +624,18 @@ public class NodeService implements UDPService {
                                 }
                             } catch (Exception e) {
                                 logger.error(MessageFormat.format("Error handling message: {0}", e.getMessage()));
+                                e.printStackTrace();
                             }
                         }).start();
                     } catch (Exception e) {
                         logger.error(MessageFormat.format("Error receiving message: {0}", e.getMessage()));
+                        e.printStackTrace();
                     }
                 }
             }).start();
         } catch (Exception e) {
             logger.error(MessageFormat.format("Error while listening: {0}", e.getMessage()));
+            e.printStackTrace();
         }
     }
 
@@ -712,6 +742,22 @@ public class NodeService implements UDPService {
                     Block preparedValue = instance.getPreparedValue();
 
                     startTimer(consensusInstance);
+
+                    if (preparedValue == null) {
+                        preparedValue = messageAccum.getBlock();
+                        instance.setPreparedValue(preparedValue);
+
+                        var iterator = preparedValue.getRequests().iterator();
+                        while (iterator.hasNext()) {
+                            var request = iterator.next();
+                            if (!ledger.validateRequest(request)) {
+                                logger.info(MessageFormat.format("Request {0} is invalid. Removing from block...", request));
+                                logger.debug(MessageFormat.format("Current ledger: {0}", ledger.getAccounts()));
+                                iterator.remove();
+                                messageAccum.remove(request);
+                            }
+                        }
+                    }
 
                     ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
                             .senderId(config.getId())

@@ -35,6 +35,7 @@ public class CustomLogger {
         Formatter formatter = new CustomLog(ENABLE_COLOR_PARSING);
         handler.setFormatter(formatter);
 
+        handler.setLevel(Level.ALL);
         logger.addHandler(handler);
     }
 

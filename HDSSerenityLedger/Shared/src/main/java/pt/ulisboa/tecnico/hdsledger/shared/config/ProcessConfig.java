@@ -40,7 +40,7 @@ public class ProcessConfig {
         CRASH_AFTER_FIXED_TIME,             // Crash after a fixed time
         CORRUPT_LEADER,                     // Leader sends different messages to different nodes
         QUIET_LEADER,                       // Leader does not broadcast pre-prepare messages
-        BULLY_LEADER,                       // Leader does not include txs from a specific client in the block // TODO - Implement
+        BULLY_LEADER,                       // Leader does not include txs from a specific client in the block
         ROBBER_LEADER,                      // Leader charges a greater fee than the one agreed // TODO - Implement
 
         // Clients

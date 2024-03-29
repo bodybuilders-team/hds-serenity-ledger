@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.shared.models;
 
 import lombok.Getter;
+import pt.ulisboa.tecnico.hdsledger.shared.Utils;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerCheckBalanceRequest;
@@ -9,6 +10,8 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.LedgerTr
 import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLedgerRequest;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -22,20 +25,26 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Ledger {
 
+    private final ProcessLogger logger;
     public static final double FEE = 0.01;
 
     // PublicKey -> Account
+    @Getter
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();
+    @Getter
     private final List<Block> blockchain = new ArrayList<>();
 
     @Getter
     private final HashSet<SignedLedgerRequest> requests = new HashSet<>();
     private final ClientProcessConfig[] clientsConfig;
     private final String nodeId; // The id of the node that owns this ledger
+    private final NodeProcessConfig config;
 
-    public Ledger(ClientProcessConfig[] clientsConfig, NodeProcessConfig[] nodesConfig, String nodeId) {
+    public Ledger(ClientProcessConfig[] clientsConfig, NodeProcessConfig[] nodesConfig, NodeProcessConfig config) {
         this.clientsConfig = clientsConfig;
-        this.nodeId = nodeId;
+        this.nodeId = config.getId();
+        this.config = config;
+        this.logger = new ProcessLogger(Ledger.class.getName(), nodeId);
 
         // Initialize accounts for both clients and nodes
         for (var clientConfig : clientsConfig)
@@ -67,12 +76,15 @@ public class Ledger {
                 final Account receiver = accounts.get(transferRequest.getDestinationAccountId());
                 final Account blockCreator = accounts.get(block.getCreatorId());
 
-                final var fee = transferRequest.getAmount() * FEE;
+                var fee = transferRequest.getAmount() * FEE;
+                if (this.nodeId.equals(block.getCreatorId()) && this.config.getBehavior() == ProcessConfig.ProcessBehavior.ROBBER_LEADER) {
+                    fee = transferRequest.getAmount() * (FEE * 2);
+                }
 
                 sender.subtractBalance(transferRequest.getAmount() + fee);
                 receiver.addBalance(transferRequest.getAmount());
-
                 blockCreator.addBalance(fee);
+
 
                 responses.add(LedgerResponse.builder()
                         .senderId(nodeId)
@@ -131,8 +143,8 @@ public class Ledger {
         if (request.getType() == Type.TRANSFER) {
             var transferMessage = (LedgerTransferRequest) request.getLedgerRequest();
 
-            Account sender = accounts.get(transferMessage.getDestinationAccountId());
-            Account receiver = accounts.get(transferMessage.getSourceAccountId());
+            Account sender = accounts.get(transferMessage.getSourceAccountId());
+            Account receiver = accounts.get(transferMessage.getDestinationAccountId());
 
             if (sender == null || receiver == null)
                 return false;
@@ -145,4 +157,12 @@ public class Ledger {
 
         return true;
     }
+
+    @Override
+    public String toString() {
+        return Utils.convertWithStream(accounts);
+    }
 }
+
+
+

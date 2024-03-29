@@ -5,6 +5,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Arrays;
+
 /**
  * The {@code SignedMessage} class represents a message that contains data and it's signature.
  * It is used to send messages within the network, ensuring authenticity and integrity.
@@ -16,4 +18,11 @@ import lombok.Setter;
 public class SignedMessage {
     private Message message;
     private byte[] signature;
+
+    @Override
+    public String toString() {
+        return "SignedMessage{" +
+                "message=" + message +
+                '}';
+    }
 }

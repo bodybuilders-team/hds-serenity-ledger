@@ -7,9 +7,11 @@ server_configs = [
     "crash-node-config-10s.json",
     "leader-impersonation-node-config.json",
     "non-leader-start-consensus-node-config.json",
-    "differential-broadcasting-node-config.json",
+    "corrupt-broadcasting-node-config.json",
     "corrupt-leader-node-config.json",
     "quiet-leader-node-config.json",
+    "bully-leader-node-config.json",
+    "robber-leader-node-config.json",
 ]
 
 # Blockchain client configuration file name
@@ -18,7 +20,7 @@ client_configs = [
     "robber-client-config.json",
 ]
 
-server_config = server_configs[7]
+server_config = server_configs[8]
 client_config = client_configs[0]
 
 if os.name == "nt":
