@@ -115,7 +115,8 @@ public class AuthenticatedPerfectLink {
             // Send different messages to different nodes (Alter the message)
             nodes.forEach((destId, dest) -> {
                 final var block = prePrepareMessage.getValue();
-                //TODO: Change
+                if (!block.getRequests().isEmpty())
+                    block.setRequests(block.getRequests().subList(0, block.getRequests().size() - 1));
                 prePrepareMessage.setValue(block);
 
                 send(destId, prePrepareMessage);
