@@ -21,17 +21,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class LedgerService implements UDPService {
 
+    private static final int DELAY = 2000;
+    final MultiThreadTimer timer = new MultiThreadTimer();
     private final NodeService nodeService;
     private final ProcessLogger logger;
     private final ClientProcessConfig[] clientsConfig; // All clients configuration
     private final MessageAccumulator messageAccum;
-
     // Link to communicate with the clients
     private final AuthenticatedPerfectLink authenticatedPerfectLink;
-
-    private static final int DELAY = 2000;
-
-    final MultiThreadTimer timer = new MultiThreadTimer();
     private final AtomicBoolean previousConsensusStartFinished = new AtomicBoolean(true);
 
 
@@ -141,6 +138,11 @@ public class LedgerService implements UDPService {
         checkConsensus();
     }
 
+    /**
+     * Checks if there are enough requests to start consensus.
+     * If there are, and the previous consensus has finished, start a new consensus.
+     * Otherwise, start a timer to check again.
+     */
     private void checkConsensus() {
         logger.debug("Checking consensus...");
         boolean startConsensus = false;
@@ -154,7 +156,7 @@ public class LedgerService implements UDPService {
         if (startConsensus) {
             nodeService.startConsensus(messageAccum::getBlock);
             previousConsensusStartFinished.set(true);
-        } else {
+        } else
             timer.startTimer(new TimerTask() {
                 @Override
                 public void run() {
@@ -162,9 +164,13 @@ public class LedgerService implements UDPService {
                     checkConsensusWithoutEnoughRequests();
                 }
             }, DELAY);
-        }
     }
 
+    /**
+     * Checks if there are enough requests to start consensus.
+     * If there are, and the previous consensus has finished, start a new consensus.
+     * Otherwise, wait for the previous consensus to finish.
+     */
     private void checkConsensusWithoutEnoughRequests() {
         if (previousConsensusStartFinished.get()) {
             nodeService.startConsensus(messageAccum::getBlock);

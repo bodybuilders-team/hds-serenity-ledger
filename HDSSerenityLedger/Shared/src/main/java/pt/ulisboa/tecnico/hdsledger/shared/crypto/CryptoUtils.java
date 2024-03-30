@@ -1,9 +1,9 @@
 package pt.ulisboa.tecnico.hdsledger.shared.crypto;
 
-import pt.ulisboa.tecnico.hdsledger.shared.exception.ErrorMessage;
-import pt.ulisboa.tecnico.hdsledger.shared.exception.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.shared.SerializationUtils;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.shared.exception.HDSSException;
 
 import java.io.File;
 import java.io.IOException;

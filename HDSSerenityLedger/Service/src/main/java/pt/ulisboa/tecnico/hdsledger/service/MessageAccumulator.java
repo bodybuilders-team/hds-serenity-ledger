@@ -30,49 +30,14 @@ public class MessageAccumulator {
         accumulatedMessages.add(request);
     }
 
+    /**
+     * Checks if there are enough requests to create a block.
+     *
+     * @return true if there are enough requests, false otherwise
+     */
     public boolean enoughRequests() {
         return accumulatedMessages.size() >= TRANSACTION_THRESHOLD;
     }
-
-    /*
-    To start a timer and not restart it if it is already running. The way we still have above makes it
-    so that the timer is restarted upon a new request being added to the accumulator.
-    Is this the expected behavior?
-    Each new request may come faster than the DELAY, restarting the timer, until the THRESHOLD is reached.
-    (this basically means that DELAY is equal to the total max time tolerated to be waited divided by the threshold)
-    DELAY = maxTime / THRESHOLD
-
-    ---------------------------------------------------------------------
-    The code below makes it so that the timer is only started once, and any new requests that come before it expires
-    are still added, but any others that come after are not included in the same block.
-
-    public synchronized Optional<Block> getBlock(Consumer<Block> onTimerElapsed) {
-        synchronized (timer) {
-            if (timerElapsed) {
-                timerElapsed = false;
-                timer.startTimer(new TimerTask() {
-                    @Override
-                    public void run() {
-                        var block = getBlock();
-
-                        block.ifPresent(onTimerElapsed);
-                        synchronized (timer) {
-                            timerElapsed = true;
-                        }
-                    }
-                }, DELAY);
-            }
-        }
-
-        if (accumulatedMessages.size() < TRANSACTION_THRESHOLD)
-            return Optional.empty();
-
-        timer.stopTimer();
-        timerElapsed = true;
-
-        return getBlock();
-    }
-    * */
 
     /**
      * Gets a block of requests.
@@ -104,5 +69,4 @@ public class MessageAccumulator {
     public void remove(SignedLedgerRequest request) {
         accumulatedMessages.remove(request);
     }
-
 }

@@ -11,7 +11,6 @@ import pt.ulisboa.tecnico.hdsledger.shared.communication.ledger_message.SignedLe
 import pt.ulisboa.tecnico.hdsledger.shared.config.ClientProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.NodeProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.shared.config.ProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.shared.logger.ProcessLogger;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -25,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Ledger {
 
-    private final ProcessLogger logger;
     public static final double FEE = 0.01;
 
     // PublicKey -> Account
@@ -42,7 +40,6 @@ public class Ledger {
         this.clientsConfig = clientsConfig;
         this.nodeId = config.getId();
         this.config = config;
-        this.logger = new ProcessLogger(Ledger.class.getName(), nodeId);
 
         // Initialize accounts for both clients and nodes
         for (var clientConfig : clientsConfig)
@@ -73,9 +70,8 @@ public class Ledger {
                 final Account blockCreator = accounts.get(block.getCreatorId());
 
                 var fee = transferRequest.getAmount() * FEE;
-                if (this.nodeId.equals(block.getCreatorId()) && this.config.getBehavior() == ProcessConfig.ProcessBehavior.ROBBER_LEADER) {
+                if (this.nodeId.equals(block.getCreatorId()) && this.config.getBehavior() == ProcessConfig.ProcessBehavior.ROBBER_LEADER)
                     fee = transferRequest.getAmount() * (FEE * 2);
-                }
 
                 sender.subtractBalance(transferRequest.getAmount() + fee);
                 receiver.addBalance(transferRequest.getAmount());

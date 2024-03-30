@@ -41,7 +41,7 @@ public class ProcessConfig {
         CORRUPT_LEADER,                     // Leader sends different messages to different nodes
         QUIET_LEADER,                       // Leader does not broadcast pre-prepare messages
         BULLY_LEADER,                       // Leader does not include txs from a specific client in the block
-        ROBBER_LEADER,                      // Leader charges a greater fee than the one agreed // TODO - Implement
+        ROBBER_LEADER,                      // Leader charges a greater fee than the one agreed
     }
 }
 

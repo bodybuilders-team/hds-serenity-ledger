@@ -36,12 +36,11 @@ public class NodeService implements UDPService {
     // Expire time for the round-change timer
     private static final long ROUND_CHANGE_TIMER_EXPIRE_TIME = 7000;
     private static final int STARTING_ROUND = 1;
-
+    public final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
     private final ProcessLogger logger;
     private final MessageAccumulator messageAccum;
     private final NodeProcessConfig[] nodesConfig; // All nodes configuration
     private final NodeProcessConfig config; // Current node configuration
-
     // Link to communicate with nodes
     private final AuthenticatedPerfectLink authenticatedPerfectLinkNode;
     // Link to communicate with clients
@@ -58,10 +57,7 @@ public class NodeService implements UDPService {
     private final Map<Integer, Map<Integer, Boolean>> receivedRoundChangeQuorum = new ConcurrentHashMap<>();
     // Consensus instance information per consensus instance
     private final Map<Integer, InstanceInfo> instanceInfo = new ConcurrentHashMap<>();
-
     private final AtomicInteger lastProposedConsensusInstance = new AtomicInteger(0);
-    public final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
-
     // Timers for the consensus instances, triggering round-change
     private final Map<Integer, MultiThreadTimer> timers = new ConcurrentHashMap<>();
     // Lock objects for prepare messages
@@ -789,7 +785,7 @@ public class NodeService implements UDPService {
                         preparedRound = instance.getPreparedRound();
                         preparedValue = instance.getPreparedValue();
                     }
-                    
+
                     final ConsensusMessage messageToBroadcast = ConsensusMessage.builder()
                             .senderId(config.getId())
                             .type(Message.Type.ROUND_CHANGE)
