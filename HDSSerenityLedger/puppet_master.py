@@ -7,13 +7,17 @@ server_configs = [
     "crash-node-config-10s.json",
     "leader-impersonation-node-config.json",
     "non-leader-start-consensus-node-config.json",
-    "differential-broadcasting-node-config.json",
+    "corrupt-broadcasting-node-config.json",
     "corrupt-leader-node-config.json",
+    "quiet-leader-node-config.json",
+    "bully-leader-node-config.json",
+    "robber-leader-node-config.json",
 ]
 
 # Blockchain client configuration file name
 client_configs = [
     "regular-client-config.json",
+    "robber-client-config.json",
 ]
 
 server_config = server_configs[6]
@@ -55,9 +59,9 @@ if os.name == "nt":
     with open(f"Client/src/main/resources/{client_config}") as f:
         data = json.load(f)
         for key in data:
-            has_script = "scriptPath" in key
+            use_script = "useScript" in key and key["useScript"]
             process = subprocess.Popen(
-                f'start "{terminal}" /wait cmd /c "cd Client && mvn exec:java -Dexec.args=\"{key["id"]} {client_config} {server_config} {"-script" if has_script else ""}"',
+                f'start "{terminal}" /wait cmd /c "cd Client && mvn exec:java -Dexec.args=\"{key["id"]} {client_config} {server_config} {"-script" if use_script else ""}"',
                 shell=True,
             )
             terminal_pids.append(process.pid)

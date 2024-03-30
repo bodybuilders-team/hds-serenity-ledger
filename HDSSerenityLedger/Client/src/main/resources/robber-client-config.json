@@ -3,7 +3,7 @@
     "id": "101",
     "hostname": "localhost",
     "port": 4001,
-    "scriptPath": "script_sample-101.txt",
+    "scriptPath": "robber-script_sample-101.txt",
     "useScript": true,
     "privateKeyPath": "../keypairs/client_1/private_key.der",
     "publicKeyPath": "../keypairs/client_1/public_key.der",

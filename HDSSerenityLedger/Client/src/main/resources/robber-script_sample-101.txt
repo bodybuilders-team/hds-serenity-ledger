@@ -1,0 +1,19 @@
+<transfer, 102, 101, 50>
+<sleep, 5000>
+<balance, 101>
+<sleep, 3000>
+<transfer, 102, 101, 1>
+<transfer, 102, 101, 2>
+<transfer, 102, 101, 3>
+<transfer, 102, 101, 4>
+<transfer, 102, 101, 5>
+<transfer, 102, 101, 6>
+<transfer, 102, 101, 7>
+<sleep, 10000>
+<balance, 101>
+<sleep, 3000>
+<transfer, 102, 101, 1>
+<transfer, 102, 101, 2>
+<transfer, 102, 101, 3>
+<sleep, 5000>
+<balance, 101>

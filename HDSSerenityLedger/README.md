@@ -3,7 +3,7 @@
 ## Introduction
 
 HDS Serenity Ledger is a project aimed at developing a simplified permissioned (closed membership) blockchain system
-with high dependability guarantees, known as HDS Serenity (HDS2). The system is designed to utilize the **Istanbul BFT**
+with high dependability guarantees, known as HDS Serenity (HDS²). The system is designed to utilize the **Istanbul BFT**
 Consensus Algorithm for achieving consensus among blockchain members.
 
 > Highly Dependable Systems project of group 12 - MEIC @ IST 2023/2024.
