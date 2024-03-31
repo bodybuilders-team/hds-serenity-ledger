@@ -21,13 +21,15 @@ public class LedgerCheckBalanceRequest extends LedgerRequest {
 
     /**
      * Verifies the signature of the request.
-     * A signature is valid if it was signed by the source account.
+     * A signature is valid if it was signed by the requester account.
+     * <p>
+     * Signature is verified not for safety issues, but to ensure non-repudiation.
      *
      * @param signature     the signature to verify
      * @param clientsConfig the clients configuration
      * @return {@code true} if the signature is valid, {@code false} otherwise
      */
     public boolean verifySignature(byte[] signature, ClientProcessConfig[] clientsConfig) {
-        return CryptoUtils.verifySignature(this, requesterId, signature, clientsConfig);
+        return CryptoUtils.verifySignature(this, this.getRequesterId(), signature, clientsConfig);
     }
 }

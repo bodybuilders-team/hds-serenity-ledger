@@ -24,6 +24,8 @@ public class LedgerTransferRequest extends LedgerRequest {
     /**
      * Verifies the signature of the request.
      * A signature is valid if it was signed by the source account.
+     * <p>
+     * Signature is verified for safety, since a transfer can only be made by the source account owner.
      *
      * @param signature     the signature to verify
      * @param clientsConfig the clients configuration

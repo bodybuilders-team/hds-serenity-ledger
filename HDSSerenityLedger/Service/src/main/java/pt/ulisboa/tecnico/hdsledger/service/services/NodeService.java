@@ -341,7 +341,7 @@ public class NodeService implements UDPService {
 
                 // TODO Change to normal broadcast instead of sending only to those who sent prepare messages (needs ACK to be sent in all messages, though)
 
-                logger.info(MessageFormat.format("Received quorum of PREPARE({0}, {1}, {2}). Broadcasting COMMIT({0}, {1}, \u001B[36m{2}\u001B[37m)", consensusInstance, round, preparedValue.get()));
+                logger.info(MessageFormat.format("Received quorum of PREPARE({0}, {1}, {2}). Broadcasting COMMIT({0}, {1}, {2})", consensusInstance, round, preparedValue.get()));
 
                 prepareMessages.getMessages(consensusInstance, round).values().forEach(senderSignedMessage -> {
                     ConsensusMessage senderMessage = (ConsensusMessage) senderSignedMessage.getMessage();
@@ -499,12 +499,12 @@ public class NodeService implements UDPService {
             logger.info(MessageFormat.format("Received {0} from node {1} but already decided for Consensus Instance {2}, sending the quorum of COMMIT back to sender", message, message.getSenderId(), consensusInstance));
 
             commitMessages.getValidCommitQuorumMessages(consensusInstance, instance.getDecidedRound()).ifPresent(commitQuorumMessages ->
-                    commitQuorumMessages.forEach(commitQuorumSignedMessage -> {
-                        this.authenticatedPerfectLinkNode.sendSignedMessage(
-                                message.getSenderId(),
-                                commitQuorumSignedMessage
-                        );
-                    }));
+                    commitQuorumMessages.forEach(commitQuorumSignedMessage ->
+                            this.authenticatedPerfectLinkNode.sendSignedMessage(
+                                    message.getSenderId(),
+                                    commitQuorumSignedMessage
+                            )
+                    ));
 
             return;
         }

@@ -1,6 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.shared.logger;
 
-import java.text.MessageFormat;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
@@ -113,12 +113,22 @@ class CustomLog extends Formatter {
         }
         String originalMessage = record.getMessage();
 
-        Pattern enclosingEscapeColorPattern = Pattern.compile("((\\u001B\\[[0-9]+(;[0-9]+)?m){1}.*?(\\u001B\\[37m){1})");
-        Pattern escapeColorPattern = Pattern.compile("(\\u001B\\[[0-9]+(;[0-9]+)?m)");
+        StringBuilder formattedMessage = buildColorFormattedMessaged(originalMessage);
 
-        // Define regex pattern to capture words and numbers
-        // Pattern pattern = Pattern.compile("([a-zA-Z-]+)|([0-9]+)|(\".*\")|(\\u001B\\[[0-9]+(;[0-9]+)?m)");
-        Pattern pattern = Pattern.compile(MessageFormat.format("(node [0-9a-zA-Z]+)|([a-zA-Z-]+)|([0-9]+)|(\".*\")|{0}", enclosingEscapeColorPattern.pattern()));
+        return "\u001B[37;1m" + formattedMessage + '\n';
+    }
+
+    private static StringBuilder buildColorFormattedMessaged(String originalMessage) {
+        Pattern wordPattern = Pattern.compile("[a-zA-Z-]+");
+        Pattern numberPattern = Pattern.compile("[0-9]+");
+        Pattern quotedStringPattern = Pattern.compile("\".*?\"");
+        Pattern nodePattern = Pattern.compile("node [0-9a-zA-Z]+");
+
+        Pattern enclosingEscapeColorPattern = Pattern.compile("(\\u001B\\[[0-9]+(;[0-9]+)?m).*?(\\u001B\\[37m)");
+
+        // Define regex pattern to capture all specified tokens
+        Pattern pattern = getCombinedPattern(List.of(wordPattern, numberPattern, quotedStringPattern, nodePattern, enclosingEscapeColorPattern));
+
         Matcher matcher = pattern.matcher(originalMessage);
 
         StringBuilder formattedMessage = new StringBuilder();
@@ -134,15 +144,15 @@ class CustomLog extends Formatter {
             formattedMessage.append(originalMessage, lastEnd, start);
 
             // Apply color based on the type of token
-            if (word.matches("[a-zA-Z-]+")) { // Word
+            if (word.matches(wordPattern.pattern())) {
                 if (greenWords.contains(word)) {
                     word = "\u001B[32m" + word + "\u001B[37m"; // Green
                 }
-            } else if (word.matches("[0-9]+")) { // Number
+            } else if (word.matches(numberPattern.pattern())) {
                 word = "\u001B[34m" + word + "\u001B[37m"; // Blue
-            } else if (word.matches("\".*\"")) { // Quoted string
+            } else if (word.matches(quotedStringPattern.pattern())) {
                 word = "\u001B[33m" + word + "\u001B[37m"; // Yellow
-            } else if (word.matches("node [0-9a-zA-Z]+")) {
+            } else if (word.matches(nodePattern.pattern())) {
                 word = "node " + "\u001B[33m" + word.substring(5) + "\u001B[37m"; // Yellow
             }
 
@@ -151,8 +161,18 @@ class CustomLog extends Formatter {
         }
 
         formattedMessage.append(originalMessage, lastEnd, originalMessage.length());
+        return formattedMessage;
+    }
 
-        return "\u001B[37;1m" + formattedMessage + '\n';
+    public static Pattern getCombinedPattern(List<Pattern> patterns) {
+        StringBuilder patternBuilder = new StringBuilder();
+        for (int i = 0; i < patterns.size(); i++) {
+            patternBuilder.append("(").append(patterns.get(i).pattern()).append(")");
+            if (i != patterns.size() - 1) {
+                patternBuilder.append("|");
+            }
+        }
+        return Pattern.compile(patternBuilder.toString());
     }
 }
 

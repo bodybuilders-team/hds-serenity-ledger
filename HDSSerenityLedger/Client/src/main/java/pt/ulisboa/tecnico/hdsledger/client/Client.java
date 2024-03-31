@@ -165,7 +165,7 @@ public class Client {
         System.out.println("""
                 \u001B[33m\u001B[1mAvailable commands:\u001B[21m\u001B[24m
                     \u001B[32mbalance <account_id>\u001B[0m                                             Check the balance of an account
-                    \u001B[32mtransfer <source_account_id> <destination_account_id> <amount>\u001B[0m   Transfer an amount from one account to another (fee is applied)
+                    \u001B[32mtransfer <source_account_id> <destination_account_id> <amount>\u001B[0m   Transfer an amount from one account to another (fee of 0.01% is applied)
                     \u001B[32mexit\u001B[0m                                                             Exit the client
                     \u001B[32mhelp\u001B[0m                                                             Show this help message
                 """

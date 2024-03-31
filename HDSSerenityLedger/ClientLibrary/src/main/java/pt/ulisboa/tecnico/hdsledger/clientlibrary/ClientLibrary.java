@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ClientLibrary implements UDPService {
 
     private static final boolean AUTHENTICATED_PERFECT_LINK_LOGS_ENABLED = false;
+    public static final double FEE = 0.01;
+
     private final ProcessLogger logger;
     private final ClientProcessConfig clientConfig;
     private final ProcessConfig[] clientsConfig;
@@ -109,7 +111,7 @@ public class ClientLibrary implements UDPService {
      * @param amount               the amount to transfer
      */
     public void transfer(String sourceAccountId, String destinationAccountId, double amount) {
-        logger.info(MessageFormat.format("Transferring \u001B[33m{0} HDC\u001B[37m from account \u001B[33m{1}\u001B[37m to account \u001B[33m{2}\u001B[37m...", amount, sourceAccountId, destinationAccountId));
+        logger.info(MessageFormat.format("Transferring \u001B[33m{0} HDC (+{1} HDC fee, 0.01%)\u001B[37m from account \u001B[33m{2}\u001B[37m to account \u001B[33m{3}\u001B[37m...", amount, amount * FEE, sourceAccountId, destinationAccountId));
 
         try {
             final var transferRequest = LedgerTransferRequest.builder()

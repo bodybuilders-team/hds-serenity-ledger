@@ -57,7 +57,6 @@ public class MessageAccumulator {
 
         block.setCreatorId(config.getId());
 
-
         return block;
     }
 
