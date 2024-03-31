@@ -56,7 +56,8 @@ Each node has a configuration object that contains the following fields:
   "clientPort": "<CLIENT_PORT>",
   "privateKeyPath": "<PRIVATE_KEY_PATH>",
   "publicKeyPath": "<PUBLIC_KEY_PATH>",
-  "behavior": "<NODE_BEHAVIOR>"//,
+  "behavior": "<NODE_BEHAVIOR>"
+  //,
   //["crashTimeout": "<CRASH_TIMEOUT>"]
 }
 ```
@@ -170,6 +171,15 @@ mvn compile exec:java -Dexec.args="..."
 
 To test the Byzantine scenarios, you can use the `puppet-master.py` script to run the nodes and clients with different
 configurations.
+
+To run the tests, change the following lines:
+
+```python
+server_config = server_configs[0]
+client_config = client_configs[0]
+```
+
+with the corresponding config indexes.
 
 Each client/node has a `behavior` field that can be used to define the behavior of the client/node.
 
