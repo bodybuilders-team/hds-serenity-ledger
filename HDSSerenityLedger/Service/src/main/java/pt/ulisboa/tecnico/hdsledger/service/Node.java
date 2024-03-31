@@ -20,7 +20,7 @@ import java.util.TimerTask;
 public class Node {
 
     private static final boolean ACTIVATE_AUTHENTICATED_LINK_NODE_LOGGING = true;
-    private static final boolean ACTIVATE_AUTHENTICATED_LINK_CLIENT_LOGGING = true;
+    private static final boolean ACTIVATE_AUTHENTICATED_LINK_CLIENT_LOGGING = false;
     // Hardcoded path to files
     private static String nodesConfigPath = "src/main/resources/";
     private static String clientsConfigPath = "../Client/src/main/resources/";

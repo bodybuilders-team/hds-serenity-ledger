@@ -29,6 +29,8 @@ public class Ledger {
     // PublicKey -> Account
     @Getter
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();
+    @Getter
+    private final List<Block> blockchain = new ArrayList<>();
 
     @Getter
     private final HashSet<SignedLedgerRequest> requests = new HashSet<>();
@@ -57,6 +59,8 @@ public class Ledger {
      * @return the responses to the requests in the block
      */
     public List<LedgerResponse> addBlock(Block block) {
+        blockchain.add(block);
+
         var responses = new ArrayList<LedgerResponse>();
 
         for (var request : block.getRequests()) {
@@ -76,7 +80,6 @@ public class Ledger {
                 sender.subtractBalance(transferRequest.getAmount() + fee);
                 receiver.addBalance(transferRequest.getAmount());
                 blockCreator.addBalance(fee);
-
 
                 responses.add(LedgerResponse.builder()
                         .senderId(nodeId)
