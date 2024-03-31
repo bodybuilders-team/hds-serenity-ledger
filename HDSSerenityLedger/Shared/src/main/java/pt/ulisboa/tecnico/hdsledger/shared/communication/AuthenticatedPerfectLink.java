@@ -316,33 +316,16 @@ public class AuthenticatedPerfectLink {
             return signedMessage;
         }
 
-        Type originalType = message.getType();
-
         // Message already received (add returns false if already exists) => Discard
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
         if (isRepeated)
             message.setType(Type.IGNORE);
 
         switch (message.getType()) {
-            case PRE_PREPARE -> {
-                return signedMessage;
-            }
-            case IGNORE -> {
-                if (!originalType.equals(Type.COMMIT) && !originalType.equals(Type.ROUND_CHANGE)) {
-                    return signedMessage;
-                }
-            }
-            case PREPARE -> {
+            case PREPARE, COMMIT -> {
                 ConsensusMessage consensusMessage = (ConsensusMessage) message;
                 if (consensusMessage.getReplyTo() != null && consensusMessage.getReplyTo().equals(config.getId()))
                     receivedAcks.add(consensusMessage.getReplyToMessageId());
-
-                return signedMessage;
-            }
-            case COMMIT -> {
-                ConsensusMessage consensusMessageDto = (ConsensusMessage) message;
-                if (consensusMessageDto.getReplyTo() != null && consensusMessageDto.getReplyTo().equals(config.getId()))
-                    receivedAcks.add(consensusMessageDto.getReplyToMessageId());
             }
             default -> {
                 // Do nothing
