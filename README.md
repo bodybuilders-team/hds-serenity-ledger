@@ -1,8 +1,10 @@
-# ist-meic-sec-g12
+# hds-serenity-ledger
+
+> Welcome to **HDS² Serenity Ledger**, a simplified permissioned blockchain system designed with high dependability guarantees. 🚀
 
 > Highly Dependable Systems project of group 12 - MEIC @ IST 2023/2024.
 
-Click [here](./HDSSerenityLedger/README.md) to see the project's documentation.
+Explore the detailed documentation of the project [here](./HDSSerenityLedger/README.md).
 
 ## Authors
 
